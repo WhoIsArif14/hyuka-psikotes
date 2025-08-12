@@ -1,0 +1,48 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Dashboard') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 md:p-8 text-gray-900">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Pilih Tes yang Tersedia</h3>
+
+                    {{-- Grid untuk menampilkan kartu tes --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @forelse ($tests as $test)
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md flex flex-col">
+                                <div class="p-5 flex-grow">
+                                    <span class="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">{{ $test->category->name }}</span>
+                                    <h5 class="mt-3 mb-2 text-xl font-bold tracking-tight text-gray-900">{{ $test->title }}</h5>
+                                    <p class="mb-3 font-normal text-gray-700">{{ Str::limit($test->description, 100) }}</p>
+                                </div>
+                                <div class="p-5 bg-white border-t border-gray-200 rounded-b-lg flex justify-between items-center">
+                                     <span class="text-sm font-medium text-gray-600">
+                                        🕒 {{ $test->duration_minutes }} Menit
+                                    </span>
+                                    <a href="{{ route('tests.show', $test) }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
+                                        Mulai Kerjakan
+                                    </a>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12">
+                                <p class="text-gray-500 text-lg">Saat ini belum ada tes yang tersedia.</p>
+                            </div>
+                        @endforelse
+                    </div>
+
+                    {{-- Link Paginasi --}}
+                    <div class="mt-8">
+                        {{ $tests->links() }}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</x-app-layout>
