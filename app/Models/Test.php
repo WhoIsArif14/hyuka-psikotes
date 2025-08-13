@@ -37,4 +37,9 @@ class Test extends Model
     {
         return $this->hasMany(TestResult::class);
     }
+
+    public function interpretationRules(): HasMany
+    {
+        return $this->hasMany(InterpretationRule::class)->orderBy('min_score', 'asc');
+    }
 }

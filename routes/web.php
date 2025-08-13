@@ -10,25 +10,19 @@ use App\Http\Controllers\Admin\OptionController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\TestCategoryController;
 use App\Http\Controllers\Admin\TestController;
+use App\Http\Controllers\Admin\InterpretationRuleController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 // Middleware
 use App\Http\Middleware\IsAdmin;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
 
 // Rute Halaman Utama
 Route::get('/', function () {
     return view('welcome');
 });
 
-// =====================================================================
-// == GRUP RUTE UNTUK PENGGUNA TERAUTENTIKASI (USER BIASA & ADMIN) ==
-// =====================================================================
+// Grup Rute untuk Pengguna Terautentikasi
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard (menampilkan daftar tes)
+    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Profile
@@ -40,23 +34,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
     Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
     Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
+
+    // Rute Baru untuk Riwayat Tes
+    Route::get('my-results', [DashboardController::class, 'history'])->name('tests.history');
 });
 
-// =====================================================================
-// == GRUP RUTE KHUSUS UNTUK PANEL ADMIN ==
-// =====================================================================
+// Grup Rute Khusus untuk Panel Admin
 Route::middleware(['auth', IsAdmin::class])
      ->prefix('admin')
      ->name('admin.')
      ->group(function () {
-        
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');    
     Route::resource('categories', TestCategoryController::class);
     Route::resource('tests', TestController::class);
     Route::resource('tests.questions', QuestionController::class)->shallow();
     Route::post('questions/{question}/options', [OptionController::class, 'store'])->name('questions.options.store');
     Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
+    Route::resource('tests.rules', InterpretationRuleController::class)->except(['show']);
 });
-
 
 // Rute Autentikasi Bawaan Laravel Breeze
 require __DIR__.'/auth.php';

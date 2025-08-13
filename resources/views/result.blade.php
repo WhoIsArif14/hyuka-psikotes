@@ -24,6 +24,17 @@
                         </p>
                     </div>
 
+                    {{-- BAGIAN BARU: TAMPILKAN INTERPRETASI --}}
+                    @if ($interpretation)
+                        <div class="mt-8 text-left bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
+                            <h4 class="font-bold text-purple-800">Interpretasi Hasil:</h4>
+                            <p class="mt-1 text-purple-700">
+                                {{ $interpretation->interpretation_text }}
+                            </p>
+                        </div>
+                    @endif
+                    {{-- ====================================== --}}
+
                     <div class="mt-10">
                         <p class="text-gray-600">Terima kasih telah berpartisipasi. Anda dapat melihat riwayat pengerjaan tes di halaman dashboard Anda.</p>
                         <a href="{{ route('dashboard') }}" class="mt-4 inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">

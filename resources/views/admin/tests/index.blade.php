@@ -46,9 +46,11 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        {{-- PERUBAHAN ADA DI BAGIAN BAWAH INI --}}
+                                        {{-- BARIS KODE YANG DIPERBARUI --}}
                                         <div class="flex justify-end items-center space-x-4">
-                                            <a href="{{ route('admin.tests.questions.index', $test) }}" class="text-green-600 hover:text-green-900 font-semibold">Kelola Soal</a>
+                                            <a href="{{ route('admin.tests.rules.index', $test) }}" class="text-purple-600 hover:text-purple-900 font-semibold">Interpretasi</a>
+                                            <a href="{{ route('admin.tests.results', $test) }}" class="text-blue-600 hover:text-blue-900">Lihat Hasil</a>
+                                            <a href="{{ route('admin.tests.questions.index', $test) }}" class="text-green-600 hover:text-green-900">Kelola Soal</a>
                                             <a href="{{ route('admin.tests.edit', $test) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                             <form method="POST" action="{{ route('admin.tests.destroy', $test) }}" onsubmit="return confirm('Anda yakin ingin menghapus tes ini?');" class="inline">
                                                 @csrf

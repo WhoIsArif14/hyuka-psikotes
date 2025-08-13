@@ -8,6 +8,7 @@ use App\Models\TestResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\InterpretationRule;
 
 class UserTestController extends Controller
 {
@@ -79,6 +80,14 @@ class UserTestController extends Controller
         // Ambil relasi test untuk menampilkan judul tes
         $testResult->load('test');
 
-        return view('results', compact('testResult'));
+        // === BAGIAN BARU: MENCARI INTERPRETASI ===
+        $interpretation = InterpretationRule::where('test_id', $testResult->test_id)
+            ->where('min_score', '<=', $testResult->score)
+            ->where('max_score', '>=', $testResult->score)
+            ->first();
+        // =========================================
+
+        // Kirim data hasil tes dan interpretasinya ke view
+        return view('results', compact('testResult', 'interpretation'));
     }
 }
