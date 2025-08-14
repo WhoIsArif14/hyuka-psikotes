@@ -7,6 +7,12 @@ use App\Models\Test;
 use App\Models\TestCategory;
 use Illuminate\Http\Request;
 
+// --- TAMBAHKAN USE STATEMENT DI BAWAH INI ---
+use App\Models\TestResult;
+use App\Exports\TestResultsExport;
+use Maatwebsite\Excel\Facades\Excel;
+// -------------------------------------------
+
 class TestController extends Controller
 {
     /**
@@ -14,7 +20,6 @@ class TestController extends Controller
      */
     public function index()
     {
-        // Ambil data tes dengan relasi kategori, urutkan dari terbaru, dan paginasi
         $tests = Test::with('category')->latest()->paginate(10);
         return view('admin.tests.index', compact('tests'));
     }
@@ -24,7 +29,6 @@ class TestController extends Controller
      */
     public function create()
     {
-        // Ambil semua kategori untuk ditampilkan di dropdown
         $categories = TestCategory::all();
         return view('admin.tests.create', compact('categories'));
     }
@@ -68,7 +72,6 @@ class TestController extends Controller
             'is_published' => 'nullable|boolean',
         ]);
 
-        // Siapkan data update, termasuk menangani checkbox
         $data = $request->all();
         $data['is_published'] = $request->has('is_published');
 
@@ -84,5 +87,28 @@ class TestController extends Controller
     {
         $test->delete();
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil dihapus.');
+    }
+    
+    // === METHOD BARU UNTUK MELIHAT HASIL TES ===
+    /**
+     * Menampilkan hasil tes untuk tes tertentu.
+     */
+    public function results(Test $test)
+    {
+        $results = $test->testResults()->with('user')->latest()->paginate(15);
+        return view('admin.tests.results', compact('test', 'results'));
+    }
+
+    // === METHOD BARU UNTUK EKSPOR KE EXCEL ===
+    /**
+     * Mengekspor hasil tes ke file Excel.
+     */
+    public function export(Test $test)
+    {
+        // Membuat nama file yang dinamis, contoh: hasil-tes-logika-dasar.xlsx
+        $fileName = 'hasil-' . \Illuminate\Support\Str::slug($test->title) . '.xlsx';
+        
+        // Memanggil class export yang sudah kita buat dan memulai unduhan
+        return Excel::download(new TestResultsExport($test), $fileName);
     }
 }

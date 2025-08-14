@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             Kelola Interpretasi untuk: <span class="text-purple-600">{{ $test->title }}</span>
@@ -56,4 +56,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

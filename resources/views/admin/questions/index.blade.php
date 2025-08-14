@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             Kelola Soal untuk: <span class="text-blue-600">{{ $test->title }}</span>
@@ -100,4 +100,4 @@
             @endforelse
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>
