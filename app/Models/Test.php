@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+
 class Test extends Model
 {
     use HasFactory;
@@ -41,5 +42,10 @@ class Test extends Model
     public function interpretationRules(): HasMany
     {
         return $this->hasMany(InterpretationRule::class)->orderBy('min_score', 'asc');
+    }
+
+    public function jenjang(): BelongsTo
+    {
+        return $this->belongsTo(Jenjang::class);
     }
 }

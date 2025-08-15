@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\TestCategoryController;
 use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\JenjangController;
+
 // Middleware
 use App\Http\Middleware\IsAdmin;
 
@@ -51,6 +53,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
         Route::resource('tests.rules', InterpretationRuleController::class)->except(['show']);
         Route::resource('users', UserController::class)->except(['create', 'store']);
+        Route::resource('jenjangs', JenjangController::class)->except(['show']);
 });
 
 // Rute Autentikasi Bawaan Laravel Breeze

@@ -20,7 +20,12 @@ class TestController extends Controller
      */
     public function index()
     {
-        $tests = Test::with('category')->latest()->paginate(10);
+        // TAMBAHKAN withCount('questions') DI SINI
+        $tests = Test::with('category')
+            ->withCount('questions') // Menghitung jumlah relasi 'questions'
+            ->latest()
+            ->paginate(10);
+
         return view('admin.tests.index', compact('tests'));
     }
 
@@ -88,7 +93,7 @@ class TestController extends Controller
         $test->delete();
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil dihapus.');
     }
-    
+
     // === METHOD BARU UNTUK MELIHAT HASIL TES ===
     /**
      * Menampilkan hasil tes untuk tes tertentu.
@@ -107,7 +112,7 @@ class TestController extends Controller
     {
         // Membuat nama file yang dinamis, contoh: hasil-tes-logika-dasar.xlsx
         $fileName = 'hasil-' . \Illuminate\Support\Str::slug($test->title) . '.xlsx';
-        
+
         // Memanggil class export yang sudah kita buat dan memulai unduhan
         return Excel::download(new TestResultsExport($test), $fileName);
     }

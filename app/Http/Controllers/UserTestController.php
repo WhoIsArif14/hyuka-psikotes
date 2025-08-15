@@ -77,17 +77,20 @@ class UserTestController extends Controller
             abort(403, 'AKSES DITOLAK');
         }
 
-        // Ambil relasi test untuk menampilkan judul tes
-        $testResult->load('test');
+        // --- PERBARUI BAGIAN INI ---
+        // Muat semua relasi yang dibutuhkan dalam satu query
+        $testResult->load([
+            'test.questions.options', // Soal & semua pilihan jawabannya
+            'userAnswers.option' // Jawaban yang dipilih pengguna
+        ]);
 
-        // === BAGIAN BARU: MENCARI INTERPRETASI ===
+        // Cari interpretasi
         $interpretation = InterpretationRule::where('test_id', $testResult->test_id)
             ->where('min_score', '<=', $testResult->score)
             ->where('max_score', '>=', $testResult->score)
             ->first();
-        // =========================================
 
-        // Kirim data hasil tes dan interpretasinya ke view
+        // Kirim data ke view
         return view('results', compact('testResult', 'interpretation'));
     }
 }

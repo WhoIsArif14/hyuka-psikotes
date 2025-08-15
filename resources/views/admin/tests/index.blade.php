@@ -27,6 +27,8 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul Tes</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                                {{-- KOLOM BARU DITAMBAHKAN DI SINI --}}
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Soal</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi (Menit)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
@@ -37,6 +39,8 @@
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $test->title }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $test->category->name }}</td>
+                                    {{-- DATA BARU DITAMPILKAN DI SINI --}}
+                                    <td class="px-6 py-4 whitespace-nowrap font-medium">{{ $test->questions_count }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $test->duration_minutes }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if ($test->is_published)
@@ -46,7 +50,6 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        {{-- BARIS KODE YANG DIPERBARUI --}}
                                         <div class="flex justify-end items-center space-x-4">
                                             <a href="{{ route('admin.tests.rules.index', $test) }}" class="text-purple-600 hover:text-purple-900 font-semibold">Interpretasi</a>
                                             <a href="{{ route('admin.tests.results', $test) }}" class="text-blue-600 hover:text-blue-900">Lihat Hasil</a>
@@ -62,7 +65,8 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-4 whitespace-nowrap text-center text-gray-500">
+                                    {{-- COLSPAN DIUBAH MENJADI 7 --}}
+                                    <td colspan="7" class="px-6 py-4 whitespace-nowrap text-center text-gray-500">
                                         Belum ada data tes.
                                     </td>
                                 </tr>
