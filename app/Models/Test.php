@@ -19,6 +19,8 @@ class Test extends Model
         'description',
         'duration_minutes',
         'is_published',
+        'available_from',
+        'available_to',
     ];
 
     // RELASI: Satu Test dimiliki oleh satu TestCategory

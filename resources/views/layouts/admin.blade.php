@@ -25,7 +25,10 @@
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-700' : '' }}">
                     Dashboard
                 </a>
-                {{-- LINK BARU DITAMBAHKAN DI SINI --}}
+                <a href="{{ route('admin.peserta.index') }}"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.peserta.*') ? 'bg-gray-700' : '' }}">
+                    Data Peserta
+                </a>
                 <a href="{{ route('admin.users.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.users.*') ? 'bg-gray-700' : '' }}">
                     Manajemen Pengguna
@@ -33,6 +36,10 @@
                 <a href="{{ route('admin.categories.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.categories.*') ? 'bg-gray-700' : '' }}">
                     Manajemen Kategori
+                </a>
+                <a href="{{ route('admin.jenjangs.index') }}"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.jenjangs.*') ? 'bg-gray-700' : '' }}">
+                    Manajemen Jenjang
                 </a>
                 <a href="{{ route('admin.tests.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.tests.*') ? 'bg-gray-700' : '' }}">

@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\TestCategoryController;
 use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\JenjangController;
+use App\Http\Controllers\Admin\PesertaController;
 
 // Middleware
 use App\Http\Middleware\IsAdmin;
@@ -54,6 +55,9 @@ Route::middleware(['auth', IsAdmin::class])
         Route::resource('tests.rules', InterpretationRuleController::class)->except(['show']);
         Route::resource('users', UserController::class)->except(['create', 'store']);
         Route::resource('jenjangs', JenjangController::class)->except(['show']);
+         Route::get('peserta', [PesertaController::class, 'index'])->name('peserta.index');
+        Route::get('peserta/{user}', [PesertaController::class, 'show'])->name('peserta.show');
+        Route::delete('peserta/{user}', [PesertaController::class, 'destroy'])->name('peserta.destroy');
 });
 
 // Rute Autentikasi Bawaan Laravel Breeze
