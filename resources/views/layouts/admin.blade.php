@@ -8,14 +8,17 @@
 
     <title>{{ config('app.name', 'Laravel') }} - Admin</title>
 
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+    <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="font-sans antialiased">
     <div class="min-h-screen bg-gray-100 flex">
+        <!-- Sidebar Navigasi Admin -->
         <aside class="w-64 bg-gray-800 text-white flex-shrink-0">
             <div class="p-4 text-2xl font-bold">
                 <a href="{{ route('admin.dashboard') }}">Hyuka Admin</a>
@@ -33,6 +36,10 @@
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.users.*') ? 'bg-gray-700' : '' }}">
                     Manajemen Pengguna
                 </a>
+                <a href="{{ route('admin.clients.index') }}"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.clients.*') ? 'bg-gray-700' : '' }}">
+                    Manajemen Klien
+                </a>
                 <a href="{{ route('admin.categories.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.categories.*') ? 'bg-gray-700' : '' }}">
                     Manajemen Kategori
@@ -45,9 +52,14 @@
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.tests.*') ? 'bg-gray-700' : '' }}">
                     Manajemen Tes
                 </a>
+                <a href="{{ route('admin.wizard.step1') }}"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.wizard.*') ? 'bg-gray-700' : '' }}">
+                    Buat Sesi Tes
+                </a>
             </nav>
         </aside>
 
+        <!-- Konten Utama -->
         <div class="flex-1 flex flex-col">
             <header class="bg-white shadow-md p-4 flex justify-between items-center">
                 <div>
@@ -71,11 +83,16 @@
                             </button>
                         </x-slot>
                         <x-slot name="content">
-                            <x-dropdown-link :href="route('profile.edit')">{{ __('Profile') }}</x-dropdown-link>
-                            <form method="POST" action="{{ route('logout') }}">
+                            {{-- PERBAIKAN ADA DI BARIS DI BAWAH INI --}}
+                            <x-dropdown-link :href="route('admin.profile.edit')">{{ __('Profile') }}</x-dropdown-link>
+
+                            <!-- Authentication -->
+                            <form method="POST" action="{{ route('logout.admin') }}">
                                 @csrf
-                                <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault(); this.closest('form').submit();">{{ __('Log Out') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('logout.admin')"
+                                    onclick="event.preventDefault(); this.closest('form').submit();">
+                                    {{ __('Log Out') }}
+                                </x-dropdown-link>
                             </form>
                         </x-slot>
                     </x-dropdown>

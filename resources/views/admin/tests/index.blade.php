@@ -30,6 +30,7 @@
                                 {{-- KOLOM BARU DITAMBAHKAN DI SINI --}}
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Soal</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi (Menit)</th>
+                                <th class="px-6 py-3 ...">Kode Tes</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
                             </tr>
@@ -42,6 +43,7 @@
                                     {{-- DATA BARU DITAMPILKAN DI SINI --}}
                                     <td class="px-6 py-4 whitespace-nowrap font-medium">{{ $test->questions_count }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $test->duration_minutes }}</td>
+                                    <td class="px-6 py-4 font-mono font-bold">{{ $test->test_code }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if ($test->is_published)
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Published</span>

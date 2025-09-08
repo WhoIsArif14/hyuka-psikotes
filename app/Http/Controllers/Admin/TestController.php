@@ -5,115 +5,106 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Test;
 use App\Models\TestCategory;
+use App\Models\Jenjang;
+use App\Models\Client;
 use Illuminate\Http\Request;
-
-// --- TAMBAHKAN USE STATEMENT DI BAWAH INI ---
-use App\Models\TestResult;
 use App\Exports\TestResultsExport;
 use Maatwebsite\Excel\Facades\Excel;
-// -------------------------------------------
 
 class TestController extends Controller
 {
-    /**
-     * Menampilkan daftar semua tes.
-     */
     public function index()
     {
-        // TAMBAHKAN withCount('questions') DI SINI
-        $tests = Test::with('category')
-            ->withCount('questions') // Menghitung jumlah relasi 'questions'
-            ->latest()
-            ->paginate(10);
-
+        $tests = Test::with(['category', 'jenjang', 'client'])
+                     ->withCount('questions')
+                     ->latest()
+                     ->paginate(10);
         return view('admin.tests.index', compact('tests'));
     }
 
-    /**
-     * Menampilkan form untuk membuat tes baru.
-     */
     public function create()
     {
         $categories = TestCategory::all();
-        return view('admin.tests.create', compact('categories'));
+        $jenjangs = Jenjang::all();
+        $clients = Client::all();
+        return view('admin.tests.create', compact('categories', 'jenjangs', 'clients'));
     }
 
-    /**
-     * Menyimpan tes baru ke database.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'test_category_id' => 'required|exists:test_categories,id',
             'title' => 'required|string|max:255',
+            'test_category_id' => 'required|exists:test_categories,id',
+            'jenjang_id' => 'required|exists:jenjangs,id',
+            'client_id' => 'nullable|exists:clients,id',
             'description' => 'required|string',
             'duration_minutes' => 'required|integer|min:1',
-        ]);
-
-        Test::create($request->all());
-
-        return redirect()->route('admin.tests.index')->with('success', 'Tes baru berhasil ditambahkan.');
-    }
-
-    /**
-     * Menampilkan form untuk mengedit tes.
-     */
-    public function edit(Test $test)
-    {
-        $categories = TestCategory::all();
-        return view('admin.tests.edit', compact('test', 'categories'));
-    }
-
-    /**
-     * Mengupdate data tes di database.
-     */
-    public function update(Request $request, Test $test)
-    {
-        $request->validate([
-            'test_category_id' => 'required|exists:test_categories,id',
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'duration_minutes' => 'required|integer|min:1',
-            'is_published' => 'nullable|boolean',
+            'test_code' => 'nullable|string|max:8|unique:tests,test_code',
+            'available_from' => 'nullable|date',
+            'available_to' => 'nullable|date|after_or_equal:available_from',
         ]);
 
         $data = $request->all();
         $data['is_published'] = $request->has('is_published');
+        $data['is_template'] = $request->has('is_template');
+
+        Test::create($data);
+
+        return redirect()->route('admin.tests.index')->with('success', 'Tes baru berhasil ditambahkan.');
+    }
+
+    public function edit(Test $test)
+    {
+        $categories = TestCategory::all();
+        $jenjangs = Jenjang::all();
+        $clients = Client::all();
+        return view('admin.tests.edit', compact('test', 'categories', 'jenjangs', 'clients'));
+    }
+
+    public function update(Request $request, Test $test)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'test_category_id' => 'required|exists:test_categories,id',
+            'jenjang_id' => 'required|exists:jenjangs,id',
+            'client_id' => 'nullable|exists:clients,id',
+            'description' => 'required|string',
+            'duration_minutes' => 'required|integer|min:1',
+            'test_code' => 'nullable|string|max:8|unique:tests,test_code,' . $test->id,
+            'available_from' => 'nullable|date',
+            'available_to' => 'nullable|date|after_or_equal:available_from',
+        ]);
+
+        $data = $request->all();
+        $data['is_published'] = $request->has('is_published');
+        $data['is_template'] = $request->has('is_template');
 
         $test->update($data);
 
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus tes dari database.
-     */
     public function destroy(Test $test)
     {
         $test->delete();
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil dihapus.');
     }
 
-    // === METHOD BARU UNTUK MELIHAT HASIL TES ===
     /**
-     * Menampilkan hasil tes untuk tes tertentu.
+     * Mengganti method `results` agar menampilkan halaman manajemen kode aktivasi.
      */
     public function results(Test $test)
     {
-        $results = $test->testResults()->with('user')->latest()->paginate(15);
-        return view('admin.tests.results', compact('test', 'results'));
+        // Mengambil semua KODE AKTIVASI untuk tes ini
+        $codes = $test->activationCodes()->with('user')->latest()->get();
+        
+        return view('admin.tests.results', compact('test', 'codes'));
     }
 
-    // === METHOD BARU UNTUK EKSPOR KE EXCEL ===
-    /**
-     * Mengekspor hasil tes ke file Excel.
-     */
     public function export(Test $test)
     {
-        // Membuat nama file yang dinamis, contoh: hasil-tes-logika-dasar.xlsx
         $fileName = 'hasil-' . \Illuminate\Support\Str::slug($test->title) . '.xlsx';
-
-        // Memanggil class export yang sudah kita buat dan memulai unduhan
         return Excel::download(new TestResultsExport($test), $fileName);
     }
 }
+

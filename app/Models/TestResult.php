@@ -11,30 +11,43 @@ class TestResult extends Model
 {
     use HasFactory;
 
-    // Properti Fillable
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
     protected $fillable = [
         'user_id',
         'test_id',
+        'participant_name', // Ditambahkan untuk peserta tanpa akun
         'start_time',
         'end_time',
         'score',
     ];
 
-    // RELASI: Satu TestResult dimiliki oleh satu User
+    /**
+     * Relasi ke model User.
+     * Relasi ini opsional, karena user_id bisa null.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // RELASI: Satu TestResult dimiliki oleh satu Test
+    /**
+     * Relasi ke model Test.
+     */
     public function test(): BelongsTo
     {
         return $this->belongsTo(Test::class);
     }
 
-    // RELASI: Satu TestResult memiliki banyak UserAnswer
+    /**
+     * Relasi ke model UserAnswer.
+     */
     public function userAnswers(): HasMany
     {
         return $this->hasMany(UserAnswer::class);
     }
 }
+

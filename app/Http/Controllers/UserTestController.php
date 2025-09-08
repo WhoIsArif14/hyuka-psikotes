@@ -3,38 +3,48 @@
 namespace App\Http\Controllers;
 
 use App\Models\Test;
-use App\Models\Option;
 use App\Models\TestResult;
+use App\Models\Option;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\InterpretationRule;
+use Illuminate\Support\Facades\Session;
 
 class UserTestController extends Controller
 {
-    // ... method show() dan store() yang sudah ada ...
-
     /**
-     * Menampilkan halaman pengerjaan tes untuk tes yang dipilih.
+     * Menampilkan halaman pengerjaan tes.
      */
     public function show(Test $test)
     {
-        if (!$test->is_published) {
-            abort(404);
+        // Keamanan: Pastikan peserta sudah melewati langkah pengisian nama.
+        if (!Session::has('participant_name') || Session::get('active_test_id') != $test->id) {
+            // Jika belum, kembalikan ke halaman awal.
+            return redirect()->route('login')->with('error', 'Silakan masukkan kode tes dan nama Anda terlebih dahulu.');
         }
+
         $test->load('questions.options');
         return view('test', compact('test'));
     }
 
     /**
-     * Menyimpan jawaban pengguna dan menghitung skor.
+     * Menyimpan hasil tes dari peserta tanpa akun.
      */
     public function store(Request $request, Test $test)
     {
-        $request->validate(['questions' => ['required', 'array']]);
+        $request->validate([
+            'questions' => ['required', 'array']
+        ]);
+
+        // Ambil nama peserta dari session
+        $participantName = Session::get('participant_name');
+        if (!$participantName) {
+            return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir, silakan mulai lagi.');
+        }
+
         $score = 0;
         $userAnswers = [];
         $selectedOptionIds = $request->input('questions');
+
         $options = Option::findMany(array_values($selectedOptionIds));
         foreach ($options as $option) {
             $score += $option->point;
@@ -42,12 +52,17 @@ class UserTestController extends Controller
 
         DB::beginTransaction();
         try {
+            // Buat record hasil tes, simpan nama peserta
             $testResult = TestResult::create([
                 'test_id' => $test->id,
-                'user_id' => Auth::id(),
-                'score' => 0,
-                'start_time' => now(),
+                'participant_name' => $participantName, // <-- Simpan nama di sini
+                'user_id' => null, // <-- Kosongkan user_id
+                'score' => $score,
+                'start_time' => now(), // Placeholder
+                'end_time' => now(),
             ]);
+
+            // Siapkan data untuk tabel user_answers
             foreach ($selectedOptionIds as $question_id => $option_id) {
                 $userAnswers[] = [
                     'test_result_id' => $testResult->id,
@@ -57,40 +72,32 @@ class UserTestController extends Controller
                     'updated_at' => now(),
                 ];
             }
+            
+            // Simpan semua jawaban
             $testResult->userAnswers()->insert($userAnswers);
-            $testResult->update(['score' => $score, 'end_time' => now()]);
+
             DB::commit();
+
+            // Hapus session setelah tes selesai
+            Session::forget(['participant_name', 'active_test_id']);
+
             return redirect()->route('tests.result', $testResult);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan hasil tes. Silakan coba lagi.');
+            // Tampilkan error untuk debugging, bisa diubah nanti
+            return redirect()->route('login')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
     /**
-     * Menampilkan halaman hasil tes.
+     * Menampilkan halaman hasil.
      */
     public function result(TestResult $testResult)
     {
-        // Pastikan hanya user yang bersangkutan yang bisa melihat hasilnya
-        if ($testResult->user_id !== Auth::id()) {
-            abort(403, 'AKSES DITOLAK');
-        }
-
-        // --- PERBARUI BAGIAN INI ---
-        // Muat semua relasi yang dibutuhkan dalam satu query
-        $testResult->load([
-            'test.questions.options', // Soal & semua pilihan jawabannya
-            'userAnswers.option' // Jawaban yang dipilih pengguna
-        ]);
-
-        // Cari interpretasi
-        $interpretation = InterpretationRule::where('test_id', $testResult->test_id)
-            ->where('min_score', '<=', $testResult->score)
-            ->where('max_score', '>=', $testResult->score)
-            ->first();
-
-        // Kirim data ke view
-        return view('results', compact('testResult', 'interpretation'));
+        $testResult->load('test');
+        // Logika untuk interpretasi bisa ditambahkan di sini jika diperlukan
+        return view('results', compact('testResult'));
     }
 }
+
