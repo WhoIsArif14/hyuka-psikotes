@@ -23,6 +23,11 @@ class TestResult extends Model
         'start_time',
         'end_time',
         'score',
+        'participant_name',
+        'participant_email',
+        'education',
+        'major',
+        'phone_number',
     ];
 
     /**

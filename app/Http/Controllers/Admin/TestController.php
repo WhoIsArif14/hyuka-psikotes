@@ -93,14 +93,22 @@ class TestController extends Controller
     /**
      * Mengganti method `results` agar menampilkan halaman manajemen kode aktivasi.
      */
+    /**
+     * Menampilkan hasil tes untuk tes tertentu.
+     */
     public function results(Test $test)
     {
-        // Mengambil semua KODE AKTIVASI untuk tes ini
-        $codes = $test->activationCodes()->with('user')->latest()->get();
+        // --- PERBAIKAN ADA DI SINI ---
+        // Mengambil semua hasil tes (TestResult) untuk tes ini.
+        $results = $test->testResults()->latest()->paginate(15);
         
-        return view('admin.tests.results', compact('test', 'codes'));
+        // Mengirim variabel bernama 'results' ke view.
+        return view('admin.tests.results', compact('test', 'results'));
     }
 
+    /**
+     * Mengekspor hasil tes ke file Excel.
+     */
     public function export(Test $test)
     {
         $fileName = 'hasil-' . \Illuminate\Support\Str::slug($test->title) . '.xlsx';

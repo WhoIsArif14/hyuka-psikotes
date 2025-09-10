@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Auth;
 // Middleware
 use App\Http\Middleware\IsAdmin;
 
@@ -48,6 +49,12 @@ Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.sho
 Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
 Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
 
+Route::get('/logout', function () {
+    Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/'); // arahkan kembali ke halaman awal (kode tes)
+})->name('custom.logout');
 
 /*
 |--------------------------------------------------------------------------

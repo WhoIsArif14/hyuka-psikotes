@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Edit Tes: ') . $test->title }}
+            Edit Tes: <span class="text-blue-600">{{ $test->title }}</span>
         </h2>
     </x-slot>
 
@@ -10,6 +10,9 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 md:p-8 text-gray-900">
                     
+                    <!-- BAGIAN BARU: MENAMPILKAN ERROR VALIDASI -->
+                    <x-auth-validation-errors class="mb-4" :errors="$errors" />
+
                     <form method="POST" action="{{ route('admin.tests.update', $test) }}">
                         @csrf
                         @method('PUT')
@@ -18,6 +21,17 @@
                         <div>
                             <label for="title" class="block font-medium text-sm text-gray-700">Judul Tes</label>
                             <input id="title" class="block mt-1 w-full rounded-md shadow-sm border-gray-300" type="text" name="title" value="{{ old('title', $test->title) }}" required autofocus />
+                        </div>
+
+                        <!-- Klien -->
+                        <div class="mt-4">
+                            <label for="client_id" class="block font-medium text-sm text-gray-700">Klien (Opsional)</label>
+                            <select name="client_id" id="client_id" class="block mt-1 w-full rounded-md shadow-sm border-gray-300">
+                                <option value="">-- Tes Umum --</option>
+                                @foreach($clients as $client)
+                                    <option value="{{ $client->id }}" @selected(old('client_id', $test->client_id) == $client->id)>{{ $client->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <!-- Kategori & Jenjang -->
@@ -73,9 +87,9 @@
 
                         <!-- Opsi Checkbox -->
                         <div class="mt-4 space-y-2">
-                             <label class="flex items-center">
+                            <label class="flex items-center">
                                 <input type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm" name="is_published" value="1" @checked(old('is_published', $test->is_published))>
-                                <span class="ml-2 text-sm text-gray-600">{{ __('Publikasikan Tes') }}</span>
+                                <span class="ml-2 text-sm text-gray-600">{{ __('Langsung Publikasikan Tes') }}</span>
                             </label>
                             <label class="flex items-center">
                                 <input type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm" name="is_template" value="1" @checked(old('is_template', $test->is_template))>
@@ -96,3 +110,4 @@
         </div>
     </div>
 </x-admin-layout>
+

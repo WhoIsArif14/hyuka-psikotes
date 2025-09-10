@@ -15,9 +15,9 @@ class TestCreationWizardController extends Controller
     /**
      * Langkah 1: Menampilkan halaman untuk memilih kategori.
      */
-    public function step1_category() // Nama method diperbaiki
+    public function step1_category()
     {
-        Session::forget('wizard_data'); // Hapus session lama untuk memulai dari awal
+        Session::forget('wizard_data');
         $categories = TestCategory::all();
         return view('admin.wizard.step1-category', compact('categories'));
     }
@@ -29,21 +29,24 @@ class TestCreationWizardController extends Controller
     {
         $validated = $request->validate(['category_id' => 'required|exists:test_categories,id']);
         Session::put('wizard_data.category_id', $validated['category_id']);
-        return redirect()->route('admin.wizard.step2.show');
+        
+        // PERBAIKAN DI SINI: Menggunakan nama route yang benar
+        return redirect()->route('admin.wizard.step2');
     }
 
     /**
      * Langkah 2: Menampilkan template & jenjang berdasarkan kategori.
      */
-    public function step2_template() // Nama method diperbaiki
+    public function step2_template()
     {
         $categoryId = Session::get('wizard_data.category_id');
         if (!$categoryId) {
-            return redirect()->route('admin.wizard.step1.show')->with('error', 'Silakan pilih kategori terlebih dahulu.');
+            return redirect()->route('admin.wizard.step1')->with('error', 'Silakan pilih kategori terlebih dahulu.');
         }
 
         $templates = Test::where('is_template', true)
                          ->where('test_category_id', $categoryId)
+                         ->withCount('questions')
                          ->get();
         $jenjangs = Jenjang::all();
         
@@ -53,7 +56,7 @@ class TestCreationWizardController extends Controller
     /**
      * Membuat tes baru dari template dan lanjut ke langkah 3.
      */
-    public function postStep2_template(Request $request) // Nama method diperbaiki
+    public function postStep2_template(Request $request)
     {
         $validated = $request->validate([
             'template_id' => 'required|exists:tests,id',
@@ -66,14 +69,14 @@ class TestCreationWizardController extends Controller
 
         DB::transaction(function () use ($template, $validated, &$newTest) {
             // 1. Duplikasi data tes utama
-            $newTest = $template->replicate(['test_code']); // 'replicate' menyalin data, kecuali kode tes
+            $newTest = $template->replicate(['test_code']); // Replicate, tapi jangan copy test_code
             $newTest->title = $validated['new_test_title'];
             $newTest->jenjang_id = $validated['jenjang_id'];
-            $newTest->is_template = false; // Tes baru bukan template
-            $newTest->is_published = false; // Defaultnya tidak dipublikasi
+            $newTest->is_template = false;
+            $newTest->is_published = false;
             $newTest->available_from = null;
             $newTest->available_to = null;
-            $newTest->save();
+            $newTest->save(); // save() akan memicu boot method untuk generate kode baru
 
             // 2. Duplikasi setiap soal dan pilihan jawabannya
             foreach ($template->questions as $question) {
@@ -90,7 +93,8 @@ class TestCreationWizardController extends Controller
         });
 
         if ($newTest) {
-            return redirect()->route('admin.wizard.step3.show', $newTest->id);
+            // PERBAIKAN DI SINI: Menggunakan nama route yang benar
+            return redirect()->route('admin.wizard.step3', $newTest);
         }
 
         return redirect()->back()->with('error', 'Gagal membuat tes. Silakan coba lagi.');
@@ -99,7 +103,7 @@ class TestCreationWizardController extends Controller
     /**
      * Langkah 3: Menampilkan halaman untuk mengatur jadwal.
      */
-    public function step3_schedule(Test $test) // Nama method diperbaiki
+    public function step3_schedule(Test $test)
     {
         return view('admin.wizard.step3-schedule', compact('test'));
     }
@@ -107,7 +111,7 @@ class TestCreationWizardController extends Controller
     /**
      * Menyimpan jadwal dan menyelesaikan proses.
      */
-    public function postStep3_schedule(Request $request, Test $test) // Nama method diperbaiki
+    public function postStep3_schedule(Request $request, Test $test)
     {
         $validated = $request->validate([
             'available_from' => 'nullable|date',
@@ -121,7 +125,7 @@ class TestCreationWizardController extends Controller
             'is_published' => $request->has('is_published'),
         ]);
 
-        Session::forget('wizard_data'); // Hapus session setelah selesai
+        Session::forget('wizard_data');
 
         return redirect()->route('admin.tests.index')->with('success', 'Sesi tes baru berhasil dibuat!');
     }

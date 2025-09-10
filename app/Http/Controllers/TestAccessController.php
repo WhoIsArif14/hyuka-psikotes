@@ -68,20 +68,26 @@ class TestAccessController extends Controller
      */
     public function startTest(Request $request)
     {
-        // Pastikan pengguna sudah melewati langkah 1 dan 2
         $code = Session::get('accessed_test_code');
         if (!$code) {
             return redirect()->route('login');
         }
 
-        $request->validate(['participant_name' => 'required|string|max:255']);
+        // --- VALIDASI UNTUK SEMUA DATA BARU ---
+        $validatedData = $request->validate([
+            'participant_name' => 'required|string|max:255',
+            'participant_email' => 'required|email|max:255',
+            'phone_number' => 'required|string|max:20',
+            'education' => 'required|string|max:255',
+            'major' => 'nullable|string|max:255',
+        ]);
 
-        // Simpan nama peserta di sesi
-        Session::put('participant_name', $request->participant_name);
+        // Simpan semua data diri ke dalam satu array di session
+        Session::put('participant_data', $validatedData);
 
         $test = Test::where('test_code', $code)->firstOrFail();
+        Session::put('active_test_id', $test->id);
 
-        // Arahkan ke halaman pengerjaan tes
         return redirect()->route('tests.show', $test);
     }
 }

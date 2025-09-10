@@ -19,21 +19,22 @@
 
                     <div class="inline-block bg-gray-100 rounded-lg p-6">
                         <p class="text-base font-medium text-gray-500">SKOR AKHIR ANDA</p>
-                        <p class="text-7xl font-bold text-blue-600 my-2">
+                        <p class="text-7xl font-bold text-indigo-600 my-2">
                             {{ $testResult->score }}
                         </p>
                     </div>
 
-                    {{-- BAGIAN BARU: TAMPILKAN INTERPRETASI --}}
+                    {{-- Menampilkan Interpretasi --}}
                     @if ($interpretation)
-                        <div class="mt-8 text-left bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
-                            <h4 class="font-bold text-purple-800">Interpretasi Hasil:</h4>
-                            <p class="mt-1 text-purple-700">
+                        <div class="mt-8 text-left bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg">
+                            <h4 class="font-bold text-indigo-800">Interpretasi Hasil:</h4>
+                            <p class="mt-1 text-indigo-700">
                                 {{ $interpretation->interpretation_text }}
                             </p>
                         </div>
                     @endif
-                    {{-- ====================================== --}}
+
+                    {{-- Review Jawaban --}}
                     <div class="mt-10 text-left border-t pt-8">
                         <h3 class="text-2xl font-bold mb-6 text-gray-800">Review Jawaban Anda</h3>
                         <div class="space-y-6">
@@ -66,7 +67,7 @@
                                             @endphp
                                             <div class="flex items-center p-3 border rounded-md {{ $style }}">
                                                 @if ($isUserChoice)
-                                                    <span class="text-blue-600 font-bold mr-2">Pilihan Anda:</span>
+                                                    <span class="text-indigo-600 font-bold mr-2">Pilihan Anda:</span>
                                                 @endif
                                                 <span class="flex-1">{{ $option->option_text }}</span>
                                                 @if ($option->point > 0)
@@ -80,13 +81,14 @@
                         </div>
                     </div>
 
-
                     <div class="mt-10">
-                        <p class="text-gray-600">Terima kasih telah berpartisipasi. Anda dapat melihat riwayat
-                            pengerjaan tes di halaman dashboard Anda.</p>
-                        <a href="{{ route('dashboard') }}"
+                        <p class="text-gray-600">Terima kasih telah berpartisipasi. Anda akan segera keluar dari sistem.
+                        </p>
+
+                        {{-- PERBAIKAN ADA DI BARIS DI BAWAH INI --}}
+                        <a href="{{ route('custom.logout') }}"
                             class="mt-4 inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                            Kembali ke Dashboard
+                            Selesai & Keluar
                         </a>
                     </div>
 

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Option;
 use App\Models\Test;
 use App\Models\TestResult;
-use App\Models\Option;
+use App\Models\InterpretationRule; // Pastikan ini diimpor
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 class UserTestController extends Controller
@@ -16,78 +16,66 @@ class UserTestController extends Controller
      */
     public function show(Test $test)
     {
-        // Keamanan: Pastikan peserta sudah melewati langkah pengisian nama.
-        if (!Session::has('participant_name') || Session::get('active_test_id') != $test->id) {
-            // Jika belum, kembalikan ke halaman awal.
-            return redirect()->route('login')->with('error', 'Silakan masukkan kode tes dan nama Anda terlebih dahulu.');
+        // Validasi: pastikan pengguna datang dari alur yang benar
+        if (Session::get('active_test_id') != $test->id) {
+            return redirect()->route('login')->with('error', 'Silakan masukkan kode tes terlebih dahulu.');
         }
-
+        
         $test->load('questions.options');
         return view('test', compact('test'));
     }
 
     /**
-     * Menyimpan hasil tes dari peserta tanpa akun.
+     * Menyimpan hasil tes.
      */
     public function store(Request $request, Test $test)
     {
-        $request->validate([
-            'questions' => ['required', 'array']
-        ]);
-
-        // Ambil nama peserta dari session
-        $participantName = Session::get('participant_name');
-        if (!$participantName) {
-            return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir, silakan mulai lagi.');
+        // Pastikan pengguna datang dari alur yang benar
+        if (Session::get('active_test_id') != $test->id) {
+            return redirect()->route('login')->with('error', 'Sesi tidak valid.');
         }
 
-        $score = 0;
-        $userAnswers = [];
-        $selectedOptionIds = $request->input('questions');
+        $request->validate(['questions' => ['required', 'array']]);
 
+        // Ambil data diri peserta dari session
+        $participantData = Session::get('participant_data', []);
+        
+        $score = 0;
+        $selectedOptionIds = $request->input('questions');
         $options = Option::findMany(array_values($selectedOptionIds));
         foreach ($options as $option) {
             $score += $option->point;
         }
 
-        DB::beginTransaction();
-        try {
-            // Buat record hasil tes, simpan nama peserta
-            $testResult = TestResult::create([
-                'test_id' => $test->id,
-                'participant_name' => $participantName, // <-- Simpan nama di sini
-                'user_id' => null, // <-- Kosongkan user_id
-                'score' => $score,
-                'start_time' => now(), // Placeholder
-                'end_time' => now(),
-            ]);
+        // Simpan semua data diri ke database
+        $testResult = TestResult::create([
+            'test_id' => $test->id,
+            'score' => $score,
+            'start_time' => now(), // Placeholder
+            'end_time' => now(),
+            // Menggabungkan data dari session
+            'participant_name' => $participantData['participant_name'] ?? null,
+            'participant_email' => $participantData['participant_email'] ?? null,
+            'phone_number' => $participantData['phone_number'] ?? null,
+            'education' => $participantData['education'] ?? null,
+            'major' => $participantData['major'] ?? null,
+        ]);
 
-            // Siapkan data untuk tabel user_answers
-            foreach ($selectedOptionIds as $question_id => $option_id) {
-                $userAnswers[] = [
-                    'test_result_id' => $testResult->id,
-                    'question_id' => $question_id,
-                    'option_id' => $option_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-            
-            // Simpan semua jawaban
-            $testResult->userAnswers()->insert($userAnswers);
-
-            DB::commit();
-
-            // Hapus session setelah tes selesai
-            Session::forget(['participant_name', 'active_test_id']);
-
-            return redirect()->route('tests.result', $testResult);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            // Tampilkan error untuk debugging, bisa diubah nanti
-            return redirect()->route('login')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        // Simpan detail jawaban
+        $userAnswers = [];
+        foreach ($selectedOptionIds as $question_id => $option_id) {
+            $userAnswers[] = [
+                'test_result_id' => $testResult->id,
+                'question_id' => $question_id,
+                'option_id' => $option_id,
+            ];
         }
+        $testResult->userAnswers()->createMany($userAnswers);
+
+        // Hapus data dari session setelah selesai
+        Session::forget(['accessed_test_code', 'participant_data', 'active_test_id']);
+
+        return redirect()->route('tests.result', $testResult);
     }
 
     /**
@@ -95,9 +83,17 @@ class UserTestController extends Controller
      */
     public function result(TestResult $testResult)
     {
-        $testResult->load('test');
-        // Logika untuk interpretasi bisa ditambahkan di sini jika diperlukan
-        return view('results', compact('testResult'));
+        $testResult->load('test.questions.options', 'userAnswers.option');
+
+        // --- PERBAIKAN UTAMA ADA DI SINI ---
+        // Cari interpretasi yang cocok dengan skor peserta
+        $interpretation = InterpretationRule::where('test_id', $testResult->test_id)
+                            ->where('min_score', '<=', $testResult->score)
+                            ->where('max_score', '>=', $testResult->score)
+                            ->first();
+        
+        // Kirim variabel $interpretation ke view
+        return view('results', compact('testResult', 'interpretation'));
     }
 }
 
