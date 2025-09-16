@@ -3,16 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Client;
+use App\Models\Jenjang;
 use App\Models\Test;
 use App\Models\TestCategory;
-use App\Models\Jenjang;
-use App\Models\Client;
-use Illuminate\Http\Request;
 use App\Exports\TestResultsExport;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class TestController extends Controller
 {
+    /**
+     * Menampilkan daftar semua tes.
+     */
     public function index()
     {
         $tests = Test::with(['category', 'jenjang', 'client'])
@@ -22,21 +25,27 @@ class TestController extends Controller
         return view('admin.tests.index', compact('tests'));
     }
 
+    /**
+     * Menampilkan form untuk membuat tes baru.
+     */
     public function create()
     {
+        $clients = Client::all();
         $categories = TestCategory::all();
         $jenjangs = Jenjang::all();
-        $clients = Client::all();
-        return view('admin.tests.create', compact('categories', 'jenjangs', 'clients'));
+        return view('admin.tests.create', compact('clients', 'categories', 'jenjangs'));
     }
 
+    /**
+     * Menyimpan tes baru ke database.
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
+            'client_id' => 'nullable|exists:clients,id',
             'test_category_id' => 'required|exists:test_categories,id',
             'jenjang_id' => 'required|exists:jenjangs,id',
-            'client_id' => 'nullable|exists:clients,id',
+            'title' => 'required|string|max:255',
             'description' => 'required|string',
             'duration_minutes' => 'required|integer|min:1',
             'test_code' => 'nullable|string|max:8|unique:tests,test_code',
@@ -53,23 +62,30 @@ class TestController extends Controller
         return redirect()->route('admin.tests.index')->with('success', 'Tes baru berhasil ditambahkan.');
     }
 
+    /**
+     * Menampilkan form untuk mengedit tes.
+     */
     public function edit(Test $test)
     {
+        $clients = Client::all();
         $categories = TestCategory::all();
         $jenjangs = Jenjang::all();
-        $clients = Client::all();
-        return view('admin.tests.edit', compact('test', 'categories', 'jenjangs', 'clients'));
+        return view('admin.tests.edit', compact('test', 'clients', 'categories', 'jenjangs'));
     }
 
+    /**
+     * Mengupdate data tes di database.
+     */
     public function update(Request $request, Test $test)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
+            'client_id' => 'nullable|exists:clients,id',
             'test_category_id' => 'required|exists:test_categories,id',
             'jenjang_id' => 'required|exists:jenjangs,id',
-            'client_id' => 'nullable|exists:clients,id',
+            'title' => 'required|string|max:255',
             'description' => 'required|string',
             'duration_minutes' => 'required|integer|min:1',
+            // Validasi unik untuk update, mengabaikan data tes saat ini
             'test_code' => 'nullable|string|max:8|unique:tests,test_code,' . $test->id,
             'available_from' => 'nullable|date',
             'available_to' => 'nullable|date|after_or_equal:available_from',
@@ -84,6 +100,9 @@ class TestController extends Controller
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil diperbarui.');
     }
 
+    /**
+     * Menghapus tes dari database.
+     */
     public function destroy(Test $test)
     {
         $test->delete();
@@ -91,18 +110,11 @@ class TestController extends Controller
     }
 
     /**
-     * Mengganti method `results` agar menampilkan halaman manajemen kode aktivasi.
-     */
-    /**
      * Menampilkan hasil tes untuk tes tertentu.
      */
     public function results(Test $test)
     {
-        // --- PERBAIKAN ADA DI SINI ---
-        // Mengambil semua hasil tes (TestResult) untuk tes ini.
         $results = $test->testResults()->latest()->paginate(15);
-        
-        // Mengirim variabel bernama 'results' ke view.
         return view('admin.tests.results', compact('test', 'results'));
     }
 

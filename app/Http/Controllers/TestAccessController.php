@@ -21,18 +21,17 @@ class TestAccessController extends Controller
      */
     public function processCode(Request $request)
     {
-        // Validasi input
-        $request->validate([
-            'test_code' => 'required|string',
-        ]);
-        
+        $request->validate(['test_code' => 'required|string']);
         $code = strtoupper($request->test_code);
 
         // Cari tes yang aktif dan sesuai dengan kode
         $test = Test::where('test_code', $code)
             ->where('is_published', true)
             ->where(function ($q) {
+                // Logika pengecekan jadwal:
+                // Tes valid jika tidak ada jadwal (selalu tersedia)
                 $q->whereNull('available_from')
+                  // ATAU jika waktu sekarang berada di dalam rentang jadwal
                   ->orWhere(function($sub) {
                       $sub->where('available_from', '<=', now())
                           ->where('available_to', '>=', now());
@@ -40,31 +39,33 @@ class TestAccessController extends Controller
             })
             ->first();
 
-        // Jika tes tidak ditemukan atau tidak aktif, kembali dengan error
+        // Jika tes tidak ditemukan atau tidak aktif/terjadwal, kembali dengan error
         if (!$test) {
             return redirect()->back()->with('error', 'Kode tes tidak valid, tidak aktif, atau sudah lewat jadwal.');
         }
 
-        // Jika valid, simpan kode di sesi dan tampilkan formulir nama
+        // Jika valid, simpan kode di session dan arahkan ke form nama
         Session::put('accessed_test_code', $code);
+        
         return redirect()->route('test-code.name');
     }
 
     /**
-     * Menampilkan halaman pengisian nama.
+     * Menampilkan halaman untuk mengisi nama peserta.
      */
     public function showNameForm()
     {
-        // Pastikan pengguna sudah melewati langkah 1
-        if (!Session::has('accessed_test_code')) {
+        // Pastikan pengguna sudah melewati langkah 1 (memvalidasi kode)
+        $code = Session::get('accessed_test_code');
+        if (!$code) {
             return redirect()->route('login');
         }
-
+        
         return view('auth.enter-name');
     }
 
     /**
-     * Menyimpan nama peserta di sesi dan memulai tes.
+     * Menyimpan nama peserta di session dan memulai tes.
      */
     public function startTest(Request $request)
     {
@@ -73,7 +74,7 @@ class TestAccessController extends Controller
             return redirect()->route('login');
         }
 
-        // --- VALIDASI UNTUK SEMUA DATA BARU ---
+        // Validasi semua data diri yang dimasukkan
         $validatedData = $request->validate([
             'participant_name' => 'required|string|max:255',
             'participant_email' => 'required|email|max:255',
@@ -86,8 +87,12 @@ class TestAccessController extends Controller
         Session::put('participant_data', $validatedData);
 
         $test = Test::where('test_code', $code)->firstOrFail();
+        
+        // Simpan ID tes di session untuk validasi di halaman pengerjaan
         Session::put('active_test_id', $test->id);
 
+        // Arahkan ke halaman pengerjaan tes
         return redirect()->route('tests.show', $test);
     }
 }
+

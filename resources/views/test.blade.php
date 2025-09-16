@@ -11,11 +11,8 @@
                 <div class="p-6 text-gray-900">
 
                     {{-- INFORMASI TES & TIMER --}}
-                    <div
-                        x-data="timer({{ $test->duration_minutes * 60 }})"
-                        x-init="startTimer()"
-                        class="mb-8 p-4 border-l-4 border-blue-400 bg-blue-50"
-                    >
+                    <div x-data="timer({{ $test->duration_minutes * 60 }})" x-init="startTimer()"
+                        class="mb-8 p-4 border-l-4 border-blue-400 bg-blue-50">
                         <div class="flex justify-between items-center">
                             <div>
                                 <h3 class="text-lg font-bold text-gray-900">{{ $test->title }}</h3>
@@ -33,13 +30,23 @@
                         <div class="space-y-8">
                             @foreach ($test->questions as $question)
                                 <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                                    <p class="font-semibold text-lg mb-4">{{ $loop->iteration }}. {{ $question->question_text }}</p>
+                                    <div class="font-semibold text-lg mb-4">
+                                        <p>{{ $loop->iteration }}. {{ $question->question_text }}</p>
+                                        @if ($question->image_path)
+                                            <img src="{{ asset('storage/' . $question->image_path) }}" alt="Gambar Soal" class="mt-4 rounded-md max-w-full md:max-w-lg">
+                                        @endif
+                                    </div>
 
                                     <div class="space-y-3">
                                         @foreach($question->options as $option)
-                                            <label class="flex items-center p-3 border rounded-md cursor-pointer hover:bg-gray-100">
-                                                <input type="radio" name="questions[{{ $question->id }}]" value="{{ $option->id }}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                                <span class="ml-3 text-gray-700">{{ $option->option_text }}</span>
+                                            <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-100 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300">
+                                                <input type="radio" name="questions[{{ $question->id }}]" value="{{ $option->id }}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mt-1">
+                                                <div class="ml-3 text-gray-700">
+                                                    <span>{{ $option->option_text }}</span>
+                                                    @if ($option->image_path)
+                                                         <img src="{{ asset('storage/' . $option->image_path) }}" alt="Gambar Opsi" class="mt-2 rounded-md max-w-xs">
+                                                    @endif
+                                                </div>
                                             </label>
                                         @endforeach
                                     </div>
@@ -59,20 +66,35 @@
         </div>
     </div>
 
-    {{-- SCRIPT UNTUK TIMER --}}
     <script>
+        // --- SCRIPT BARU UNTUK MENCEGAH PINDAH TAB ---
+        let hasLeftPage = false;
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden && !hasLeftPage) {
+                // Tandai bahwa user sudah pernah meninggalkan halaman
+                hasLeftPage = true;
+                // Beri peringatan (opsional)
+                alert('Anda telah meninggalkan halaman tes. Untuk menjaga integritas, tes Anda akan otomatis diselesaikan.');
+                // Submit form secara otomatis
+                document.getElementById('test-form').submit();
+            }
+        });
+        // ---------------------------------------------
+
+        // --- SCRIPT TIMER (TIDAK BERUBAH) ---
         function timer(seconds) {
             return {
                 timeLeft: seconds,
                 startTimer() {
                     const interval = setInterval(() => {
                         this.timeLeft--;
-
                         if (this.timeLeft <= 0) {
                             clearInterval(interval);
                             this.timeLeft = 0;
-                            // Otomatis submit form jika waktu habis
-                            document.getElementById('test-form').submit();
+                            // Hanya submit jika belum pernah meninggalkan halaman
+                            if (!hasLeftPage) {
+                                document.getElementById('test-form').submit();
+                            }
                         }
                     }, 1000);
                 },

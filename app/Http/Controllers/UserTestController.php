@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Option;
 use App\Models\Test;
 use App\Models\TestResult;
-use App\Models\InterpretationRule; // Pastikan ini diimpor
+use App\Models\InterpretationRule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -16,7 +16,6 @@ class UserTestController extends Controller
      */
     public function show(Test $test)
     {
-        // Validasi: pastikan pengguna datang dari alur yang benar
         if (Session::get('active_test_id') != $test->id) {
             return redirect()->route('login')->with('error', 'Silakan masukkan kode tes terlebih dahulu.');
         }
@@ -30,14 +29,11 @@ class UserTestController extends Controller
      */
     public function store(Request $request, Test $test)
     {
-        // Pastikan pengguna datang dari alur yang benar
         if (Session::get('active_test_id') != $test->id) {
             return redirect()->route('login')->with('error', 'Sesi tidak valid.');
         }
 
         $request->validate(['questions' => ['required', 'array']]);
-
-        // Ambil data diri peserta dari session
         $participantData = Session::get('participant_data', []);
         
         $score = 0;
@@ -47,13 +43,11 @@ class UserTestController extends Controller
             $score += $option->point;
         }
 
-        // Simpan semua data diri ke database
         $testResult = TestResult::create([
             'test_id' => $test->id,
             'score' => $score,
-            'start_time' => now(), // Placeholder
+            'start_time' => now(),
             'end_time' => now(),
-            // Menggabungkan data dari session
             'participant_name' => $participantData['participant_name'] ?? null,
             'participant_email' => $participantData['participant_email'] ?? null,
             'phone_number' => $participantData['phone_number'] ?? null,
@@ -61,7 +55,6 @@ class UserTestController extends Controller
             'major' => $participantData['major'] ?? null,
         ]);
 
-        // Simpan detail jawaban
         $userAnswers = [];
         foreach ($selectedOptionIds as $question_id => $option_id) {
             $userAnswers[] = [
@@ -72,7 +65,6 @@ class UserTestController extends Controller
         }
         $testResult->userAnswers()->createMany($userAnswers);
 
-        // Hapus data dari session setelah selesai
         Session::forget(['accessed_test_code', 'participant_data', 'active_test_id']);
 
         return redirect()->route('tests.result', $testResult);
@@ -80,20 +72,15 @@ class UserTestController extends Controller
 
     /**
      * Menampilkan halaman hasil.
+     * VERSI BARU: Hanya menampilkan pesan selesai, tanpa skor/detail.
      */
     public function result(TestResult $testResult)
     {
-        $testResult->load('test.questions.options', 'userAnswers.option');
-
-        // --- PERBAIKAN UTAMA ADA DI SINI ---
-        // Cari interpretasi yang cocok dengan skor peserta
-        $interpretation = InterpretationRule::where('test_id', $testResult->test_id)
-                            ->where('min_score', '<=', $testResult->score)
-                            ->where('max_score', '>=', $testResult->score)
-                            ->first();
+        // Kita hanya butuh data tes untuk menampilkan judulnya.
+        $testResult->load('test');
         
-        // Kirim variabel $interpretation ke view
-        return view('results', compact('testResult', 'interpretation'));
+        // Tidak perlu lagi mencari interpretasi atau memuat jawaban.
+        // Cukup tampilkan view sederhana.
+        return view('results', compact('testResult'));
     }
 }
-
