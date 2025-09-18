@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Test;
+use App\Models\TestResult; // <-- Tambahkan ini
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -24,14 +25,10 @@ class TestAccessController extends Controller
         $request->validate(['test_code' => 'required|string']);
         $code = strtoupper($request->test_code);
 
-        // Cari tes yang aktif dan sesuai dengan kode
         $test = Test::where('test_code', $code)
             ->where('is_published', true)
             ->where(function ($q) {
-                // Logika pengecekan jadwal:
-                // Tes valid jika tidak ada jadwal (selalu tersedia)
                 $q->whereNull('available_from')
-                  // ATAU jika waktu sekarang berada di dalam rentang jadwal
                   ->orWhere(function($sub) {
                       $sub->where('available_from', '<=', now())
                           ->where('available_to', '>=', now());
@@ -39,14 +36,11 @@ class TestAccessController extends Controller
             })
             ->first();
 
-        // Jika tes tidak ditemukan atau tidak aktif/terjadwal, kembali dengan error
         if (!$test) {
             return redirect()->back()->with('error', 'Kode tes tidak valid, tidak aktif, atau sudah lewat jadwal.');
         }
 
-        // Jika valid, simpan kode di session dan arahkan ke form nama
         Session::put('accessed_test_code', $code);
-        
         return redirect()->route('test-code.name');
     }
 
@@ -55,17 +49,14 @@ class TestAccessController extends Controller
      */
     public function showNameForm()
     {
-        // Pastikan pengguna sudah melewati langkah 1 (memvalidasi kode)
-        $code = Session::get('accessed_test_code');
-        if (!$code) {
+        if (!Session::has('accessed_test_code')) {
             return redirect()->route('login');
         }
-        
         return view('auth.enter-name');
     }
 
     /**
-     * Menyimpan nama peserta di session dan memulai tes.
+     * Menyimpan data diri peserta di session dan memulai tes.
      */
     public function startTest(Request $request)
     {
@@ -73,8 +64,9 @@ class TestAccessController extends Controller
         if (!$code) {
             return redirect()->route('login');
         }
+        
+        $test = Test::where('test_code', $code)->firstOrFail();
 
-        // Validasi semua data diri yang dimasukkan
         $validatedData = $request->validate([
             'participant_name' => 'required|string|max:255',
             'participant_email' => 'required|email|max:255',
@@ -83,16 +75,21 @@ class TestAccessController extends Controller
             'major' => 'nullable|string|max:255',
         ]);
 
-        // Simpan semua data diri ke dalam satu array di session
-        Session::put('participant_data', $validatedData);
+        // --- LOGIKA PENCEGAHAN BARU ---
+        // Cek apakah email ini sudah pernah mengerjakan tes ini
+        $existingResult = TestResult::where('test_id', $test->id)
+                                    ->where('participant_email', $validatedData['participant_email'])
+                                    ->exists();
 
-        $test = Test::where('test_code', $code)->firstOrFail();
-        
-        // Simpan ID tes di session untuk validasi di halaman pengerjaan
+        if ($existingResult) {
+            return redirect()->route('login')->with('error', 'Anda sudah pernah menyelesaikan tes ini sebelumnya.');
+        }
+        // --- AKHIR LOGIKA PENCEGAHAN ---
+
+
+        Session::put('participant_data', $validatedData);
         Session::put('active_test_id', $test->id);
 
-        // Arahkan ke halaman pengerjaan tes
         return redirect()->route('tests.show', $test);
     }
 }
-

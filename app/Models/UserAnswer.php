@@ -19,6 +19,7 @@ class UserAnswer extends Model
         'test_result_id',
         'question_id',
         'option_id',
+        'file_path',
     ];
 
     /**

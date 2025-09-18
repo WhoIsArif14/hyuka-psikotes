@@ -7,15 +7,16 @@ use App\Models\Client;
 use App\Models\Jenjang;
 use App\Models\Test;
 use App\Models\TestCategory;
-use App\Exports\TestResultsExport;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
+
+// --- PERUBAHAN UTAMA ADA DI SINI ---
+// Hapus 'use' untuk Maatwebsite dan ganti dengan PhpSpreadsheet
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+// ------------------------------------
 
 class TestController extends Controller
 {
-    /**
-     * Menampilkan daftar semua tes.
-     */
     public function index()
     {
         $tests = Test::with(['category', 'jenjang', 'client'])
@@ -25,9 +26,6 @@ class TestController extends Controller
         return view('admin.tests.index', compact('tests'));
     }
 
-    /**
-     * Menampilkan form untuk membuat tes baru.
-     */
     public function create()
     {
         $clients = Client::all();
@@ -36,9 +34,6 @@ class TestController extends Controller
         return view('admin.tests.create', compact('clients', 'categories', 'jenjangs'));
     }
 
-    /**
-     * Menyimpan tes baru ke database.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -62,9 +57,6 @@ class TestController extends Controller
         return redirect()->route('admin.tests.index')->with('success', 'Tes baru berhasil ditambahkan.');
     }
 
-    /**
-     * Menampilkan form untuk mengedit tes.
-     */
     public function edit(Test $test)
     {
         $clients = Client::all();
@@ -73,9 +65,6 @@ class TestController extends Controller
         return view('admin.tests.edit', compact('test', 'clients', 'categories', 'jenjangs'));
     }
 
-    /**
-     * Mengupdate data tes di database.
-     */
     public function update(Request $request, Test $test)
     {
         $request->validate([
@@ -85,7 +74,6 @@ class TestController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'duration_minutes' => 'required|integer|min:1',
-            // Validasi unik untuk update, mengabaikan data tes saat ini
             'test_code' => 'nullable|string|max:8|unique:tests,test_code,' . $test->id,
             'available_from' => 'nullable|date',
             'available_to' => 'nullable|date|after_or_equal:available_from',
@@ -100,18 +88,12 @@ class TestController extends Controller
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus tes dari database.
-     */
     public function destroy(Test $test)
     {
         $test->delete();
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil dihapus.');
     }
-
-    /**
-     * Menampilkan hasil tes untuk tes tertentu.
-     */
+    
     public function results(Test $test)
     {
         $results = $test->testResults()->latest()->paginate(15);
@@ -119,12 +101,49 @@ class TestController extends Controller
     }
 
     /**
-     * Mengekspor hasil tes ke file Excel.
+     * Mengekspor hasil tes ke file Excel menggunakan PhpSpreadsheet.
      */
     public function export(Test $test)
     {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Menulis Header
+        $sheet->setCellValue('A1', 'Nama Peserta');
+        $sheet->setCellValue('B1', 'Email');
+        $sheet->setCellValue('C1', 'No. HP');
+        $sheet->setCellValue('D1', 'Pendidikan');
+        $sheet->setCellValue('E1', 'Jurusan');
+        $sheet->setCellValue('F1', 'Skor');
+        $sheet->setCellValue('G1', 'Waktu Mengerjakan');
+
+        // Mengambil data hasil tes
+        $results = $test->testResults()->get();
+        $rowNumber = 2; // Mulai dari baris kedua
+
+        // Menulis data untuk setiap hasil
+        foreach ($results as $result) {
+            $sheet->setCellValue('A' . $rowNumber, $result->participant_name);
+            $sheet->setCellValue('B' . $rowNumber, $result->participant_email);
+            $sheet->setCellValue('C' . $rowNumber, $result->phone_number);
+            $sheet->setCellValue('D' . $rowNumber, $result->education);
+            $sheet->setCellValue('E' . $rowNumber, $result->major);
+            $sheet->setCellValue('F' . $rowNumber, $result->score);
+            $sheet->setCellValue('G' . $rowNumber, $result->created_at->format('d-m-Y H:i'));
+            $rowNumber++;
+        }
+
+        // Membuat file dan memicu unduhan
         $fileName = 'hasil-' . \Illuminate\Support\Str::slug($test->title) . '.xlsx';
-        return Excel::download(new TestResultsExport($test), $fileName);
+        $writer = new Xlsx($spreadsheet);
+
+        // Menyiapkan header untuk unduhan
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $fileName . '"');
+        header('Cache-Control: max-age=0');
+        
+        // Mengirim file ke output browser
+        $writer->save('php://output');
+        exit();
     }
 }
-
