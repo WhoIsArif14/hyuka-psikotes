@@ -17,6 +17,7 @@ class TestCreationWizardController extends Controller
      */
     public function step1_category()
     {
+        // Hapus data wizard lama untuk memulai sesi baru
         Session::forget('wizard_data');
         $categories = TestCategory::all();
         return view('admin.wizard.step1-category', compact('categories'));
@@ -30,7 +31,7 @@ class TestCreationWizardController extends Controller
         $validated = $request->validate(['category_id' => 'required|exists:test_categories,id']);
         Session::put('wizard_data.category_id', $validated['category_id']);
         
-        // PERBAIKAN DI SINI: Menggunakan nama route yang benar
+        // Mengarahkan ke route yang benar untuk Langkah 2
         return redirect()->route('admin.wizard.step2');
     }
 
@@ -44,10 +45,12 @@ class TestCreationWizardController extends Controller
             return redirect()->route('admin.wizard.step1')->with('error', 'Silakan pilih kategori terlebih dahulu.');
         }
 
+        // Mengambil template yang is_template = true DAN kategorinya cocok
         $templates = Test::where('is_template', true)
                          ->where('test_category_id', $categoryId)
                          ->withCount('questions')
                          ->get();
+                         
         $jenjangs = Jenjang::all();
         
         return view('admin.wizard.step2-template', compact('templates', 'jenjangs'));
@@ -69,7 +72,7 @@ class TestCreationWizardController extends Controller
 
         DB::transaction(function () use ($template, $validated, &$newTest) {
             // 1. Duplikasi data tes utama
-            $newTest = $template->replicate(['test_code']); // Replicate, tapi jangan copy test_code
+            $newTest = $template->replicate(['test_code']); // Replicate, tapi jangan salin kode tes lama
             $newTest->title = $validated['new_test_title'];
             $newTest->jenjang_id = $validated['jenjang_id'];
             $newTest->is_template = false;
@@ -93,7 +96,7 @@ class TestCreationWizardController extends Controller
         });
 
         if ($newTest) {
-            // PERBAIKAN DI SINI: Menggunakan nama route yang benar
+            // Mengarahkan ke route yang benar untuk Langkah 3, mengirim objek Test
             return redirect()->route('admin.wizard.step3', $newTest);
         }
 
@@ -130,3 +133,4 @@ class TestCreationWizardController extends Controller
         return redirect()->route('admin.tests.index')->with('success', 'Sesi tes baru berhasil dibuat!');
     }
 }
+

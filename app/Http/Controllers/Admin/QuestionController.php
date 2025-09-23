@@ -71,6 +71,71 @@ class QuestionController extends Controller
         return redirect()->back()->with('success', 'Soal baru berhasil ditambahkan.');
     }
 
+    public function import(Request $request, Test $test)
+    {
+        $request->validate([
+            'questions_file' => 'required|mimes:xlsx,xls',
+            'image_files.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        // 1. Simpan file-file gambar terlebih dahulu (jika ada)
+        if ($request->hasFile('image_files')) {
+            foreach ($request->file('image_files') as $file) {
+                $file->store('question-images', 'public');
+            }
+        }
+
+        // 2. Proses file Excel
+        $filePath = $request->file('questions_file')->getRealPath();
+        $spreadsheet = IOFactory::load($filePath);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highestRow = $sheet->getHighestRow();
+
+        // Mulai transaksi database untuk memastikan semua soal masuk atau tidak sama sekali
+        DB::transaction(function () use ($sheet, $highestRow, $test) {
+            // Loop dimulai dari baris 2 untuk melewati header
+            for ($row = 2; $row <= $highestRow; $row++) {
+                $questionText = $sheet->getCell('A' . $row)->getValue();
+
+                // Hanya proses jika kolom pertanyaan tidak kosong
+                if (!empty($questionText)) {
+                    $imageData = $sheet->getCell('H' . $row)->getValue();
+
+                    // Buat Soal Baru
+                    $question = $test->questions()->create([
+                        'question_text' => $questionText,
+                        'image_path' => $imageData ? 'question-images/' . $imageData : null,
+                        'type' => 'multiple_choice'
+                    ]);
+
+                    // Buat Pilihan Jawaban
+                    $options = [];
+                    $kunciJawaban = strtolower($sheet->getCell('G' . $row)->getValue());
+
+                    // Looping kolom B (opsi_a) sampai F (opsi_e)
+                    $optionColumns = ['B', 'C', 'D', 'E', 'F'];
+                    $optionChars = ['a', 'b', 'c', 'd', 'e'];
+
+                    foreach ($optionColumns as $index => $col) {
+                        $optionText = $sheet->getCell($col . $row)->getValue();
+                        if (!empty($optionText)) {
+                            $options[] = [
+                                'option_text' => $optionText,
+                                'point' => ($optionChars[$index] == $kunciJawaban) ? 1 : 0,
+                            ];
+                        }
+                    }
+
+                    if (!empty($options)) {
+                        $question->options()->createMany($options);
+                    }
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Soal berhasil diimpor dari file Excel!');
+    }
+
     /**
      * Menghapus soal dari database.
      */

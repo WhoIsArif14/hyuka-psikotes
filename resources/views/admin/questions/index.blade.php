@@ -13,18 +13,54 @@
                     <p>{{ session('success') }}</p>
                 </div>
             @endif
+            @if ($errors->any())
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                    <p class="font-bold">Terjadi Kesalahan</p>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-            <!-- Form Tambah Soal & Pilihan Jawaban Baru -->
+
+            {{-- Form Impor Soal dari Excel --}}
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 text-gray-900">
+                    <h3 class="text-lg font-medium mb-4">Impor Soal dari Excel</h3>
+                    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                        <strong>Petunjuk:</strong> Pastikan file Excel Anda memiliki header: <code>pertanyaan</code>, <code>opsi_a</code>, <code>opsi_b</code>, <code>opsi_c</code>, <code>opsi_d</code>, <code>opsi_e</code>, <code>kunci_jawaban</code>, <code>gambar</code>.
+                    </div>
+                    <form action="{{ route('admin.questions.import', $test) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="space-y-4">
+                            <div>
+                                <label for="questions_file" class="block font-medium text-sm text-gray-700">File Excel (.xlsx, .xls)</label>
+                                <input type="file" name="questions_file" id="questions_file" required class="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                            </div>
+                            <div>
+                                <label for="image_files" class="block font-medium text-sm text-gray-700">File Gambar (Opsional, bisa pilih banyak)</label>
+                                <input type="file" name="image_files[]" id="image_files" multiple class="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                            </div>
+                        </div>
+                        <div class="flex justify-end mt-4">
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                                Impor Soal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Form Tambah Soal Baru (Manual) -->
             <div x-data="{ questionType: 'multiple_choice' }" class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-medium mb-4">Tambah Soal Baru</h3>
+                    <h3 class="text-lg font-medium mb-4">Tambah Soal Baru (Manual)</h3>
                     
                     <form action="{{ route('admin.tests.questions.store', $test) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         
-                        <!-- Menampilkan Error Validasi -->
-                        <x-auth-validation-errors class="mb-4" :errors="$errors" />
-
                         <!-- Tipe Soal -->
                         <div class="mb-4">
                             <label for="type" class="block font-medium text-sm text-gray-700">Tipe Soal</label>

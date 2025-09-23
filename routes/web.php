@@ -30,21 +30,15 @@ use App\Http\Middleware\IsAdmin;
 |--------------------------------------------------------------------------
 */
 
-// Langkah 1: MENAMPILKAN form untuk memasukkan KODE TES.
-// Karena ini untuk MENAMPILKAN halaman, metodenya HARUS Route::get().
-// Inilah sumber error Anda.
+// Langkah 1: form kode tes
 Route::get('/', [TestAccessController::class, 'showCodeForm'])->name('login');
-
-// Route ini untuk MEMPROSES form yang dikirim dari halaman di atas, jadi metodenya Route::post().
 Route::post('/login', [TestAccessController::class, 'processCode'])->name('test-code.process');
 
-// Langkah 2: MENAMPILKAN form untuk memasukkan NAMA, jadi metodenya Route::get().
+// Langkah 2: form nama
 Route::get('/enter-name', [TestAccessController::class, 'showNameForm'])->name('test-code.name');
-
-// Route ini untuk MEMPROSES form nama, jadi metodenya Route::post().
 Route::post('/enter-name', [TestAccessController::class, 'startTest'])->name('test-code.start');
 
-// Langkah 3: Mengerjakan dan menyimpan tes
+// Langkah 3: tes & hasil
 Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
 Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
 Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
@@ -53,7 +47,7 @@ Route::get('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
-    return redirect('/'); // arahkan kembali ke halaman awal (kode tes)
+    return redirect('/');
 })->name('custom.logout');
 
 /*
@@ -64,7 +58,6 @@ Route::get('/logout', function () {
 Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])->name('login.admin');
 Route::post('/admin/login', [AuthenticatedSessionController::class, 'store'])->name('login.admin.post');
 Route::post('/admin/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout.admin');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -92,20 +85,36 @@ Route::middleware(['auth', IsAdmin::class])
             Route::get('{test}/step-3', [TestCreationWizardController::class, 'step3_schedule'])->name('step3');
             Route::post('{test}/step-3', [TestCreationWizardController::class, 'postStep3_schedule'])->name('post_step3');
         });
-        
+
         // Manajemen Umum
         Route::resource('clients', ClientController::class)->except(['show']);
         Route::resource('categories', TestCategoryController::class);
         Route::resource('tests', TestController::class);
         Route::get('tests/{test}/results', [TestController::class, 'results'])->name('tests.results');
         Route::get('tests/{test}/export', [TestController::class, 'export'])->name('tests.export');
+
+        // Manajemen Pertanyaan
         Route::resource('tests.questions', QuestionController::class)->shallow();
+        
+        // ✅ Route tambahan untuk import soal (fix error)
+        Route::post('questions/import', [QuestionController::class, 'import'])
+            ->name('questions.import');
+
+        // Manajemen Opsi Jawaban
         Route::post('questions/{question}/options', [OptionController::class, 'store'])->name('questions.options.store');
         Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
+
+        // Rules Interpretasi
         Route::resource('tests.rules', InterpretationRuleController::class)->except(['show']);
+
+        // Manajemen User
         Route::resource('users', UserController::class)->except(['create', 'store']);
+
+        // Jenjang
         Route::resource('jenjangs', JenjangController::class)->except(['show']);
+
+        // Peserta
         Route::get('peserta', [PesertaController::class, 'index'])->name('peserta.index');
         Route::get('peserta/{user}', [PesertaController::class, 'show'])->name('peserta.show');
         Route::delete('peserta/{user}', [PesertaController::class, 'destroy'])->name('peserta.destroy');
-});
+    });
