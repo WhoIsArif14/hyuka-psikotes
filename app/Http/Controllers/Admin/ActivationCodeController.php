@@ -10,14 +10,21 @@ use Illuminate\Http\Request;
 class ActivationCodeController extends Controller
 {
     /**
-     * Menampilkan halaman untuk generate kode aktivasi.
+     * Menampilkan halaman untuk generate kode aktivasi dan daftar kode yang sudah ada.
      */
     public function index()
     {
-        // Ambil semua tes yang bukan template untuk ditampilkan di dropdown
+        // 1. Ambil semua tes yang bukan template untuk form pembuatan kode
         $tests = Test::where('is_template', false)->orderBy('title')->get();
         
-        return view('admin.codes.index', compact('tests'));
+        // 2. Ambil daftar kode aktivasi yang sudah ada untuk ditampilkan di tabel
+        // Memuat relasi 'test' (Modul) untuk menampilkan nama Modul di tabel
+        $codes = ActivationCode::with('test')
+                               ->latest()
+                               ->paginate(10); // Pagination 10 baris per halaman
+        
+        // Kirimkan kedua variabel ke view
+        return view('admin.codes.index', compact('tests', 'codes'));
     }
 
     /**
@@ -33,10 +40,11 @@ class ActivationCodeController extends Controller
         $test = Test::findOrFail($request->test_id);
         $generatedCodes = [];
 
+        // Note: Anda perlu menambahkan logic DB transaction di sini untuk keamanan data
         for ($i = 0; $i < $request->quantity; $i++) {
             $code = ActivationCode::create([
                 'test_id' => $test->id,
-                // Kode akan di-generate otomatis oleh boot method di model
+                // Asumsikan kode di-generate oleh model dan kolom 'code' diisi
                 'expires_at' => now()->addHours(24),
             ]);
             $generatedCodes[] = $code->code;
