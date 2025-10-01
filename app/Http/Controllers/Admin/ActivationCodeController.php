@@ -6,49 +6,44 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivationCode;
 use App\Models\Test;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ActivationCodeController extends Controller
 {
     /**
-     * Membuat sejumlah kode aktivasi untuk sebuah tes.
+     * Menampilkan halaman untuk generate kode aktivasi.
      */
-    public function store(Request $request, Test $test)
+    public function index()
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:1|max:500', // Batasi maksimal 500 sekali generate
-        ]);
-
-        $quantity = $request->input('quantity');
-        $generatedCodes = [];
-
-        for ($i = 0; $i < $quantity; $i++) {
-            do {
-                // Membuat kode unik (contoh: ABCD-EFGH)
-                $code = Str::upper(Str::random(4) . '-' . Str::random(4));
-            } while (ActivationCode::where('code', $code)->exists());
-
-            ActivationCode::create([
-                'test_id' => $test->id,
-                'code' => $code,
-                'expires_at' => now()->addHours(24),
-            ]);
-            $generatedCodes[] = $code;
-        }
-
-        // Simpan kode yang baru dibuat ke session untuk ditampilkan
-        session()->flash('generated_codes', $generatedCodes);
-
-        return redirect()->back()->with('success', "{$quantity} kode aktivasi berhasil dibuat.");
+        // Ambil semua tes yang bukan template untuk ditampilkan di dropdown
+        $tests = Test::where('is_template', false)->orderBy('title')->get();
+        
+        return view('admin.codes.index', compact('tests'));
     }
 
     /**
-     * Menghapus kode aktivasi.
+     * Membuat kode aktivasi baru secara massal.
      */
-    public function destroy(ActivationCode $code)
+    public function store(Request $request)
     {
-        $code->delete();
-        return redirect()->back()->with('success', 'Kode aktivasi berhasil dihapus.');
+        $request->validate([
+            'test_id' => 'required|exists:tests,id',
+            'quantity' => 'required|integer|min:1|max:1000', // Batasi maksimal 1000 kode per request
+        ]);
+
+        $test = Test::findOrFail($request->test_id);
+        $generatedCodes = [];
+
+        for ($i = 0; $i < $request->quantity; $i++) {
+            $code = ActivationCode::create([
+                'test_id' => $test->id,
+                // Kode akan di-generate otomatis oleh boot method di model
+                'expires_at' => now()->addHours(24),
+            ]);
+            $generatedCodes[] = $code->code;
+        }
+
+        return redirect()->route('admin.codes.index')
+                         ->with('success', $request->quantity . ' kode aktivasi berhasil dibuat untuk tes: ' . $test->title)
+                         ->with('generated_codes', $generatedCodes);
     }
 }
-

@@ -11,20 +11,35 @@ class Question extends Model
 {
     use HasFactory;
 
-    // Properti Fillable
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'test_id',
+        'alat_tes_id', // Kolom foreign key baru
+        'memory_item_id', // Kolom foreign key baru untuk item memori
+        'type',
         'question_text',
         'image_path',
     ];
 
-    // RELASI: Satu Question dimiliki oleh satu Test
-    public function test(): BelongsTo
+    public function memoryItem(): BelongsTo
     {
-        return $this->belongsTo(Test::class);
+        return $this->belongsTo(MemoryItem::class, 'memory_item_id');
     }
 
-    // RELASI: Satu Question memiliki banyak Option
+    /**
+     * Relasi BARU: Satu Soal dimiliki oleh satu Alat Tes.
+     */
+    public function alatTes(): BelongsTo
+    {
+        return $this->belongsTo(AlatTes::class);
+    }
+
+    /**
+     * Relasi ke Opsi Jawaban (tidak berubah).
+     */
     public function options(): HasMany
     {
         return $this->hasMany(Option::class);

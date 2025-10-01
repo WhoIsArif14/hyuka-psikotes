@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class Test extends Model
@@ -18,17 +19,9 @@ class Test extends Model
      * @var array
      */
     protected $fillable = [
-        'client_id',
-        'test_code',
-        'test_category_id',
-        'jenjang_id',
-        'title',
-        'description',
-        'duration_minutes',
-        'is_published',
-        'is_template',
-        'available_from',
-        'available_to',
+        'client_id', 'test_code', 'test_category_id', 'jenjang_id',
+        'title', 'description', 'duration_minutes', 'is_published',
+        'is_template', 'available_from', 'available_to',
     ];
 
     /**
@@ -46,7 +39,7 @@ class Test extends Model
     }
 
     /**
-     * Membuat kode unik yang belum ada di database.
+     * Membuat kode unik.
      */
     private static function generateUniqueCode()
     {
@@ -57,7 +50,43 @@ class Test extends Model
         return $code;
     }
 
-    // --- Relasi ---
+    // --- RELASI TAMBAHAN UNTUK FIX ERROR BadMethodCallException ---
+
+    /**
+     * Relasi: Sebuah Tes memiliki banyak Questions.
+     * Metode ini harus ada karena dipanggil oleh TestController.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function questions(): HasMany
+    {
+        // Asumsi model Question ada
+        return $this->hasMany(Question::class);
+    }
+
+    /**
+     * Relasi: Sebuah Tes memiliki banyak InterpretationRule.
+     * Metode ini juga sering dipanggil bersamaan dengan questions().
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function interpretationRules(): HasMany
+    {
+        // Asumsi model InterpretationRule ada
+        return $this->hasMany(InterpretationRule::class)->orderBy('min_score', 'asc');
+    }
+
+    // --- RELASI BARU (Relasi yang sudah ada di Model Anda) ---
+    /**
+     * Relasi Many-to-Many: Satu Modul (Test) bisa terdiri dari banyak Alat Tes.
+     */
+    public function alatTes(): BelongsToMany
+    {
+        // Menghubungkan ke model AlatTes melalui tabel pivot 'modul_alat_tes'
+        return $this->belongsToMany(AlatTes::class, 'modul_alat_tes');
+    }
+
+    // --- Relasi Lainnya (Tidak Berubah) ---
     public function category(): BelongsTo
     {
         return $this->belongsTo(TestCategory::class, 'test_category_id');
@@ -72,28 +101,9 @@ class Test extends Model
     {
         return $this->belongsTo(Client::class);
     }
-
-    public function questions(): HasMany
-    {
-        return $this->hasMany(Question::class);
-    }
-
+    
     public function testResults(): HasMany
     {
         return $this->hasMany(TestResult::class);
-    }
-
-    public function interpretationRules(): HasMany
-    {
-        return $this->hasMany(InterpretationRule::class)->orderBy('min_score', 'asc');
-    }
-
-    /**
-     * Relasi ke model ActivationCode.
-     * Satu tes bisa memiliki banyak kode aktivasi.
-     */
-    public function activationCodes(): HasMany
-    {
-        return $this->hasMany(ActivationCode::class);
     }
 }
