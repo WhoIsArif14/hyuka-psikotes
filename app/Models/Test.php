@@ -19,9 +19,17 @@ class Test extends Model
      * @var array
      */
     protected $fillable = [
-        'client_id', 'test_code', 'test_category_id', 'jenjang_id',
-        'title', 'description', 'duration_minutes', 'is_published',
-        'is_template', 'available_from', 'available_to',
+        'client_id',
+        'test_code',
+        'test_category_id',
+        'jenjang_id',
+        'title',
+        'description',
+        'duration_minutes',
+        'is_published',
+        'is_template',
+        'available_from',
+        'available_to',
     ];
 
     /**
@@ -82,8 +90,8 @@ class Test extends Model
      */
     public function alatTes(): BelongsToMany
     {
-        // Menghubungkan ke model AlatTes melalui tabel pivot 'modul_alat_tes'
-        return $this->belongsToMany(AlatTes::class, 'modul_alat_tes');
+        // Menghubungkan ke model alatTes melalui tabel pivot 'modul_alat_tes'
+        return $this->belongsToMany(alatTes::class, 'modul_alat_tes');
     }
 
     // --- Relasi Lainnya (Tidak Berubah) ---
@@ -101,7 +109,7 @@ class Test extends Model
     {
         return $this->belongsTo(Client::class);
     }
-    
+
     public function testResults(): HasMany
     {
         return $this->hasMany(TestResult::class);

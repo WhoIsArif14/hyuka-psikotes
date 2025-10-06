@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AlatTes;
+use App\Models\alatTes;
 use App\Models\Client;
 use App\Models\Jenjang;
 use App\Models\Test;
@@ -24,9 +24,9 @@ class TestController extends Controller
     public function index()
     {
         $tests = Test::with(['category', 'jenjang', 'client'])
-                     ->withCount('questions')
-                     ->latest()
-                     ->paginate(10);
+            ->withCount('questions')
+            ->latest()
+            ->paginate(10);
         return view('admin.tests.index', compact('tests'));
     }
 
@@ -38,9 +38,9 @@ class TestController extends Controller
         $clients = Client::all();
         $categories = TestCategory::all();
         $jenjangs = Jenjang::all();
-        
+
         // Ambil semua Alat Tes untuk multiple select (dengan durasi)
-        $alatTes = AlatTes::all(['id', 'name', 'duration_minutes']);
+        $alatTes = alatTes::all(['id', 'name', 'duration_minutes']);
 
         // Daftar Tipe Data Diri yang bisa dipilih Admin
         $dataTypes = [
@@ -67,15 +67,15 @@ class TestController extends Controller
             'jenjang_id' => 'required|exists:jenjangs,id',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            
+
             // BARU: Tipe data diri yang wajib diisi
             'required_data_type' => 'required|string|max:50',
-            
+
             // Durasi dan Alat Tes yang dipilih
             'duration_minutes' => 'required|integer|min:1',
             'alat_tes_ids' => 'required|array',
             'alat_tes_ids.*' => 'exists:alat_tes,id',
-            
+
             'test_code' => 'nullable|string|max:8|unique:tests,test_code',
             'available_from' => 'nullable|date',
             'available_to' => 'nullable|date|after_or_equal:available_from',
@@ -84,7 +84,7 @@ class TestController extends Controller
         $data = $request->except('alat_tes_ids'); // Ambil semua kecuali ID Alat Tes
         $data['is_published'] = $request->has('is_published');
         $data['is_template'] = $request->has('is_template');
-        
+
         $alatTesIds = $request->input('alat_tes_ids');
 
         // 2. Gunakan Transaction untuk memastikan Modul dan relasi tersimpan aman
@@ -100,7 +100,6 @@ class TestController extends Controller
             DB::commit();
 
             return redirect()->route('admin.tests.index')->with('success', 'Tes baru berhasil ditambahkan dan Alat Tes terkait telah disimpan.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             // Tampilkan error ke pengguna jika gagal
@@ -116,10 +115,10 @@ class TestController extends Controller
         $clients = Client::all();
         $categories = TestCategory::all();
         $jenjangs = Jenjang::all();
-        
+
         // Ambil Alat Tes yang tersedia dan yang sudah terpilih
-        $alatTes = AlatTes::all(['id', 'name', 'duration_minutes']);
-        $selectedAlatTes = $test->alatTes->pluck('id')->toArray();
+        $alatTes = alatTes::all(['id', 'name', 'duration_minutes']);
+        $selectedalatTes = $test->alatTes->pluck('id')->toArray();
 
         // Daftar Tipe Data Diri (Sama seperti create)
         $dataTypes = [
@@ -129,9 +128,9 @@ class TestController extends Controller
             'BIODATA_MAPPING' => 'BIODATA MAPPING PEGAWAI',
             'BIO_FLK' => 'Bio Data/FLK',
         ];
-        
+
         // Kirim semua data ke view
-        return view('admin.tests.edit', compact('test', 'clients', 'categories', 'jenjangs', 'alatTes', 'selectedAlatTes', 'dataTypes'));
+        return view('admin.tests.edit', compact('test', 'clients', 'categories', 'jenjangs', 'alatTes', 'selectedalatTes', 'dataTypes'));
     }
 
     /**
@@ -149,12 +148,12 @@ class TestController extends Controller
 
             // BARU: Tipe data diri yang wajib diisi
             'required_data_type' => 'required|string|max:50',
-            
+
             // Validasi untuk Durasi dan Alat Tes yang dipilih
             'duration_minutes' => 'required|integer|min:1',
             'alat_tes_ids' => 'required|array',
             'alat_tes_ids.*' => 'exists:alat_tes,id',
-            
+
             'test_code' => 'nullable|string|max:8|unique:tests,test_code,' . $test->id,
             'available_from' => 'nullable|date',
             'available_to' => 'nullable|date|after_or_equal:available_from',
@@ -163,7 +162,7 @@ class TestController extends Controller
         $data = $request->except('alat_tes_ids');
         $data['is_published'] = $request->has('is_published');
         $data['is_template'] = $request->has('is_template');
-        
+
         $alatTesIds = $request->input('alat_tes_ids');
 
         // 2. Gunakan Transaction untuk atomicity
@@ -179,7 +178,6 @@ class TestController extends Controller
             DB::commit();
 
             return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil diperbarui.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->withInput()->with('error', 'Gagal memperbarui Tes dan Alat Tes terkait. Silakan coba lagi. Error: ' . $e->getMessage());
@@ -194,7 +192,7 @@ class TestController extends Controller
         $test->delete();
         return redirect()->route('admin.tests.index')->with('success', 'Tes berhasil dihapus.');
     }
-    
+
     /**
      * Menampilkan hasil tes.
      */
@@ -245,7 +243,7 @@ class TestController extends Controller
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $fileName . '"');
         header('Cache-Control: max-age=0');
-        
+
         // Mengirim file ke output browser
         $writer->save('php://output');
         exit();

@@ -18,7 +18,7 @@ class MemoryItem extends Model
     const TYPE_IMAGE = 'IMAGE';
 
     protected $fillable = [
-        'alat_tes_id', 
+        'alat_tes_id',
         'content', // Konten yang harus dihafal (teks atau path gambar)
         'type',    // Jenis konten: TEXT atau IMAGE
         'duration_seconds', // Durasi tampil (dalam detik)
@@ -31,7 +31,7 @@ class MemoryItem extends Model
     public function recallQuestions(): HasMany
     {
         // Mengasumsikan ada 'memory_item_id' di tabel questions
-        return $this->hasMany(Question::class, 'memory_item_id'); 
+        return $this->hasMany(Question::class, 'memory_item_id');
     }
 
     /**
@@ -39,6 +39,6 @@ class MemoryItem extends Model
      */
     public function alatTes(): BelongsTo
     {
-        return $this->belongsTo(AlatTes::class, 'alat_tes_id');
+        return $this->belongsTo(alatTes::class, 'alat_tes_id');
     }
 }

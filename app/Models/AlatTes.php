@@ -4,40 +4,77 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class AlatTes extends Model
 {
     use HasFactory;
 
-    // Nama tabel eksplisit karena nama class 'AlatTes' menjadi 'alat_tes'
+    // Jika nama tabel adalah 'alat_tes'
     protected $table = 'alat_tes';
+    
+    // ATAU jika nama tabel adalah 'tests', uncomment baris ini:
+    // protected $table = 'tests';
 
-    protected $fillable = ['name', 'duration_minutes'];
+    protected $fillable = [
+        'name',
+        'description',
+        'category',
+        'duration_minutes',
+        'is_active',
+        // tambahkan field lain sesuai kebutuhan
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'duration_minutes' => 'integer',
+    ];
 
     /**
-     * Relasi: Satu Alat Tes memiliki banyak Soal (Question).
+     * Relasi ke Questions
+     * Gunakan 'test_id' sebagai foreign key di tabel questions
      */
-    public function questions(): HasMany
+    public function questions()
     {
-        return $this->hasMany(Question::class);
+        return $this->hasMany(Question::class, 'test_id');
     }
 
     /**
-     * Relasi BARU: Satu Alat Tes memiliki banyak Item Memori.
-     * Item memori adalah materi yang harus dihafal oleh peserta tes.
+     * Scope untuk alat tes yang aktif
      */
-    public function memoryItems(): HasMany
+    public function scopeActive($query)
     {
-        return $this->hasMany(MemoryItem::class, 'alat_tes_id');
+        return $query->where('is_active', true);
     }
 
     /**
-     * Relasi: Satu Alat Tes bisa digunakan di banyak Modul (Test).
+     * Accessor untuk jumlah pertanyaan
      */
-    public function modules(): BelongsToMany
+    public function getQuestionsCountAttribute()
     {
-        return $this->belongsToMany(Test::class, 'modul_alat_tes');
+        return $this->questions()->count();
+    }
+
+    /**
+     * Accessor untuk jumlah pertanyaan pilihan ganda
+     */
+    public function getPilihanGandaCountAttribute()
+    {
+        return $this->questions()->where('type', 'PILIHAN_GANDA')->count();
+    }
+
+    /**
+     * Accessor untuk jumlah pertanyaan essay
+     */
+    public function getEssayCountAttribute()
+    {
+        return $this->questions()->where('type', 'ESSAY')->count();
+    }
+
+    /**
+     * Accessor untuk jumlah pertanyaan hafalan
+     */
+    public function getHafalanCountAttribute()
+    {
+        return $this->questions()->where('type', 'HAFALAN')->count();
     }
 }

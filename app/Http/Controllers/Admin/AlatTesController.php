@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AlatTes;
+use App\Models\alatTes;
 use Illuminate\Http\Request;
 
-class AlatTesController extends Controller
+class alatTesController extends Controller
 {
     /**
      * Menampilkan daftar semua Alat Tes.
@@ -14,7 +14,7 @@ class AlatTesController extends Controller
     public function index()
     {
         // Ambil semua data Alat Tes, hitung jumlah soal di dalamnya, dan urutkan dari yang terbaru
-        $alatTes = AlatTes::withCount('questions')->latest()->paginate(10);
+        $alatTes = alatTes::withCount('questions')->latest()->paginate(10);
         return view('admin.alat-tes.index', compact('alatTes'));
     }
 
@@ -36,7 +36,7 @@ class AlatTesController extends Controller
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        AlatTes::create($validated);
+        alatTes::create($validated);
 
         return redirect()->route('admin.alat-tes.index')->with('success', 'Alat Tes baru berhasil dibuat.');
     }
@@ -44,22 +44,22 @@ class AlatTesController extends Controller
     /**
      * Menampilkan form untuk mengedit Alat Tes.
      */
-    public function edit(AlatTes $alatTe) // Laravel 8+ Route Model Binding
+    public function edit(alatTes $alatTes) // Laravel 8+ Route Model Binding
     {
-        return view('admin.alat-tes.edit', ['alatTes' => $alatTe]);
+        return view('admin.alat-tes.edit', ['alatTes' => $alatTes]);
     }
 
     /**
      * Mengupdate Alat Tes di database.
      */
-    public function update(Request $request, AlatTes $alatTe)
+    public function update(Request $request, alatTes $alatTes)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        $alatTe->update($validated);
+        $alatTes->update($validated);
 
         return redirect()->route('admin.alat-tes.index')->with('success', 'Alat Tes berhasil diperbarui.');
     }
@@ -67,9 +67,9 @@ class AlatTesController extends Controller
     /**
      * Menghapus Alat Tes dari database.
      */
-    public function destroy(AlatTes $alatTe)
+    public function destroy(alatTes $alatTes)
     {
-        $alatTe->delete();
+        $alatTes->delete();
         return redirect()->route('admin.alat-tes.index')->with('success', 'Alat Tes berhasil dihapus.');
     }
 }
