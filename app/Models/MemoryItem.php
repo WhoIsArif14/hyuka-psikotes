@@ -37,8 +37,8 @@ class MemoryItem extends Model
     /**
      * Relasi: Item ini dimiliki oleh Alat Tes tertentu.
      */
-    public function alatTes(): BelongsTo
+    public function AlatTes(): BelongsTo
     {
-        return $this->belongsTo(alatTes::class, 'alat_tes_id');
+        return $this->belongsTo(AlatTes::class, 'alat_tes_id');
     }
 }

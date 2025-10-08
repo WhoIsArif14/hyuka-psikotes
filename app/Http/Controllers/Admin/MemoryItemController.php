@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\alatTes;
+use App\Models\AlatTes;
 use App\Models\MemoryItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,24 +13,24 @@ class MemoryItemController extends Controller
     /**
      * Menampilkan daftar item memori untuk Alat Tes tertentu.
      */
-    public function index(alatTes $alatTes)
+    public function index(AlatTes $AlatTes)
     {
-        $items = $alatTes->memoryItems()->orderBy('order')->paginate(10);
-        return view('admin.memory-items.index', compact('items', 'alatTes'));
+        $items = $AlatTes->memoryItems()->orderBy('order')->paginate(10);
+        return view('admin.memory-items.index', compact('items', 'AlatTes'));
     }
 
     /**
      * Menampilkan form untuk membuat item memori baru.
      */
-    public function create(alatTes $alatTes)
+    public function create(AlatTes $AlatTes)
     {
-        return view('admin.memory-items.create', compact('alatTes'));
+        return view('admin.memory-items.create', compact('AlatTes'));
     }
 
     /**
      * Menyimpan Item Memori baru ke database.
      */
-    public function store(Request $request, alatTes $alatTes)
+    public function store(Request $request, AlatTes $AlatTes)
     {
         $validated = $request->validate([
             'content' => 'required_if:type,TEXT|string|nullable',
@@ -45,9 +45,9 @@ class MemoryItemController extends Controller
             $validated['content'] = $request->file('image_file')->store('memory_images', 'public');
         }
 
-        $alatTes->memoryItems()->create($validated);
+        $AlatTes->memoryItems()->create($validated);
 
-        return redirect()->route('admin.alat-tes.memory-items.index', $alatTes)
+        return redirect()->route('admin.alat-tes.memory-items.index', $AlatTes)
             ->with('success', 'Item memori berhasil ditambahkan.');
     }
 

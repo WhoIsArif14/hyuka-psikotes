@@ -38,7 +38,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @forelse ($alatTes as $item)
+                            @forelse ($AlatTes as $item)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap font-medium">{{ $item->name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $item->questions_count }}</td>

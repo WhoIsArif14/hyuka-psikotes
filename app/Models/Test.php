@@ -88,10 +88,10 @@ class Test extends Model
     /**
      * Relasi Many-to-Many: Satu Modul (Test) bisa terdiri dari banyak Alat Tes.
      */
-    public function alatTes(): BelongsToMany
+    public function AlatTes(): BelongsToMany
     {
-        // Menghubungkan ke model alatTes melalui tabel pivot 'modul_alat_tes'
-        return $this->belongsToMany(alatTes::class, 'modul_alat_tes');
+        // Menghubungkan ke model AlatTes melalui tabel pivot 'modul_alat_tes'
+        return $this->belongsToMany(AlatTes::class, 'modul_alat_tes');
     }
 
     // --- Relasi Lainnya (Tidak Berubah) ---

@@ -14,16 +14,16 @@ class QuestionController extends Controller
 
     public function index($alat_te)
     {
-        $alatTes = AlatTes::findOrFail($alat_te);
-        $questions = $alatTes->questions()->paginate(10);
+        $AlatTes = AlatTes::findOrFail($alat_te);
+        $questions = $AlatTes->questions()->paginate(10);
 
-        return view('admin.questions.index', compact('alatTes', 'questions'));
+        return view('admin.questions.index', compact('AlatTes', 'questions'));
     }
 
     public function create($alat_te)
     {
-        $alatTes = AlatTes::findOrFail($alat_te);
-        return view('admin.questions.create', ['alatTeId' => $alatTes->id]);
+        $AlatTes = AlatTes::findOrFail($alat_te);
+        return view('admin.questions.create', ['alatTeId' => $AlatTes->id]);
     }
 
     public function store(Request $request, $alat_te)
@@ -37,7 +37,7 @@ class QuestionController extends Controller
             'request_all' => $request->all(),
         ]);
 
-        $alatTes = AlatTes::findOrFail($alat_te);
+        $AlatTes = AlatTes::findOrFail($alat_te);
 
         // ... validasi
         $rules = [
@@ -111,9 +111,9 @@ class QuestionController extends Controller
     public function edit($question)
     {
         $question = Question::findOrFail($question);
-        $alatTes = $question->alatTes;
+        $AlatTes = $question->AlatTes;
 
-        return view('admin.questions.edit', compact('alatTes', 'question'));
+        return view('admin.questions.edit', compact('AlatTes', 'question'));
     }
 
     public function update(Request $request, $question)

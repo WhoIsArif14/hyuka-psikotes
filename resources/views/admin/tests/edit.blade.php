@@ -144,23 +144,23 @@
                                 Lebih):</label>
                             <div class="grid grid-cols-2 gap-x-4 gap-y-2 max-h-60 overflow-y-auto p-2 border rounded-md"
                                 id="alat_tes_list_container">
-                                @foreach ($alatTes as $alatTes)
+                                @foreach ($AlatTes as $AlatTes)
                                     @php
                                         // Cek apakah Alat Tes ini sudah dipilih di OLD input, atau dari database
                                         $isSelected = in_array(
-                                            $alatTes->id,
-                                            old('alat_tes_ids', $selectedalatTes ?? []),
+                                            $AlatTes->id,
+                                            old('alat_tes_ids', $selectedAlatTes ?? []),
                                         );
                                     @endphp
                                     <div class="flex items-center">
-                                        <input id="alat_tes_{{ $alatTes->id }}" name="alat_tes_ids[]" type="checkbox"
-                                            value="{{ $alatTes->id }}"
-                                            data-duration="{{ $alatTes->duration_minutes }}"
+                                        <input id="alat_tes_{{ $AlatTes->id }}" name="alat_tes_ids[]" type="checkbox"
+                                            value="{{ $AlatTes->id }}"
+                                            data-duration="{{ $AlatTes->duration_minutes }}"
                                             class="alat-tes-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                             {{ $isSelected ? 'checked' : '' }}>
-                                        <label for="alat_tes_{{ $alatTes->id }}"
+                                        <label for="alat_tes_{{ $AlatTes->id }}"
                                             class="ml-2 block text-sm text-gray-900">
-                                            {{ $alatTes->name }} ({{ $alatTes->duration_minutes }} menit)
+                                            {{ $AlatTes->name }} ({{ $AlatTes->duration_minutes }} menit)
                                         </label>
                                     </div>
                                 @endforeach

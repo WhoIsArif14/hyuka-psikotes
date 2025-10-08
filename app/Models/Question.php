@@ -32,7 +32,7 @@ class Question extends Model
     /**
      * Relasi ke AlatTes menggunakan test_id
      */
-    public function alatTes()
+    public function AlatTes()
     {
         return $this->belongsTo(AlatTes::class, 'test_id');
     }
@@ -40,7 +40,7 @@ class Question extends Model
     /**
      * Relasi alternatif menggunakan alat_tes_id (jika dipakai)
      */
-    public function alatTesAlt()
+    public function AlatTesAlt()
     {
         return $this->belongsTo(AlatTes::class, 'alat_tes_id');
     }

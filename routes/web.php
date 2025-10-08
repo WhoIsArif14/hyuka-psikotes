@@ -13,9 +13,7 @@ use App\Http\Controllers\Admin\OptionController;
 use App\Http\Controllers\Admin\PesertaController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\TestCategoryController;
-// Menggunakan TestController untuk Modul (Tests)
 use App\Http\Controllers\Admin\TestController;
-// Menggunakan alatTesController untuk Alat Tes
 use App\Http\Controllers\Admin\alatTesController;
 use App\Http\Controllers\Admin\TestCreationWizardController;
 use App\Http\Controllers\Admin\UserController;
@@ -69,11 +67,15 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-        // --- RUTE KODE AKTIVASI ---
-        Route::get('activation-codes', [ActivationCodeController::class, 'index'])->name('codes.index');
-        Route::post('activation-codes', [ActivationCodeController::class, 'store'])->name('codes.store');
-        Route::get('activation-codes/{code}', [ActivationCodeController::class, 'show'])->name('codes.show');
-
+        // --- RUTE KODE AKTIVASI (DIPERBAIKI) ---
+        Route::resource('activation-codes', ActivationCodeController::class)
+            ->only(['index', 'store', 'show', 'destroy'])
+            ->names([
+                'index' => 'codes.index',
+                'store' => 'codes.store',
+                'show' => 'codes.show',
+                'destroy' => 'codes.destroy',
+            ]);
 
         // Wizard Pembuatan Tes
         Route::prefix('create-test')->name('wizard.')->group(function () {
@@ -104,27 +106,26 @@ Route::middleware(['auth', IsAdmin::class])
         Route::resource('alat-tes', alatTesController::class)->names('alat-tes');
 
         // ==========================================================
-        // RUTE QUESTIONS - DIPERBAIKI!
+        // RUTE QUESTIONS
         // ==========================================================
-        // Opsi 1: Manual Routes (Lebih Eksplisit & Jelas)
         Route::get('alat-tes/{alat_te}/questions', [QuestionController::class, 'index'])
             ->name('alat-tes.questions.index');
-        
+
         Route::get('alat-tes/{alat_te}/questions/create', [QuestionController::class, 'create'])
             ->name('alat-tes.questions.create');
-        
+
         Route::post('alat-tes/{alat_te}/questions', [QuestionController::class, 'store'])
             ->name('alat-tes.questions.store');
-        
+
         Route::get('questions/{question}', [QuestionController::class, 'show'])
             ->name('questions.show');
-        
+
         Route::get('questions/{question}/edit', [QuestionController::class, 'edit'])
             ->name('questions.edit');
-        
+
         Route::put('questions/{question}', [QuestionController::class, 'update'])
             ->name('questions.update');
-        
+
         Route::delete('questions/{question}', [QuestionController::class, 'destroy'])
             ->name('questions.destroy');
 
@@ -133,7 +134,6 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('questions/download-template', [QuestionController::class, 'downloadTemplate'])->name('questions.template');
         Route::post('questions/{question}/options', [OptionController::class, 'store'])->name('questions.options.store');
         Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
-
 
         // Rute Manajemen Pengguna dan Peserta
         Route::resource('users', UserController::class)->except(['create', 'store']);

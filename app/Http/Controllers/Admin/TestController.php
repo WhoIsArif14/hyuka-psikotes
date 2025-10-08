@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\alatTes;
+use App\Models\AlatTes;
 use App\Models\Client;
 use App\Models\Jenjang;
 use App\Models\Test;
@@ -40,7 +40,7 @@ class TestController extends Controller
         $jenjangs = Jenjang::all();
 
         // Ambil semua Alat Tes untuk multiple select (dengan durasi)
-        $alatTes = alatTes::all(['id', 'name', 'duration_minutes']);
+        $AlatTes = AlatTes::all(['id', 'name', 'duration_minutes']);
 
         // Daftar Tipe Data Diri yang bisa dipilih Admin
         $dataTypes = [
@@ -52,7 +52,7 @@ class TestController extends Controller
         ];
 
         // Kirim semua data ke view
-        return view('admin.tests.create', compact('clients', 'categories', 'jenjangs', 'alatTes', 'dataTypes'));
+        return view('admin.tests.create', compact('clients', 'categories', 'jenjangs', 'AlatTes', 'dataTypes'));
     }
 
     /**
@@ -85,7 +85,7 @@ class TestController extends Controller
         $data['is_published'] = $request->has('is_published');
         $data['is_template'] = $request->has('is_template');
 
-        $alatTesIds = $request->input('alat_tes_ids');
+        $AlatTesIds = $request->input('alat_tes_ids');
 
         // 2. Gunakan Transaction untuk memastikan Modul dan relasi tersimpan aman
         DB::beginTransaction();
@@ -95,7 +95,7 @@ class TestController extends Controller
             $test = Test::create($data);
 
             // B. Hubungkan ke Alat Tes (tabel pivot)
-            $test->alatTes()->attach($alatTesIds);
+            $test->AlatTes()->attach($AlatTesIds);
 
             DB::commit();
 
@@ -117,8 +117,8 @@ class TestController extends Controller
         $jenjangs = Jenjang::all();
 
         // Ambil Alat Tes yang tersedia dan yang sudah terpilih
-        $alatTes = alatTes::all(['id', 'name', 'duration_minutes']);
-        $selectedalatTes = $test->alatTes->pluck('id')->toArray();
+        $AlatTes = AlatTes::all(['id', 'name', 'duration_minutes']);
+        $selectedAlatTes = $test->AlatTes->pluck('id')->toArray();
 
         // Daftar Tipe Data Diri (Sama seperti create)
         $dataTypes = [
@@ -130,7 +130,7 @@ class TestController extends Controller
         ];
 
         // Kirim semua data ke view
-        return view('admin.tests.edit', compact('test', 'clients', 'categories', 'jenjangs', 'alatTes', 'selectedalatTes', 'dataTypes'));
+        return view('admin.tests.edit', compact('test', 'clients', 'categories', 'jenjangs', 'AlatTes', 'selectedAlatTes', 'dataTypes'));
     }
 
     /**
@@ -163,7 +163,7 @@ class TestController extends Controller
         $data['is_published'] = $request->has('is_published');
         $data['is_template'] = $request->has('is_template');
 
-        $alatTesIds = $request->input('alat_tes_ids');
+        $AlatTesIds = $request->input('alat_tes_ids');
 
         // 2. Gunakan Transaction untuk atomicity
         DB::beginTransaction();
@@ -173,7 +173,7 @@ class TestController extends Controller
             $test->update($data);
 
             // B. Sinkronisasi Alat Tes (menghapus yang lama dan menambahkan yang baru)
-            $test->alatTes()->sync($alatTesIds);
+            $test->AlatTes()->sync($AlatTesIds);
 
             DB::commit();
 
