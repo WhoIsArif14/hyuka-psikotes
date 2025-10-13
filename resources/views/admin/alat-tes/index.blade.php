@@ -15,7 +15,8 @@
             </div>
 
             @if (session('success'))
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+                <div id="success-message"
+                    class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert">
                     <p>{{ session('success') }}</p>
                 </div>
             @endif
@@ -25,15 +26,9 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Nama Alat Tes</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Jumlah Soal</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Durasi (Menit)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Alat Tes</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Soal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi (Menit)</th>
                                 <th class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
                             </tr>
                         </thead>
@@ -46,17 +41,16 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex justify-end items-center space-x-4">
                                             <a href="{{ route('admin.alat-tes.questions.index', $item) }}"
-                                                class="text-green-600 hover:text-green-900 font-semibold">Kelola
-                                                Soal</a>
+                                                class="text-green-600 hover:text-green-900 font-semibold">Kelola Soal</a>
                                             <a href="{{ route('admin.alat-tes.edit', $item) }}"
                                                 class="text-indigo-600 hover:text-indigo-900">Edit</a>
-                                            <form method="POST" action="{{ route('admin.alat-tes.destroy', $item) }}"
-                                                onsubmit="return confirm('Anda yakin ingin menghapus alat tes ini? Semua soal di dalamnya akan ikut terhapus.');"
-                                                class="inline">
+
+                                            {{-- Tombol Hapus --}}
+                                            <form method="POST" action="{{ route('admin.alat-tes.destroy', $item) }}" class="inline delete-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit"
-                                                    class="text-red-600 hover:text-red-900">Hapus</button>
+                                                <button type="button"
+                                                    class="text-red-600 hover:text-red-900 delete-btn">Hapus</button>
                                             </form>
                                         </div>
                                     </td>
@@ -74,4 +68,45 @@
             </div>
         </div>
     </div>
+
+    {{-- Tambahkan SweetAlert2 --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Konfirmasi hapus
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const form = this.closest('.delete-form');
+
+                    Swal.fire({
+                        title: 'Yakin ingin menghapus?',
+                        text: "Semua soal di dalam alat tes ini juga akan ikut terhapus.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+
+            // Notifikasi sukses (jika ada session success)
+            @if (session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: '{{ session('success') }}',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            @endif
+        });
+    </script>
 </x-admin-layout>

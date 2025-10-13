@@ -6,12 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\AlatTes;
 use App\Models\Question;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class QuestionController extends Controller
 {
-    // PENTING: Parameter menggunakan $alat_te (singular dari AlatTes model)
-    // Sesuai dengan Route Model Binding Laravel
-
     public function index($alat_te)
     {
         $AlatTes = AlatTes::findOrFail($alat_te);
@@ -28,21 +26,12 @@ class QuestionController extends Controller
 
     public function store(Request $request, $alat_te)
     {
-        // Debug: Cek ID dan data
-        \Log::info('Debug Store Question', [
-            'alat_te_param' => $alat_te,
-            'type' => gettype($alat_te),
-            'exists_in_alat_tes' => \DB::table('alat_tes')->where('id', $alat_te)->exists(),
-            'alat_tes_data' => \DB::table('alat_tes')->where('id', $alat_te)->first(),
-            'request_all' => $request->all(),
-        ]);
+        $alatTes = AlatTes::findOrFail($alat_te);
 
-        $AlatTes = AlatTes::findOrFail($alat_te);
-
-        // ... validasi
+        // 1. DEFINISI RULES VALIDASI
         $rules = [
             'type' => 'required|in:PILIHAN_GANDA,ESSAY,HAFALAN',
-            'image_path' => 'nullable|string',
+            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
         if ($request->type === 'PILIHAN_GANDA' || $request->type === 'ESSAY') {
@@ -51,7 +40,8 @@ class QuestionController extends Controller
 
         if ($request->type === 'PILIHAN_GANDA') {
             $rules['options'] = 'required|array|min:2';
-            $rules['options.*.text'] = 'required|string';
+            $rules['options.*.text'] = 'nullable|string';
+            $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
             $rules['is_correct'] = 'required|integer|min:0';
         }
 
@@ -59,46 +49,101 @@ class QuestionController extends Controller
             $rules['memory_content'] = 'required|string';
             $rules['memory_type'] = 'required|in:TEXT,IMAGE';
             $rules['duration_seconds'] = 'required|integer|min:1';
+            // ✅ PERBAIKAN: Validasi untuk pertanyaan setelah hafalan
+            $rules['question_text'] = 'required|string';
+            $rules['options'] = 'required|array|min:2';
+            $rules['options.*.text'] = 'nullable|string';
+            $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            $rules['is_correct'] = 'required|integer|min:0';
         }
 
         $validated = $request->validate($rules);
 
+        // 2. HANDLE GAMBAR PERTANYAAN UTAMA
+        $imagePath = null;
+        if ($request->hasFile('question_image')) {
+            $imagePath = $request->file('question_image')->store('questions', 'public');
+        }
+
+        // 3. SIAPKAN DATA PERTANYAAN
         $questionData = [
-            'test_id' => $alat_te, // Pastikan ini INTEGER, bukan STRING
+            'test_id' => $alat_te,
             'type' => $request->type,
-            'image_path' => $request->image_path,
+            'image_path' => $imagePath,
         ];
 
-        // Debug sebelum insert
-        \Log::info('Question Data Before Insert', $questionData);
-
         if ($request->type === 'HAFALAN') {
-            $questionData['question_text'] = '';
+            // ✅ PERBAIKAN: Simpan materi hafalan
             $questionData['memory_content'] = $request->memory_content;
             $questionData['memory_type'] = $request->memory_type;
             $questionData['duration_seconds'] = $request->duration_seconds;
+            
+            // ✅ PERBAIKAN: Simpan pertanyaan setelah hafalan
+            $questionData['question_text'] = $request->question_text;
+
+            // ✅ PERBAIKAN: Simpan opsi jawaban (seperti PILIHAN_GANDA)
+            $processedOptions = [];
+            $optionsData = $request->options;
+            
+            foreach ($optionsData as $index => $option) {
+                $optionData = [
+                    'text' => $option['text'] ?? '',
+                    'index' => $option['index'] ?? $index,
+                    'image_path' => null,
+                ];
+                
+                if ($request->hasFile("options.{$index}.image_file")) {
+                    $file = $request->file("options.{$index}.image_file");
+                    $optionImagePath = $file->store('option_images', 'public');
+                    $optionData['image_path'] = $optionImagePath;
+                }
+
+                $processedOptions[] = $optionData;
+            }
+
+            $questionData['options'] = json_encode($processedOptions);
+            $questionData['correct_answer_index'] = $request->is_correct;
+            
         } else {
             $questionData['question_text'] = $request->question_text;
 
             if ($request->type === 'PILIHAN_GANDA') {
-                $questionData['options'] = json_encode($request->options);
+                $processedOptions = [];
+                $optionsData = $request->options;
+                
+                foreach ($optionsData as $index => $option) {
+                    $optionData = [
+                        'text' => $option['text'] ?? '',
+                        'index' => $option['index'] ?? $index,
+                        'image_path' => null,
+                    ];
+                    
+                    if ($request->hasFile("options.{$index}.image_file")) {
+                        $file = $request->file("options.{$index}.image_file");
+                        $optionImagePath = $file->store('option_images', 'public');
+                        $optionData['image_path'] = $optionImagePath;
+                    }
+
+                    $processedOptions[] = $optionData;
+                }
+
+                $questionData['options'] = json_encode($processedOptions);
                 $questionData['correct_answer_index'] = $request->is_correct;
             }
         }
 
+        // 5. SIMPAN KE DATABASE
         try {
             $question = Question::create($questionData);
-            \Log::info('Question Created Successfully', ['id' => $question->id]);
 
             return redirect()->route('admin.alat-tes.questions.index', $alat_te)
                 ->with('success', 'Soal berhasil ditambahkan.');
         } catch (\Exception $e) {
-            \Log::error('Failed to Create Question', [
-                'error' => $e->getMessage(),
-                'data' => $questionData
-            ]);
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
 
-            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'Gagal menyimpan: ' . $e->getMessage()]);
         }
     }
 
@@ -122,7 +167,7 @@ class QuestionController extends Controller
 
         $rules = [
             'type' => 'required|in:PILIHAN_GANDA,ESSAY,HAFALAN',
-            'image_path' => 'nullable|string',
+            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
         if ($request->type === 'PILIHAN_GANDA' || $request->type === 'ESSAY') {
@@ -131,7 +176,8 @@ class QuestionController extends Controller
 
         if ($request->type === 'PILIHAN_GANDA') {
             $rules['options'] = 'required|array|min:2';
-            $rules['options.*.text'] = 'required|string';
+            $rules['options.*.text'] = 'nullable|string';
+            $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
             $rules['is_correct'] = 'required|integer|min:0';
         }
 
@@ -139,22 +185,67 @@ class QuestionController extends Controller
             $rules['memory_content'] = 'required|string';
             $rules['memory_type'] = 'required|in:TEXT,IMAGE';
             $rules['duration_seconds'] = 'required|integer|min:1';
+            // ✅ PERBAIKAN: Validasi untuk pertanyaan setelah hafalan
+            $rules['question_text'] = 'required|string';
+            $rules['options'] = 'required|array|min:2';
+            $rules['options.*.text'] = 'nullable|string';
+            $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            $rules['is_correct'] = 'required|integer|min:0';
         }
 
         $validated = $request->validate($rules);
 
+        // Handle gambar pertanyaan
+        $imagePath = $questionModel->image_path;
+        if ($request->hasFile('question_image')) {
+            // Hapus gambar lama
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            $imagePath = $request->file('question_image')->store('questions', 'public');
+        }
+
         $questionData = [
             'type' => $request->type,
-            'image_path' => $request->image_path
+            'image_path' => $imagePath
         ];
 
         if ($request->type === 'HAFALAN') {
-            $questionData['question_text'] = '';
+            // ✅ PERBAIKAN: Simpan materi hafalan
             $questionData['memory_content'] = $request->memory_content;
             $questionData['memory_type'] = $request->memory_type;
             $questionData['duration_seconds'] = $request->duration_seconds;
-            $questionData['options'] = null;
-            $questionData['correct_answer_index'] = null;
+            
+            // ✅ PERBAIKAN: Simpan pertanyaan setelah hafalan
+            $questionData['question_text'] = $request->question_text;
+
+            // ✅ PERBAIKAN: Simpan opsi jawaban
+            $processedOptions = [];
+            $optionsData = $request->options;
+            
+            foreach ($optionsData as $index => $option) {
+                $optionData = [
+                    'text' => $option['text'] ?? '',
+                    'index' => $option['index'] ?? $index,
+                    'image_path' => $option['image_path'] ?? null, // Keep existing if not updated
+                ];
+                
+                if ($request->hasFile("options.{$index}.image_file")) {
+                    // Hapus gambar lama jika ada
+                    if (isset($option['image_path'])) {
+                        Storage::disk('public')->delete($option['image_path']);
+                    }
+                    $file = $request->file("options.{$index}.image_file");
+                    $optionImagePath = $file->store('option_images', 'public');
+                    $optionData['image_path'] = $optionImagePath;
+                }
+
+                $processedOptions[] = $optionData;
+            }
+
+            $questionData['options'] = json_encode($processedOptions);
+            $questionData['correct_answer_index'] = $request->is_correct;
+            
         } else {
             $questionData['question_text'] = $request->question_text;
             $questionData['memory_content'] = null;
@@ -162,7 +253,29 @@ class QuestionController extends Controller
             $questionData['duration_seconds'] = null;
 
             if ($request->type === 'PILIHAN_GANDA') {
-                $questionData['options'] = json_encode($request->options);
+                $processedOptions = [];
+                $optionsData = $request->options;
+                
+                foreach ($optionsData as $index => $option) {
+                    $optionData = [
+                        'text' => $option['text'] ?? '',
+                        'index' => $option['index'] ?? $index,
+                        'image_path' => $option['image_path'] ?? null,
+                    ];
+                    
+                    if ($request->hasFile("options.{$index}.image_file")) {
+                        if (isset($option['image_path'])) {
+                            Storage::disk('public')->delete($option['image_path']);
+                        }
+                        $file = $request->file("options.{$index}.image_file");
+                        $optionImagePath = $file->store('option_images', 'public');
+                        $optionData['image_path'] = $optionImagePath;
+                    }
+
+                    $processedOptions[] = $optionData;
+                }
+
+                $questionData['options'] = json_encode($processedOptions);
                 $questionData['correct_answer_index'] = $request->is_correct;
             } else {
                 $questionData['options'] = null;
@@ -180,6 +293,22 @@ class QuestionController extends Controller
     {
         $questionModel = Question::findOrFail($question);
         $testId = $questionModel->test_id;
+        
+        // Hapus gambar terkait
+        if ($questionModel->image_path) {
+            Storage::disk('public')->delete($questionModel->image_path);
+        }
+        
+        // Hapus gambar opsi
+        if ($questionModel->options) {
+            $options = is_string($questionModel->options) ? json_decode($questionModel->options, true) : $questionModel->options;
+            foreach ($options as $option) {
+                if (isset($option['image_path']) && $option['image_path']) {
+                    Storage::disk('public')->delete($option['image_path']);
+                }
+            }
+        }
+        
         $questionModel->delete();
 
         return redirect()->route('admin.alat-tes.questions.index', $testId)

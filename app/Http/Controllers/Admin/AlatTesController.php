@@ -38,38 +38,42 @@ class AlatTesController extends Controller
 
         AlatTes::create($validated);
 
-        return redirect()->route('admin.alat-tes.index')->with('success', 'Alat Tes baru berhasil dibuat.');
+        return redirect()->route('admin.alat-tes.index')
+            ->with('success', 'Alat Tes baru berhasil dibuat.');
     }
 
     /**
      * Menampilkan form untuk mengedit Alat Tes.
      */
-    public function edit(AlatTes $AlatTes) // Laravel 8+ Route Model Binding
+    public function edit(AlatTes $alat_te)
     {
-        return view('admin.alat-tes.edit', ['AlatTes' => $AlatTes]);
+        return view('admin.alat-tes.edit', ['AlatTes' => $alat_te]);
     }
 
     /**
      * Mengupdate Alat Tes di database.
      */
-    public function update(Request $request, AlatTes $AlatTes)
+    public function update(Request $request, AlatTes $alat_te)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        $AlatTes->update($validated);
+        $alat_te->update($validated);
 
-        return redirect()->route('admin.alat-tes.index')->with('success', 'Alat Tes berhasil diperbarui.');
+        return redirect()->route('admin.alat-tes.index')
+            ->with('success', 'Alat Tes berhasil diperbarui.');
     }
 
     /**
      * Menghapus Alat Tes dari database.
      */
-    public function destroy(AlatTes $AlatTes)
+    public function destroy(AlatTes $alat_te)
     {
-        $AlatTes->delete();
-        return redirect()->route('admin.alat-tes.index')->with('success', 'Alat Tes berhasil dihapus.');
+        $alat_te->delete();
+
+        return redirect()->route('admin.alat-tes.index')
+            ->with('success', 'Alat Tes berhasil dihapus.');
     }
 }

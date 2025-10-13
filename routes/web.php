@@ -14,7 +14,7 @@ use App\Http\Controllers\Admin\PesertaController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\TestCategoryController;
 use App\Http\Controllers\Admin\TestController;
-use App\Http\Controllers\Admin\alatTesController;
+use App\Http\Controllers\Admin\AlatTesController;
 use App\Http\Controllers\Admin\TestCreationWizardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ActivationCodeController;
@@ -76,6 +76,8 @@ Route::middleware(['auth', IsAdmin::class])
                 'show' => 'codes.show',
                 'destroy' => 'codes.destroy',
             ]);
+        Route::get('activation-codes/{code}/export', [ActivationCodeController::class, 'exportBatch'])
+            ->name('codes.export');
 
         // Wizard Pembuatan Tes
         Route::prefix('create-test')->name('wizard.')->group(function () {
