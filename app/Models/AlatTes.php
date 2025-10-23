@@ -9,72 +9,77 @@ class AlatTes extends Model
 {
     use HasFactory;
 
-    // Jika nama tabel adalah 'alat_tes'
     protected $table = 'alat_tes';
     
-    // ATAU jika nama tabel adalah 'tests', uncomment baris ini:
-    // protected $table = 'tests';
-
+    // PENTING: Hanya masukkan field yang ADA di tabel database Anda
     protected $fillable = [
         'name',
-        'description',
-        'category',
         'duration_minutes',
-        'is_active',
-        // tambahkan field lain sesuai kebutuhan
+        'slug',           // Tambahkan jika kolom ini ada di database
+        'description',    // Tambahkan jika kolom ini ada di database
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
         'duration_minutes' => 'integer',
     ];
 
     /**
-     * Relasi ke Questions
-     * Gunakan 'test_id' sebagai foreign key di tabel questions
+     * Relationship ke Questions (Soal Umum)
      */
     public function questions()
     {
-        return $this->hasMany(Question::class, 'test_id');
+        return $this->hasMany(Question::class, 'alat_tes_id');
     }
 
     /**
-     * Scope untuk alat tes yang aktif
+     * Mengecek apakah alat tes ini adalah PAPI Kostick
+     * 
+     * @return bool
      */
-    public function scopeActive($query)
+    public function isPapiKostick()
     {
-        return $query->where('is_active', true);
+        if (!isset($this->slug)) {
+            return false;
+        }
+        
+        $slug = strtolower(trim($this->slug));
+        
+        // Cek berbagai kemungkinan format slug PAPI
+        return in_array($slug, [
+            'papi-kostick',
+            'papikostick',
+            'papi_kostick',
+            'papi kostick'
+        ]);
     }
 
     /**
-     * Accessor untuk jumlah pertanyaan
+     * Mendapatkan jumlah total soal
+     * (Baik dari questions maupun papi_questions)
+     * 
+     * @return int
      */
-    public function getQuestionsCountAttribute()
+    public function getTotalQuestionsAttribute()
     {
+        if ($this->isPapiKostick()) {
+            return PapiQuestion::count();
+        }
+        
         return $this->questions()->count();
     }
 
     /**
-     * Accessor untuk jumlah pertanyaan pilihan ganda
+     * Mendapatkan semua soal dengan pagination
+     * 
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getPilihanGandaCountAttribute()
+    public function getQuestionsPaginated($perPage = 10)
     {
-        return $this->questions()->where('type', 'PILIHAN_GANDA')->count();
-    }
-
-    /**
-     * Accessor untuk jumlah pertanyaan essay
-     */
-    public function getEssayCountAttribute()
-    {
-        return $this->questions()->where('type', 'ESSAY')->count();
-    }
-
-    /**
-     * Accessor untuk jumlah pertanyaan hafalan
-     */
-    public function getHafalanCountAttribute()
-    {
-        return $this->questions()->where('type', 'HAFALAN')->count();
+        if ($this->isPapiKostick()) {
+            return PapiQuestion::orderBy('item_number')->paginate($perPage);
+        }
+        
+        return $this->questions()->paginate($perPage);
     }
 }

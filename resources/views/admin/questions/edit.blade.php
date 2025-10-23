@@ -1,12 +1,12 @@
 <x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Edit Pertanyaan') }}
+            {{ __('Edit Soal PAPI Kostick: Item ') }}{{ $question->item_number }}
         </h2>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
                 @if ($errors->any())
@@ -21,295 +21,95 @@
                     </div>
                 @endif
 
-                <div class="bg-white p-6 rounded-xl">
-                    <form method="POST" action="{{ route('admin.questions.update', ['question' => $question->id]) }}" id="questionForm">
+                <div class="bg-white p-6 rounded-xl border border-red-300">
+                    
+                    {{-- PERBAIKAN PENTING DI SINI: Action URL HARUS MENGGUNAKAN route update dengan 2 parameter --}}
+                    <form method="POST" 
+                          action="{{ route('admin.alat-tes.questions.update', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}" 
+                          id="papiEditForm">
                         @csrf
                         @method('PUT')
 
+                        {{-- Item Number --}}
                         <div class="mb-4">
-                            <label for="type" class="block text-sm font-medium text-gray-700">Tipe Pertanyaan</label>
-                            <select id="type" name="type" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="PILIHAN_GANDA" {{ old('type', $question->type) == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan Ganda</option>
-                                <option value="ESSAY" {{ old('type', $question->type) == 'ESSAY' ? 'selected' : '' }}>Esai (Hanya Teks)</option>
-                                <option value="HAFALAN" {{ old('type', $question->type) == 'HAFALAN' ? 'selected' : '' }}>Hafalan (Materi Memori)</option>
-                            </select>
-                            @error('type')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
+                            <label for="papi_item_number" class="block text-sm font-medium text-red-700">Nomor Soal PAPI (1-90)</label>
+                            <input id="papi_item_number" 
+                                   name="papi_item_number" 
+                                   type="number" 
+                                   min="1" max="90" 
+                                   value="{{ old('papi_item_number', $question->item_number) }}" 
+                                   required
+                                   class="mt-1 block w-full rounded-lg border-red-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                            @error('papi_item_number')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
 
-                        <div id="question-text-container" class="mb-6">
-                            <label for="question_text" class="block text-sm font-medium text-gray-700">Teks Pertanyaan</label>
-                            <textarea id="question_text" name="question_text" rows="4" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Masukkan teks pertanyaan di sini.">{{ old('question_text', $question->question_text) }}</textarea>
-                            @error('question_text')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div class="mb-2">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold text-gray-800">Opsi Jawaban</h3>
-                                <button type="button" id="addOptionBtn" style="background: #22c55e; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; display: inline-block;">
-                                    ➕ Tambah Opsi
-                                </button>
+                        {{-- Statements --}}
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-t pt-3 mt-3">Teks Pernyataan</h4>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="statement_a" class="block text-sm font-medium text-gray-700">Pernyataan A</label>
+                                <textarea id="statement_a" name="statement_a" rows="3" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('statement_a', $question->statement_a) }}</textarea>
+                                @error('statement_a')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label for="statement_b" class="block text-sm font-medium text-gray-700">Pernyataan B</label>
+                                <textarea id="statement_b" name="statement_b" rows="3" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('statement_b', $question->statement_b) }}</textarea>
+                                @error('statement_b')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                             </div>
                         </div>
 
-                        <div id="options-container" class="border border-gray-200 p-4 rounded-lg mb-6">
-                            <div id="optionsList" class="space-y-3">
-                                @php
-                                    $existingOptions = old('options', is_string($question->options) ? json_decode($question->options, true) : $question->options);
-                                    $existingOptions = $existingOptions ?? [];
-                                    $oldIsCorrect = old('is_correct', $question->correct_answer_index);
-                                    $optionsCount = max(count($existingOptions), 2);
-                                @endphp
+                        {{-- Role and Need --}}
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-t pt-3 mt-3">Kunci Penskoran (Role & Need)</h4>
 
-                                @for ($i = 0; $i < $optionsCount; $i++)
-                                <div class="option-item flex items-start space-x-3 bg-gray-50 p-3 rounded-lg" data-index="{{ $i }}">
-                                    <div class="flex items-center pt-2">
-                                        <input type="radio" 
-                                               name="is_correct" 
-                                               value="{{ $i }}" 
-                                               {{ $oldIsCorrect == $i ? 'checked' : '' }}
-                                               class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500 correct-radio">
-                                        <label class="ml-2 text-sm text-gray-600">Benar</label>
-                                    </div>
-                                    
-                                    <div class="flex-1">
-                                        <label class="block text-xs font-medium text-gray-500 option-label">Opsi {{ chr(65 + $i) }}</label>
-                                        <input type="text" 
-                                               name="options[{{ $i }}][text]" 
-                                               value="{{ $existingOptions[$i]['text'] ?? '' }}"
-                                               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 option-input" 
-                                               placeholder="Masukkan teks untuk Opsi {{ chr(65 + $i) }}">
-                                        <input type="hidden" name="options[{{ $i }}][index]" value="{{ $i }}">
-                                    </div>
-
-                                    <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2" style="{{ $i < 2 ? 'display: none;' : '' }}">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                @endfor
-                            </div>
-
-                            @error('options')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
-                            @error('is_correct')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div id="memory-container" class="border border-indigo-200 p-4 rounded-lg space-y-4 mb-6 hidden">
-                            <h3 class="text-lg font-semibold text-indigo-700 border-b pb-2">Materi Hafalan</h3>
-                            
-                            <div class="mb-4">
-                                <label for="memory_content" class="block text-sm font-medium text-gray-700">Konten Memori (Teks/URL Gambar)</label>
-                                <textarea id="memory_content" 
-                                          name="memory_content" 
-                                          rows="4" 
-                                          class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm" 
-                                          placeholder="Masukkan teks atau URL gambar yang harus dihafal.">{{ old('memory_content', $question->memory_content) }}</textarea>
-                                @error('memory_content')
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="memory_type" class="block text-sm font-medium text-gray-700">Tipe Konten</label>
-                                <select id="memory_type" name="memory_type" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
-                                    <option value="TEXT" {{ old('memory_type', $question->memory_type) == 'TEXT' ? 'selected' : '' }}>Teks</option>
-                                    <option value="IMAGE" {{ old('memory_type', $question->memory_type) == 'IMAGE' ? 'selected' : '' }}>Gambar (Harap masukkan URL/path)</option>
-                                </select>
-                                @error('memory_type')
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
+                        <div class="grid grid-cols-2 gap-4">
+                            {{-- Role A / Need A --}}
+                            <div>
+                                <h5 class="font-bold mb-2 text-sm">Kunci Pernyataan A</h5>
+                                <label for="role_a" class="block text-xs font-medium text-gray-700">Role A (G, L, I, T, V, S, R, D, C, E)</label>
+                                <input id="role_a" name="role_a" type="text" maxlength="1" 
+                                       value="{{ old('role_a', $question->role_a) }}" 
+                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                @error('role_a')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                                
+                                <label for="need_a" class="block text-xs font-medium text-gray-700 mt-3">Need A (N, A, P, X, B, O, Z, K, F, W)</label>
+                                <input id="need_a" name="need_a" type="text" maxlength="1" 
+                                       value="{{ old('need_a', $question->need_a) }}" 
+                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                @error('need_a')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                             </div>
                             
-                            <div class="mb-4">
-                                <label for="duration_seconds" class="block text-sm font-medium text-gray-700">Durasi Tampil (Detik)</label>
-                                <input id="duration_seconds" 
-                                       name="duration_seconds" 
-                                       type="number" 
-                                       min="1" 
-                                       value="{{ old('duration_seconds', $question->duration_seconds ?? 10) }}" 
-                                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
-                                @error('duration_seconds')
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
+                            {{-- Role B / Need B --}}
+                            <div>
+                                <h5 class="font-bold mb-2 text-sm">Kunci Pernyataan B</h5>
+                                <label for="role_b" class="block text-xs font-medium text-gray-700">Role B (G, L, I, T, V, S, R, D, C, E)</label>
+                                <input id="role_b" name="role_b" type="text" maxlength="1" 
+                                       value="{{ old('role_b', $question->role_b) }}" 
+                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                @error('role_b')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                                
+                                <label for="need_b" class="block text-xs font-medium text-gray-700 mt-3">Need B (N, A, P, X, B, O, Z, K, F, W)</label>
+                                <input id="need_b" name="need_b" type="text" maxlength="1" 
+                                       value="{{ old('need_b', $question->need_b) }}" 
+                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                @error('need_b')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                             </div>
                         </div>
 
-                        <div class="flex justify-end mt-6 space-x-3">
-                            <a href="{{ route('admin.questions.edit', $question->test_id) }}" 
+                        {{-- Action Buttons --}}
+                        <div class="flex justify-end mt-6 space-x-3 border-t pt-4">
+                            <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}" 
                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md">
                                 Batal
                             </a>
-                            <button type="submit" 
-                                    id="submitBtn"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition">
-                                Update Pertanyaan
+                            <button type="submit"
+                                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition">
+                                Update Soal PAPI
                             </button>
                         </div>
                     </form>
                 </div>
-
             </div>
         </div>
     </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const typeSelect = document.getElementById('type');
-            const optionsContainer = document.getElementById('options-container');
-            const memoryContainer = document.getElementById('memory-container');
-            const questionTextContainer = document.getElementById('question-text-container');
-            const questionTextarea = document.getElementById('question_text');
-            const form = document.getElementById('questionForm');
-            const submitBtn = document.getElementById('submitBtn');
-            const addOptionBtn = document.getElementById('addOptionBtn');
-            const optionsList = document.getElementById('optionsList');
-            
-            let optionCount = document.querySelectorAll('.option-item').length;
-
-            function toggleContainers() {
-                const selectedType = typeSelect.value;
-                
-                optionsContainer.classList.add('hidden');
-                memoryContainer.classList.add('hidden');
-                questionTextContainer.classList.add('hidden');
-                addOptionBtn.style.display = 'none';
-                
-                questionTextarea.required = false;
-                document.getElementById('memory_content').required = false;
-                updateOptionInputsRequired(false);
-
-                if (selectedType === 'PILIHAN_GANDA' || selectedType === 'ESSAY') {
-                    questionTextContainer.classList.remove('hidden');
-                    questionTextarea.required = true;
-                }
-                
-                if (selectedType === 'PILIHAN_GANDA') {
-                    optionsContainer.classList.remove('hidden');
-                    addOptionBtn.style.display = 'inline-block';
-                    updateOptionInputsRequired(true);
-                } else if (selectedType === 'HAFALAN') {
-                    memoryContainer.classList.remove('hidden');
-                    document.getElementById('memory_content').required = true;
-                }
-            }
-
-            function updateOptionInputsRequired(required) {
-                document.querySelectorAll('.option-input').forEach(input => {
-                    input.required = required;
-                });
-            }
-
-            function updateOptionLabels() {
-                document.querySelectorAll('.option-item').forEach((item, index) => {
-                    const label = item.querySelector('.option-label');
-                    const input = item.querySelector('.option-input');
-                    const radio = item.querySelector('.correct-radio');
-                    const hiddenIndex = item.querySelector('input[type="hidden"]');
-                    const removeBtn = item.querySelector('.remove-option-btn');
-                    
-                    const letter = String.fromCharCode(65 + index);
-                    label.textContent = `Opsi ${letter}`;
-                    input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
-                    input.name = `options[${index}][text]`;
-                    radio.value = index;
-                    hiddenIndex.value = index;
-                    item.dataset.index = index;
-                    
-                    removeBtn.style.display = optionCount > 2 ? 'block' : 'none';
-                });
-            }
-
-            addOptionBtn.addEventListener('click', function() {
-                const newIndex = optionCount;
-                const letter = String.fromCharCode(65 + newIndex);
-                
-                const newOption = document.createElement('div');
-                newOption.className = 'option-item flex items-start space-x-3 bg-gray-50 p-3 rounded-lg';
-                newOption.dataset.index = newIndex;
-                newOption.innerHTML = `
-                    <div class="flex items-center pt-2">
-                        <input type="radio" 
-                               name="is_correct" 
-                               value="${newIndex}" 
-                               class="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500 correct-radio">
-                        <label class="ml-2 text-sm text-gray-600">Benar</label>
-                    </div>
-                    
-                    <div class="flex-1">
-                        <label class="block text-xs font-medium text-gray-500 option-label">Opsi ${letter}</label>
-                        <input type="text" 
-                               name="options[${newIndex}][text]" 
-                               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 option-input" 
-                               placeholder="Masukkan teks untuk Opsi ${letter}">
-                        <input type="hidden" name="options[${newIndex}][index]" value="${newIndex}">
-                    </div>
-
-                    <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                `;
-                
-                optionsList.appendChild(newOption);
-                optionCount++;
-                updateOptionLabels();
-                
-                if (typeSelect.value === 'PILIHAN_GANDA') {
-                    updateOptionInputsRequired(true);
-                }
-            });
-
-            optionsList.addEventListener('click', function(e) {
-                const removeBtn = e.target.closest('.remove-option-btn');
-                if (removeBtn && optionCount > 2) {
-                    const optionItem = removeBtn.closest('.option-item');
-                    optionItem.remove();
-                    optionCount--;
-                    updateOptionLabels();
-                }
-            });
-
-            toggleContainers();
-            typeSelect.addEventListener('change', toggleContainers);
-
-            form.addEventListener('submit', function(e) {
-                const selectedType = typeSelect.value;
-                
-                if (selectedType === 'PILIHAN_GANDA') {
-                    const isCorrectChecked = document.querySelector('input[name="is_correct"]:checked');
-                    
-                    if (!isCorrectChecked) {
-                        e.preventDefault();
-                        alert('Harap pilih salah satu opsi sebagai jawaban yang benar!');
-                        return false;
-                    }
-
-                    let allOptionsFilled = true;
-                    document.querySelectorAll('.option-input').forEach(input => {
-                        if (!input.value.trim()) {
-                            allOptionsFilled = false;
-                        }
-                    });
-
-                    if (!allOptionsFilled) {
-                        e.preventDefault();
-                        alert('Harap isi semua opsi jawaban!');
-                        return false;
-                    }
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Mengupdate...';
-            });
-        });
-    </script>
 </x-admin-layout>

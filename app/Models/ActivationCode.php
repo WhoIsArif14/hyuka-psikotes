@@ -5,78 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str; // <-- Tambahkan ini
 
 class ActivationCode extends Model
 {
     use HasFactory;
+    
+    // Asumsi tabel Anda adalah 'activation_codes'
+    protected $table = 'activation_codes';
 
-    /**
-     * The attributes that should be cast.
-     */
-    protected $casts = [
-        'expires_at' => 'datetime',
-        'completed_at' => 'datetime',
-    ];
-
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
+        'code',
         'test_id',
         'user_id',
-        'code',
         'expires_at',
-        'completed_at',
-        'ip_address',
     ];
-    
-    // --- LOGIKA BARU UNTUK MEMBUAT KODE OTOMATIS ---
-    /**
-     * Boot the model.
-     * Logika ini akan berjalan setiap kali model ActivationCode dibuat.
-     */
-    protected static function boot()
-    {
-        parent::boot();
 
-        static::creating(function ($activationCode) {
-            // Jika kode tidak diisi manual, generate otomatis
-            if (empty($activationCode->code)) {
-                $activationCode->code = self::generateUniqueCode();
-            }
-        });
-    }
+    protected $casts = [
+        'expires_at' => 'datetime',
+    ];
 
     /**
-     * Membuat kode unik 4-4 karakter yang belum ada di database.
-     */
-    private static function generateUniqueCode()
-    {
-        do {
-            // Generate 8 karakter acak, huruf besar, lalu format menjadi XXXX-XXXX
-            $code = Str::upper(Str::random(8));
-            $formattedCode = substr($code, 0, 4) . '-' . substr($code, 4, 4);
-        } while (self::where('code', $formattedCode)->exists()); // Ulangi jika kode sudah ada
-
-        return $formattedCode;
-    }
-    // --- AKHIR LOGIKA BARU ---
-
-
-    /**
-     * Relasi ke Test.
-     */
-    public function test(): BelongsTo
-    {
-        return $this->belongsTo(Test::class);
-    }
-
-    /**
-     * Relasi ke User.
+     * Relasi ke User (peserta yang menggunakan kode ini).
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+    
+    /**
+     * Relasi ke Tes yang diakses kode ini.
+     */
+    public function test(): BelongsTo
+    {
+        return $this->belongsTo(Test::class);
     }
 }

@@ -2,94 +2,103 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Test;
-use App\Models\TestResult; // <-- Tambahkan ini
+use App\Models\User;
+use App\Models\ActivationCode; // <<< Tambahkan Model ini
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class TestAccessController extends Controller
 {
     /**
-     * Menampilkan halaman awal untuk memasukkan kode tes.
+     * Menampilkan halaman login (form Kode Aktivasi Peserta).
      */
-    public function showCodeForm()
+    public function showLoginForm()
     {
         return view('auth.login');
     }
 
     /**
-     * Memproses kode tes, jika valid, arahkan ke halaman pengisian nama.
+     * Melakukan login peserta menggunakan Kode Aktivasi.
+     * Alur: Validasi Kode -> Cek User -> Buat/Login User -> Arahkan ke Data Diri.
      */
-    public function processCode(Request $request)
+    public function login(Request $request)
     {
-        $request->validate(['test_code' => 'required|string']);
-        $code = strtoupper($request->test_code);
+        $request->validate([
+            'kode_aktivasi_peserta' => 'required|string', 
+        ], [
+            'kode_aktivasi_peserta.required' => 'Kode Aktivasi Peserta wajib diisi.',
+        ]);
+        
+        // Bersihkan dan Kapitalisasi input kode
+        $inputCode = strtoupper(str_replace('-', '', $request->kode_aktivasi_peserta));
 
-        $test = Test::where('test_code', $code)
-            ->where('is_published', true)
-            ->where(function ($q) {
-                $q->whereNull('available_from')
-                  ->orWhere(function($sub) {
-                      $sub->where('available_from', '<=', now())
-                          ->where('available_to', '>=', now());
-                  });
-            })
-            ->first();
+        // 1. Cari Kode Aktivasi di tabel activation_codes
+        $activationCode = ActivationCode::whereRaw("REPLACE(code, '-', '') = ?", [str_replace('-', '', $inputCode)])->first();
 
-        if (!$test) {
-            return redirect()->back()->with('error', 'Kode tes tidak valid, tidak aktif, atau sudah lewat jadwal.');
+        // Jika kode tidak ditemukan sama sekali
+        if (!$activationCode) {
+            throw ValidationException::withMessages([
+                'kode_aktivasi_peserta' => ['Kode Aktivasi tidak valid atau tidak ditemukan.'],
+            ]);
         }
 
-        Session::put('accessed_test_code', $code);
-        return redirect()->route('test-code.name');
-    }
+        // 2. Tentukan status User (sudah dipakai atau belum)
+        if ($activationCode->user_id) {
+            // --- KODE SUDAH PERNAH DIPAKAI (LOGIN USER LAMA) ---
+            
+            $user = User::find($activationCode->user_id);
 
-    /**
-     * Menampilkan halaman untuk mengisi nama peserta.
-     */
-    public function showNameForm()
-    {
-        if (!Session::has('accessed_test_code')) {
-            return redirect()->route('login');
-        }
-        return view('auth.enter-name');
-    }
+            // Cek kadaluarsa, meskipun user sudah dibuat (opsional)
+            if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
+                 throw ValidationException::withMessages([
+                    'kode_aktivasi_peserta' => ['Kode sudah kadaluarsa.'],
+                ]);
+            }
 
-    /**
-     * Menyimpan data diri peserta di session dan memulai tes.
-     */
-    public function startTest(Request $request)
-    {
-        $code = Session::get('accessed_test_code');
-        if (!$code) {
-            return redirect()->route('login');
+        } else {
+            // --- KODE BELUM PERNAH DIPAKAI (BUAT USER BARU) ---
+
+            // Cek kadaluarsa sebelum membuat user baru
+            if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
+                 throw ValidationException::withMessages([
+                    'kode_aktivasi_peserta' => ['Kode sudah kadaluarsa.'],
+                ]);
+            }
+            
+            // 3. Buat User baru
+            $user = User::create([
+                'name' => 'Peserta ' . $inputCode,
+                'email' => $inputCode . '@temp.hyuka.com', // Email dummy/acak sementara
+                'password' => Hash::make(Str::random(10)), // Password acak
+                'role' => 'user',
+                // Simpan kode aktivasi di tabel users (untuk referensi, opsional)
+                'kode_aktivasi_peserta' => $inputCode, 
+            ]);
+
+            // 4. Kaitkan Kode Aktivasi dengan User yang baru dibuat
+            $activationCode->user_id = $user->id;
+            $activationCode->save();
         }
         
-        $test = Test::where('test_code', $code)->firstOrFail();
+        // 5. Login User
+        Auth::login($user); 
+        $request->session()->regenerate();
+        
+        // Pengalihan ke halaman pengisian data diri (di mana user akan mengisi data asli)
+        return redirect()->route('user.data.edit'); 
+    }
 
-        $validatedData = $request->validate([
-            'participant_name' => 'required|string|max:255',
-            'participant_email' => 'required|email|max:255',
-            'phone_number' => 'required|string|max:20',
-            'education' => 'required|string|max:255',
-            'major' => 'nullable|string|max:255',
-        ]);
-
-        // --- LOGIKA PENCEGAHAN BARU ---
-        // Cek apakah email ini sudah pernah mengerjakan tes ini
-        $existingResult = TestResult::where('test_id', $test->id)
-                                    ->where('participant_email', $validatedData['participant_email'])
-                                    ->exists();
-
-        if ($existingResult) {
-            return redirect()->route('login')->with('error', 'Anda sudah pernah menyelesaikan tes ini sebelumnya.');
-        }
-        // --- AKHIR LOGIKA PENCEGAHAN ---
-
-
-        Session::put('participant_data', $validatedData);
-        Session::put('active_test_id', $test->id);
-
-        return redirect()->route('tests.show', $test);
+    /**
+     * Logout peserta.
+     */
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login')->with('status', 'Anda telah berhasil keluar.');
     }
 }

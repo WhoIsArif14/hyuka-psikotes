@@ -2,8 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 // User-side Controllers
-use App\Http\Controllers\TestAccessController;
-use App\Http\Controllers\UserTestController;
+use App\Http\Controllers\TestAccessController; 
+use App\Http\Controllers\UserDataController; 
+use App\Http\Controllers\UserTestController; // <<< Akan kita gunakan untuk rute baru
 // Admin-side Controllers
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ClientController;
@@ -27,17 +28,42 @@ use App\Http\Middleware\IsAdmin;
 
 /*
 |--------------------------------------------------------------------------
-| ALUR PESERTA (TANPA LOGIN AKUN)
+| ALUR PESERTA BARU (LOGIN DENGAN KODE AKTIVASI PESERTA)
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', [TestAccessController::class, 'showCodeForm'])->name('login');
-Route::post('/', [TestAccessController::class, 'processCode'])->name('test-code.process');
-Route::get('/enter-name', [TestAccessController::class, 'showNameForm'])->name('test-code.name');
-Route::post('/enter-name', [TestAccessController::class, 'startTest'])->name('test-code.start');
-Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
-Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
-Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
+// Rute Tampil Form (GET /)
+Route::get('/', [TestAccessController::class, 'showLoginForm'])->name('login');
+
+// Rute Proses Login (POST /)
+Route::post('/', [TestAccessController::class, 'login'])->name('login.process');
+
+// Rute Logout Peserta (Jika diperlukan)
+Route::post('/logout', [TestAccessController::class, 'logout'])->name('logout');
+
+
+/*
+|--------------------------------------------------------------------------
+| ALUR DATA DIRI DAN TES (DILINDUNGI OLEH AUTH)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+    // 1. Pengisian Data Diri Setelah Login
+    Route::get('/profile/edit', [UserDataController::class, 'edit'])->name('user.data.edit'); 
+    Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update'); 
+    
+    // 2. Rute Baru untuk Start Test
+    // Tambahkan route tanpa parameter (nama: tests.start) — ini untuk pemanggilan lama
+    Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
+
+    // Tambahkan juga route yang menerima parameter {test}, jika ingin panggilan langsung via id
+    Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
+
+    // 3. Rute Tes yang Sudah Ada
+    Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
+    Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
+    Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
+});
 
 
 /*
@@ -67,7 +93,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
-        // --- RUTE KODE AKTIVASI (DIPERBAIKI) ---
+        // --- RUTE KODE AKTIVASI ---
         Route::resource('activation-codes', ActivationCodeController::class)
             ->only(['index', 'store', 'show', 'destroy'])
             ->names([

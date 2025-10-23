@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Kelola Soal untuk Alat Tes: {{ $AlatTes->name }}
+            {{ __('Kelola Soal untuk Alat Tes: ') }}{{ $AlatTes->name }}
         </h2>
     </x-slot>
 
@@ -20,11 +20,11 @@
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">Tambah Soal Baru</h3>
                     <button type="button" id="toggleFormBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                        Tambah Soal
+                        {{ $errors->any() ? 'Sembunyikan Form' : 'Tambah Soal' }} 
                     </button>
                 </div>
 
-                <div id="formContainer" style="display: none;">
+                <div id="formContainer" style="display: {{ $errors->any() ? 'block' : 'none' }};">
                     @if ($errors->any())
                         <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
                             <strong class="font-bold">Whoops!</strong>
@@ -40,13 +40,48 @@
                     <form method="POST" action="{{ route('admin.alat-tes.questions.store', ['alat_te' => $AlatTes->id]) }}" id="questionForm" enctype="multipart/form-data">
                         @csrf
 
+                        {{-- Tipe Pertanyaan --}}
                         <div class="mb-4">
                             <label for="type" class="block text-sm font-medium text-gray-700">Tipe Pertanyaan</label>
                             <select id="type" name="type" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
                                 <option value="PILIHAN_GANDA" {{ old('type', 'PILIHAN_GANDA') == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan Ganda</option>
                                 <option value="ESSAY" {{ old('type') == 'ESSAY' ? 'selected' : '' }}>Esai</option>
                                 <option value="HAFALAN" {{ old('type') == 'HAFALAN' ? 'selected' : '' }}>Hafalan</option>
+                                <option value="PAPIKOSTICK" {{ old('type') == 'PAPIKOSTICK' ? 'selected' : '' }}>PAPI KOSTICK (Pasangan Pernyataan)</option>
                             </select>
+                        </div>
+
+                        {{-- Input Khusus PAPI KOSTICK (Role/Need) --}}
+                        <div id="papi-scoring-container" class="border border-red-200 bg-red-50 p-4 rounded-lg mb-4 hidden">
+                            <h4 class="text-md font-semibold text-red-700 mb-3">⚙️ Pengaturan Penskoran PAPI (Item Number & Aspek)</h4>
+                            
+                            <div class="mb-4">
+                                <label for="papi_item_number" class="block text-sm font-medium text-gray-700">Nomor Soal PAPI (1-90)</label>
+                                <input id="papi_item_number" name="papi_item_number" type="number" min="1" max="90" value="{{ old('papi_item_number') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                <p class="text-xs text-gray-500 mt-1">Hanya nomor soal, teks pernyataan diisi di Opsi A dan B.</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                {{-- Kolom Kiri: Pernyataan A --}}
+                                <div>
+                                    <h5 class="font-bold mb-2 text-sm">Pernyataan A (Opsi A)</h5>
+                                    <label for="role_a" class="block text-xs font-medium text-gray-700">Role A</label>
+                                    <input id="role_a" name="role_a" type="text" maxlength="1" value="{{ old('role_a') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                    
+                                    <label for="need_a" class="block text-xs font-medium text-gray-700 mt-3">Need A</label>
+                                    <input id="need_a" name="need_a" type="text" maxlength="1" value="{{ old('need_a') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                </div>
+                                
+                                {{-- Kolom Kanan: Pernyataan B --}}
+                                <div>
+                                    <h5 class="font-bold mb-2 text-sm">Pernyataan B (Opsi B)</h5>
+                                    <label for="role_b" class="block text-xs font-medium text-gray-700">Role B</label>
+                                    <input id="role_b" name="role_b" type="text" maxlength="1" value="{{ old('role_b') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                    
+                                    <label for="need_b" class="block text-xs font-medium text-gray-700 mt-3">Need B</label>
+                                    <input id="need_b" name="need_b" type="text" maxlength="1" value="{{ old('need_b') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
+                                </div>
+                            </div>
                         </div>
 
                         {{-- Upload Gambar Pertanyaan --}}
@@ -56,10 +91,10 @@
                             </label>
                             <div class="flex items-center gap-3">
                                 <input type="file" 
-                                       id="question_image" 
-                                       name="question_image" 
-                                       accept="image/*"
-                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                        id="question_image" 
+                                        name="question_image" 
+                                        accept="image/*"
+                                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                                 <button type="button" id="removeImageBtn" style="display: none;" class="text-red-600 hover:text-red-800 text-sm font-medium">
                                     Hapus
                                 </button>
@@ -128,30 +163,33 @@
 
                             <div id="options-container" class="border border-gray-200 p-4 rounded-lg">
                                 <div id="optionsList" class="space-y-3">
+                                    {{-- Opsi A, B, C, D default (4 opsi) --}}
                                     @for ($i = 0; $i < 4; $i++)
                                     <div class="option-item bg-gray-50 p-3 rounded-lg" data-index="{{ $i }}">
-                                        <div class="flex items-start space-x-3">
-                                            <div class="flex items-center pt-2">
-                                                <input type="radio" name="is_correct" value="{{ $i }}" class="h-4 w-4 text-green-600 correct-radio" {{ old('is_correct') == $i ? 'checked' : '' }}>
-                                                <label class="ml-2 text-sm text-gray-600">Benar</label>
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-xs font-medium text-gray-500 option-label">Opsi {{ chr(65 + $i) }}</label>
-                                                <input type="text" name="options[{{ $i }}][text]" value="{{ old('options.'.$i.'.text') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input" placeholder="Masukkan teks untuk Opsi {{ chr(65 + $i) }}">
-                                                <input type="hidden" name="options[{{ $i }}][index]" value="{{ $i }}">
-                                                
-                                                {{-- Upload Gambar untuk Opsi --}}
-                                                <div class="mt-3">
-                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
-                                                    <input type="file" 
-                                                           name="options[{{ $i }}][image_file]" 
-                                                           accept="image/*"
-                                                           class="option-image-input block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                                                    <div class="option-image-preview mt-2" style="display: none;">
-                                                        <img src="" alt="Preview Opsi" class="max-w-xs max-h-32 rounded border border-gray-300 option-preview-img">
-                                                        <button type="button" class="remove-option-image-btn text-red-600 hover:text-red-800 text-xs font-medium mt-1">
-                                                            Hapus Gambar
-                                                        </button>
+                                        <div class="flex items-start space-x-3 w-full">
+                                            <div class="flex items-start space-x-3 w-full">
+                                                <div class="flex items-center pt-2 correct-radio-block">
+                                                    <input type="radio" name="is_correct" value="{{ $i }}" class="h-4 w-4 text-green-600 correct-radio" {{ old('is_correct') == $i ? 'checked' : '' }}>
+                                                    <label class="ml-2 text-sm text-gray-600">Benar</label>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <label class="block text-xs font-medium text-gray-500 option-label">Opsi {{ chr(65 + $i) }}</label>
+                                                    <input type="text" name="options[{{ $i }}][text]" value="{{ old('options.'.$i.'.text') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input" placeholder="Masukkan teks untuk Opsi {{ chr(65 + $i) }}">
+                                                    <input type="hidden" name="options[{{ $i }}][index]" value="{{ $i }}">
+                                                    
+                                                    {{-- Upload Gambar untuk Opsi --}}
+                                                    <div class="mt-3">
+                                                        <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                                                        <input type="file" 
+                                                                name="options[{{ $i }}][image_file]" 
+                                                                accept="image/*"
+                                                                class="option-image-input block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                                        <div class="option-image-preview mt-2" style="display: none;">
+                                                            <img src="" alt="Preview Opsi" class="max-w-xs max-h-32 rounded border border-gray-300 option-preview-img">
+                                                            <button type="button" class="remove-option-image-btn text-red-600 hover:text-red-800 text-xs font-medium mt-1">
+                                                                Hapus Gambar
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -218,8 +256,8 @@
                                     @if($question->image_path)
                                         <div class="my-3">
                                             <img src="{{ asset('storage/' . $question->image_path) }}" 
-                                                 alt="Question Image" 
-                                                 class="max-w-sm max-h-64 rounded-lg border border-gray-200 shadow-sm object-contain">
+                                                    alt="Question Image" 
+                                                    class="max-w-sm max-h-64 rounded-lg border border-gray-200 shadow-sm object-contain">
                                         </div>
                                     @endif
                                     
@@ -236,8 +274,8 @@
                                                         @if(isset($opt['image_path']) && $opt['image_path'])
                                                             <div class="mt-1">
                                                                 <img src="{{ asset('storage/' . $opt['image_path']) }}" 
-                                                                     alt="Opsi {{ chr(65 + $key) }}" 
-                                                                     class="max-w-xs max-h-32 rounded border border-gray-200">
+                                                                        alt="Opsi {{ chr(65 + $key) }}" 
+                                                                        class="max-w-xs max-h-32 rounded border border-gray-200">
                                                             </div>
                                                         @endif
                                                     </div>
@@ -246,6 +284,15 @@
                                                     @endif
                                                 </div>
                                             @endforeach
+                                        </div>
+                                    @endif
+                                    
+                                    @if($question->type == 'PAPIKOSTICK')
+                                        {{-- Tampilkan kode aspek PAPI jika ada --}}
+                                        <div class="mt-3 text-xs bg-red-50 p-2 rounded-lg border border-red-200">
+                                            <p class="font-semibold text-red-700">PAPI Scoring Key:</p>
+                                            <p class="text-gray-700">A: Role {{ $question->role_a ?? '-' }} / Need {{ $question->need_a ?? '-' }}</p>
+                                            <p class="text-gray-700">B: Role {{ $question->role_b ?? '-' }} / Need {{ $question->need_b ?? '-' }}</p>
                                         </div>
                                     @endif
                                 </div>
@@ -282,125 +329,86 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            
             const toggleFormBtn = document.getElementById('toggleFormBtn');
             const cancelBtn = document.getElementById('cancelBtn');
             const formContainer = document.getElementById('formContainer');
             const typeSelect = document.getElementById('type');
             const optionsSection = document.getElementById('options-section');
             const memoryContainer = document.getElementById('memory-container');
+            const papiContainer = document.getElementById('papi-scoring-container');
             const questionTextContainer = document.getElementById('question-text-container');
             const questionImageContainer = document.getElementById('question-image-container');
             const addOptionBtn = document.getElementById('addOptionBtn');
             const optionsList = document.getElementById('optionsList');
-            
-            // Image preview
+
             const questionImage = document.getElementById('question_image');
             const imagePreview = document.getElementById('imagePreview');
             const previewImg = document.getElementById('previewImg');
             const removeImageBtn = document.getElementById('removeImageBtn');
-            
+
             let optionCount = 4;
+            if (optionsList) {
+                optionCount = optionsList.children.length;
+            }
 
-            // Image preview functionality for question image
-            questionImage.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImg.src = e.target.result;
-                        imagePreview.style.display = 'block';
-                        removeImageBtn.style.display = 'inline-block';
-                    }
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            removeImageBtn.addEventListener('click', function() {
-                questionImage.value = '';
-                imagePreview.style.display = 'none';
-                removeImageBtn.style.display = 'none';
-            });
-
-            // Handle option image preview
-            function setupOptionImagePreview(optionItem) {
-                const imageInput = optionItem.querySelector('.option-image-input');
-                const previewContainer = optionItem.querySelector('.option-image-preview');
-                const previewImg = optionItem.querySelector('.option-preview-img');
-                const removeBtn = optionItem.querySelector('.remove-option-image-btn');
-                
+            // [LOGIC IMAGE PREVIEW - START]
+            const setupImagePreviewLogic = (imageInput, previewImg, imagePreview, removeBtn) => {
                 imageInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
                         const reader = new FileReader();
                         reader.onload = function(e) {
                             previewImg.src = e.target.result;
-                            previewContainer.style.display = 'block';
+                            imagePreview.style.display = 'block';
+                            if (removeBtn) removeBtn.style.display = 'inline-block';
                         }
                         reader.readAsDataURL(file);
                     }
                 });
+
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        imageInput.value = '';
+                        imagePreview.style.display = 'none';
+                        removeBtn.style.display = 'none';
+                    });
+                }
+            };
+            
+            // Setup main question image preview
+            setupImagePreviewLogic(questionImage, previewImg, imagePreview, removeImageBtn);
+
+            // Handle option image preview setup
+            function setupOptionImagePreview(optionItem) {
+                const imageInput = optionItem.querySelector('.option-image-input');
+                const previewContainer = optionItem.querySelector('.option-image-preview');
+                const previewImg = optionItem.querySelector('.option-preview-img');
+                const removeBtn = optionItem.querySelector('.remove-option-image-btn');
                 
-                removeBtn.addEventListener('click', function() {
-                    imageInput.value = '';
-                    previewContainer.style.display = 'none';
-                });
+                setupImagePreviewLogic(imageInput, previewImg, previewContainer, removeBtn);
             }
 
             // Setup initial option image previews
             document.querySelectorAll('.option-item').forEach(item => {
                 setupOptionImagePreview(item);
             });
+            // [LOGIC IMAGE PREVIEW - END]
 
+            // [LOGIC FORM TOGGLE]
             toggleFormBtn.addEventListener('click', function() {
-                formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
-                toggleFormBtn.textContent = formContainer.style.display === 'none' ? 'Tambah Soal' : 'Sembunyikan Form';
+                const isHidden = formContainer.style.display === 'none';
+                formContainer.style.display = isHidden ? 'block' : 'none';
+                toggleFormBtn.textContent = isHidden ? 'Sembunyikan Form' : 'Tambah Soal';
+                if (isHidden) toggleContainers();
             });
 
             cancelBtn.addEventListener('click', function() {
                 formContainer.style.display = 'none';
                 toggleFormBtn.textContent = 'Tambah Soal';
             });
-
-            function toggleContainers() {
-                const selectedType = typeSelect.value;
-                
-                // Default: sembunyikan semua
-                optionsSection.style.display = 'none';
-                memoryContainer.classList.add('hidden');
-                questionTextContainer.style.display = 'none';
-                questionImageContainer.style.display = 'none';
-
-                // Update label dan hint
-                const questionTextLabel = document.getElementById('question-text-label');
-                const questionTextHint = document.getElementById('question-text-hint');
-                const optionsHint = document.getElementById('options-hint');
-
-                if (selectedType === 'PILIHAN_GANDA') {
-                    questionTextContainer.style.display = 'block';
-                    questionImageContainer.style.display = 'block';
-                    optionsSection.style.display = 'block';
-                    
-                    questionTextLabel.textContent = 'Teks Pertanyaan';
-                    questionTextHint.textContent = 'Pertanyaan untuk siswa';
-                    optionsHint.textContent = 'Pilihan jawaban untuk pertanyaan';
-                    
-                } else if (selectedType === 'ESSAY') {
-                    questionTextContainer.style.display = 'block';
-                    questionImageContainer.style.display = 'block';
-                    
-                } else if (selectedType === 'HAFALAN') {
-                    // ✅ PERBAIKAN: Untuk HAFALAN tampilkan SEMUA
-                    memoryContainer.classList.remove('hidden');
-                    questionTextContainer.style.display = 'block';
-                    optionsSection.style.display = 'block';
-                    questionImageContainer.style.display = 'none'; // Gambar optional di materi hafalan
-                    
-                    questionTextLabel.textContent = '❓ Pertanyaan (setelah hafalan)';
-                    questionTextHint.textContent = 'Pertanyaan yang akan muncul setelah materi hafalan hilang';
-                    optionsHint.textContent = 'Pilihan jawaban untuk pertanyaan setelah hafalan';
-                }
-            }
-
+            
+            // [LOGIC UPDATE LABELS & BUTTONS]
             function updateOptionLabels() {
                 document.querySelectorAll('.option-item').forEach((item, index) => {
                     const label = item.querySelector('.option-label');
@@ -408,46 +416,121 @@
                     const radio = item.querySelector('.correct-radio');
                     const removeBtn = item.querySelector('.remove-option-btn');
                     const imageInput = item.querySelector('.option-image-input');
+                    const hiddenIndex = item.querySelector('input[name*="[index]"]');
                     
                     const letter = String.fromCharCode(65 + index);
+                    
+                    // Update names and placeholders
                     label.textContent = `Opsi ${letter}`;
                     input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
                     input.name = `options[${index}][text]`;
                     imageInput.name = `options[${index}][image_file]`;
                     radio.value = index;
+                    if (hiddenIndex) hiddenIndex.value = index;
                     
-                    removeBtn.style.display = optionCount > 2 ? 'block' : 'none';
+                    // Atur tombol hapus (Hanya jika bukan PAPI dan lebih dari 2 opsi)
+                    if (removeBtn) {
+                        removeBtn.style.display = optionCount > 2 && typeSelect.value !== 'PAPIKOSTICK' ? 'block' : 'none';
+                    }
                 });
             }
 
+            // [LOGIC CONTAINER TOGGLE]
+            function toggleContainers() {
+                const selectedType = typeSelect.value;
+                
+                // 1. Reset/Sembunyikan Semua Default
+                optionsSection.style.display = 'none';
+                memoryContainer.classList.add('hidden');
+                papiContainer.classList.add('hidden'); 
+                questionTextContainer.style.display = 'block'; 
+                questionImageContainer.style.display = 'block'; 
+                addOptionBtn.style.display = 'block';
+                
+                // Reset Labels
+                document.getElementById('question-text-label').textContent = 'Teks Pertanyaan';
+                document.getElementById('question-text-hint').textContent = 'Pertanyaan untuk siswa';
+                document.getElementById('options-hint').textContent = 'Pilihan jawaban untuk pertanyaan';
+
+                document.querySelectorAll('.option-item').forEach((item, index) => {
+                    item.style.display = 'block'; 
+                    const radioBlock = item.querySelector('.correct-radio-block');
+                    const removeBtn = item.querySelector('.remove-option-btn');
+                    
+                    if (radioBlock) radioBlock.style.display = 'flex';
+                    if (removeBtn) removeBtn.style.display = index >= 2 ? 'block' : 'none';
+                });
+
+                // 2. Tampilkan Kontainer Berdasarkan Tipe
+                if (selectedType === 'PAPIKOSTICK') {
+                    papiContainer.classList.remove('hidden');
+                    optionsSection.style.display = 'block';
+                    questionImageContainer.style.display = 'none'; 
+
+                    // Ganti Label untuk PAPI
+                    document.getElementById('question-text-label').textContent = 'Nomor Soal PAPI (1-90)';
+                    document.getElementById('question_text').placeholder = 'Masukkan Nomor Soal (mis: 45) di sini.'; 
+                    document.getElementById('question-text-hint').textContent = 'Kolom ini hanya untuk Nomor Soal PAPI. Teks pernyataan diisi di Opsi A dan B.';
+
+                    // Atur Opsi Jawaban untuk PAPI (Hanya A dan B)
+                    addOptionBtn.style.display = 'none'; 
+                    document.getElementById('options-hint').textContent = 'Hanya Opsi A dan B yang digunakan untuk Pasangan Pernyataan PAPI.';
+
+                    document.querySelectorAll('.option-item').forEach((item, index) => {
+                        const radioBlock = item.querySelector('.correct-radio-block');
+                        
+                        if (index >= 2) {
+                            item.style.display = 'none';
+                        } else {
+                            if (radioBlock) radioBlock.style.display = 'none'; // Sembunyikan "Benar"
+                        }
+                    });
+
+                } else if (selectedType === 'ESSAY') {
+                    optionsSection.style.display = 'none'; 
+                    addOptionBtn.style.display = 'none';
+
+                } else if (selectedType === 'HAFALAN') {
+                    memoryContainer.classList.remove('hidden');
+                    optionsSection.style.display = 'block';
+                    questionImageContainer.style.display = 'none'; 
+                    
+                    document.getElementById('question-text-label').textContent = '❓ Pertanyaan (setelah hafalan)';
+                    document.getElementById('question-text-hint').textContent = 'Pertanyaan yang akan muncul setelah materi hafalan hilang';
+                }
+            }
+
+            // [LOGIC TAMBAH OPSI]
             addOptionBtn.addEventListener('click', function() {
-                const newIndex = optionCount;
+                const newIndex = optionsList.children.length;
                 const letter = String.fromCharCode(65 + newIndex);
                 
                 const newOption = document.createElement('div');
                 newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
                 newOption.innerHTML = `
-                    <div class="flex items-start space-x-3">
-                        <div class="flex items-center pt-2">
-                            <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600 correct-radio">
-                            <label class="ml-2 text-sm text-gray-600">Benar</label>
-                        </div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-medium text-gray-500 option-label">Opsi ${letter}</label>
-                            <input type="text" name="options[${newIndex}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input" placeholder="Masukkan teks untuk Opsi ${letter}">
-                            <input type="hidden" name="options[${newIndex}][index]" value="${newIndex}">
-                            
-                            <div class="mt-3">
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
-                                <input type="file" 
-                                       name="options[${newIndex}][image_file]" 
-                                       accept="image/*"
-                                       class="option-image-input block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                                <div class="option-image-preview mt-2" style="display: none;">
-                                    <img src="" alt="Preview Opsi" class="max-w-xs max-h-32 rounded border border-gray-300 option-preview-img">
-                                    <button type="button" class="remove-option-image-btn text-red-600 hover:text-red-800 text-xs font-medium mt-1">
-                                        Hapus Gambar
-                                    </button>
+                    <div class="flex items-start space-x-3 w-full">
+                        <div class="flex items-start space-x-3 w-full">
+                            <div class="flex items-center pt-2 correct-radio-block">
+                                <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600 correct-radio">
+                                <label class="ml-2 text-sm text-gray-600">Benar</label>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-500 option-label">Opsi ${letter}</label>
+                                <input type="text" name="options[${newIndex}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input" placeholder="Masukkan teks untuk Opsi ${letter}">
+                                <input type="hidden" name="options[${newIndex}][index]" value="${newIndex}">
+                                
+                                <div class="mt-3">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                                    <input type="file" 
+                                            name="options[${newIndex}][image_file]" 
+                                            accept="image/*"
+                                            class="option-image-input block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                    <div class="option-image-preview mt-2" style="display: none;">
+                                        <img src="" alt="Preview Opsi" class="max-w-xs max-h-32 rounded border border-gray-300 option-preview-img">
+                                        <button type="button" class="remove-option-image-btn text-red-600 hover:text-red-800 text-xs font-medium mt-1">
+                                            Hapus Gambar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -461,25 +544,30 @@
                 
                 optionsList.appendChild(newOption);
                 setupOptionImagePreview(newOption);
-                optionCount++;
+                optionCount = optionsList.children.length; // Update count
                 updateOptionLabels();
             });
 
+            // [LOGIC HAPUS OPSI]
             optionsList.addEventListener('click', function(e) {
                 const removeBtn = e.target.closest('.remove-option-btn');
-                if (removeBtn && optionCount > 2) {
-                    removeBtn.closest('.option-item').remove();
-                    optionCount--;
+                const optionItem = e.target.closest('.option-item');
+                
+                if (removeBtn && optionItem && optionsList.children.length > 2) {
+                    optionItem.remove();
+                    optionCount = optionsList.children.length; // Update count
                     updateOptionLabels();
+                } else if (removeBtn) {
+                     alert('Minimal harus ada 2 Opsi Jawaban.');
                 }
             });
 
+
             typeSelect.addEventListener('change', toggleContainers);
-            toggleContainers();
+            toggleContainers(); 
 
             @if($errors->any())
-                formContainer.style.display = 'block';
-                toggleFormBtn.textContent = 'Sembunyikan Form';
+                toggleContainers();
             @endif
         });
     </script>
