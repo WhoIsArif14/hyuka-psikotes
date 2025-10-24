@@ -19,20 +19,17 @@ class QuestionController extends Controller
 {
     /**
      * Menampilkan daftar soal (Perlu membedakan Soal Umum vs Soal PAPI).
-     * PERBAIKAN TOTAL: Debug dan fix logic untuk PAPI
      */
     public function index($alat_te)
     {
         $AlatTes = AlatTes::findOrFail($alat_te);
         
-        // Debug: Log informasi alat tes
         Log::info('QuestionController@index called', [
             'alat_tes_id' => $alat_te,
             'alat_tes_name' => $AlatTes->name,
             'alat_tes_slug' => $AlatTes->slug ?? 'NULL'
         ]);
         
-        // PERBAIKAN: Cek PAPI berdasarkan nama jika slug tidak ada
         $isPapi = $this->checkIsPapi($AlatTes);
         
         Log::info('Is PAPI check result', [
@@ -89,13 +86,6 @@ class QuestionController extends Controller
             }
         }
         
-        // Method 3: Cek berdasarkan ID (fallback)
-        // Ganti 1 dengan ID PAPI Kostick di database Anda
-        if ($alatTes->id == 1) {
-            Log::info('PAPI detected by ID', ['id' => $alatTes->id]);
-            return true;
-        }
-        
         return false;
     }
 
@@ -105,9 +95,12 @@ class QuestionController extends Controller
         return view('admin.questions.create', ['alatTeId' => $AlatTes->id]);
     }
 
+    // -------------------------------------------------------------------------
+    // FUNGSI STORE (CREATE) - DENGAN LOGIKA PAPI SIMPLIFIED
+    // -------------------------------------------------------------------------
+
     /**
      * Menyimpan soal baru (Mencakup logika PAPI dan Umum).
-     * PERBAIKAN: Menambahkan DB transaction dan error handling
      */
     public function store(Request $request, $alat_te)
     {
@@ -124,10 +117,13 @@ class QuestionController extends Controller
         // 2. TENTUKAN LOGIKA VALIDASI
         if ($request->type === 'PAPIKOSTICK') {
             $rules['papi_item_number'] = 'required|integer|min:1|max:90|unique:papi_questions,item_number';
-            $rules['role_a'] = 'required|string|max:1';
-            $rules['need_a'] = 'required|string|max:1';
-            $rules['role_b'] = 'required|string|max:1';
-            $rules['need_b'] = 'required|string|max:1';
+            
+            // HAPUS VALIDASI ROLE DAN NEED DARI SINI
+            // $rules['role_a'] = 'required|string|max:1';
+            // $rules['need_a'] = 'required|string|max:1';
+            // $rules['role_b'] = 'required|string|max:1';
+            // $rules['need_b'] = 'required|string|max:1';
+            
             $rules['options.0.text'] = 'required|string|max:500'; 
             $rules['options.1.text'] = 'required|string|max:500'; 
         } else {
@@ -156,8 +152,7 @@ class QuestionController extends Controller
         ]);
 
 
-        // 3. LOGIKA PENYIMPANAN PAPI
-        // PERBAIKAN: Menggunakan DB transaction untuk memastikan data tersimpan
+        // 3. LOGIKA PENYIMPANAN PAPI (Disederhanakan)
         if ($request->type === 'PAPIKOSTICK') {
             try {
                 DB::beginTransaction();
@@ -166,39 +161,29 @@ class QuestionController extends Controller
                     'item_number' => $request->papi_item_number,
                     'statement_a' => $request->input('options.0.text'),
                     'statement_b' => $request->input('options.1.text'),
-                    'role_a' => strtoupper($request->role_a),
-                    'need_a' => strtoupper($request->need_a),
-                    'role_b' => strtoupper($request->role_b),
-                    'need_b' => strtoupper($request->need_b),
+                    
+                    // SET SEMUA ROLE DAN NEED KE NULL
+                    'role_a' => null, 
+                    'need_a' => null, 
+                    'role_b' => null, 
+                    'need_b' => null, 
                 ]);
 
                 DB::commit();
                 
-                // PENTING: Log sukses dengan detail
-                Log::info('PAPI question created successfully', [
+                Log::info('PAPI question created successfully (Simplified)', [
                     'item_number' => $request->papi_item_number,
                     'id' => $papiQuestion->id,
-                    'statement_a' => $papiQuestion->statement_a,
-                    'statement_b' => $papiQuestion->statement_b
                 ]);
                 
-                // PENTING: Cek apakah data benar-benar ada di database
-                $verify = PapiQuestion::find($papiQuestion->id);
-                Log::info('Verification after insert', [
-                    'exists' => $verify ? 'YES' : 'NO',
-                    'data' => $verify ? $verify->toArray() : null
-                ]);
-
                 return redirect()->route('admin.alat-tes.questions.index', $alat_te)
                     ->with('success', 'Soal PAPI Kostick (Item ' . $request->papi_item_number . ') berhasil ditambahkan.');
                     
             } catch (\Exception $e) {
                 DB::rollBack();
                 
-                // Log error
                 Log::error('Failed to create PAPI question', [
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
                     'item_number' => $request->papi_item_number
                 ]);
                 
@@ -207,7 +192,6 @@ class QuestionController extends Controller
         }
 
         // 4. LOGIKA PENYIMPANAN UMUM
-        // PERBAIKAN: Menambahkan DB transaction
         try {
             DB::beginTransaction();
             
@@ -259,7 +243,6 @@ class QuestionController extends Controller
             
             DB::commit();
             
-            // Log sukses
             Log::info('Regular question created successfully', [
                 'type' => $request->type,
                 'id' => $question->id
@@ -279,7 +262,6 @@ class QuestionController extends Controller
                 Storage::disk('public')->delete($path);
             }
             
-            // Log error
             Log::error('Failed to create question', [
                 'error' => $e->getMessage(),
                 'type' => $request->type
@@ -289,6 +271,10 @@ class QuestionController extends Controller
         }
     }
     
+    // -------------------------------------------------------------------------
+    // FUNGSI SHOW, EDIT, UPDATE (PAPI SIMPLIFIED), DESTROY
+    // -------------------------------------------------------------------------
+
     /**
      * Menampilkan detail soal (Termasuk soal PAPI).
      */
@@ -331,13 +317,8 @@ class QuestionController extends Controller
         return view('admin.questions.edit', compact('AlatTes', 'question'));
     }
 
-    // =========================================================================
-    // METODE UPDATE
-    // =========================================================================
-    
     /**
      * Mengupdate Soal (Mencakup logika PAPI dan Umum).
-     * NOTE: Route harus mengirimkan AlatTes ID (untuk redirect) dan Question ID.
      */
     public function update(Request $request, $alat_te, $questionId) 
     {
@@ -353,7 +334,7 @@ class QuestionController extends Controller
     }
 
     /**
-     * Logika Update Soal PAPI
+     * Logika Update Soal PAPI (DISIMPLIFIKASI)
      */
     protected function updatePapiQuestion(Request $request, PapiQuestion $papiQuestion, $alat_te)
     {
@@ -364,10 +345,12 @@ class QuestionController extends Controller
             'papi_item_number' => 'required|integer|min:1|max:90|unique:papi_questions,item_number,' . $questionId, 
             'statement_a' => 'required|string|max:500', 
             'statement_b' => 'required|string|max:500', 
-            'role_a' => 'required|string|max:1', 
-            'need_a' => 'required|string|max:1',
-            'role_b' => 'required|string|max:1', 
-            'need_b' => 'required|string|max:1', 
+            
+            // HAPUS VALIDASI ROLE DAN NEED DARI SINI
+            // 'role_a' => 'required|string|max:1', 
+            // 'need_a' => 'required|string|max:1',
+            // 'role_b' => 'required|string|max:1', 
+            // 'need_b' => 'required|string|max:1', 
         ], [
             'papi_item_number.unique' => 'Nomor Soal PAPI ini sudah digunakan.',
         ]);
@@ -379,10 +362,12 @@ class QuestionController extends Controller
                 'item_number' => $request->papi_item_number,
                 'statement_a' => $request->statement_a,
                 'statement_b' => $request->statement_b,
-                'role_a' => strtoupper($request->role_a),
-                'need_a' => strtoupper($request->need_a),
-                'role_b' => strtoupper($request->role_b),
-                'need_b' => strtoupper($request->need_b),
+                
+                // SET SEMUA ROLE DAN NEED KE NULL
+                'role_a' => null, 
+                'need_a' => null, 
+                'role_b' => null, 
+                'need_b' => null, 
             ]);
 
             DB::commit();
@@ -391,7 +376,7 @@ class QuestionController extends Controller
                 ->with('success', 'Soal PAPI Kostick Item ' . $papiQuestion->item_number . ' berhasil diperbarui.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to update PAPI question', ['error' => $e->getMessage(), 'id' => $questionId]);
+            Log::error('Failed to update PAPI question (Simplified)', ['error' => $e->getMessage(), 'id' => $questionId]);
             return back()->withInput()->withErrors(['error' => 'Gagal memperbarui soal PAPI: ' . $e->getMessage()]);
         }
     }
@@ -474,13 +459,6 @@ class QuestionController extends Controller
                         $optionData['image_path'] = $optionImagePath;
                     }
 
-                    // Logika untuk menghapus gambar yang ditandai dihapus di view:
-                    // Anda perlu menambahkan hidden input di view untuk menandai penghapusan
-                    // if ($request->input("options.{$index}.delete_image")) {
-                    //    Storage::disk('public')->delete($oldPath);
-                    //    $optionData['image_path'] = null;
-                    // }
-
                     $processedOptions[] = $optionData;
                 }
 
@@ -508,38 +486,47 @@ class QuestionController extends Controller
 
     /**
      * Menghapus soal (Mencakup logika PAPI dan Umum).
-     * PERBAIKAN: Menambahkan DB transaction
      */
     public function destroy($questionId)
     {
         try {
             DB::beginTransaction();
             
+            $testId = null; 
+            
             // 1. CEK APAKAH INI SOAL PAPI
             $papiQuestion = PapiQuestion::find($questionId);
 
             if ($papiQuestion) {
                 $itemNumber = $papiQuestion->item_number;
+                
+                // Cari AlatTes PAPI untuk mendapatkan ID-nya
+                $alatTes = AlatTes::where('slug', 'papi-kostick')->first();
+                if (!$alatTes) {
+                    $alatTes = AlatTes::where('name', 'like', '%papi%kostick%')->first();
+                }
+                
+                $testId = $alatTes ? $alatTes->id : null; 
+
                 $papiQuestion->delete();
                 
                 DB::commit();
                 
-                // Log sukses
                 Log::info('PAPI question deleted', [
                     'id' => $questionId,
                     'item_number' => $itemNumber
                 ]);
                 
-                $alatTes = AlatTes::where('slug', 'papi-kostick')->first();
-                $testId = $alatTes ? $alatTes->id : null; 
-
-                return redirect()->route('admin.alat-tes.questions.index', $testId)
-                    ->with('success', 'Soal PAPI Kostick Item ' . $itemNumber . ' berhasil dihapus.');
+                if ($testId) {
+                    return redirect()->route('admin.alat-tes.questions.index', $testId)
+                        ->with('success', 'Soal PAPI Kostick Item ' . $itemNumber . ' berhasil dihapus.');
+                }
+                return back()->withErrors(['error' => 'Gagal menghapus: Tidak dapat menemukan ID Alat Tes PAPI untuk redirect.']);
             }
             
             // 2. HAPUS SOAL UMUM
             $questionModel = Question::findOrFail($questionId);
-            $testId = $questionModel->alat_tes_id;
+            $testId = $questionModel->alat_tes_id; 
 
             // Hapus gambar terkait
             if ($questionModel->image_path) {
@@ -560,7 +547,6 @@ class QuestionController extends Controller
             
             DB::commit();
             
-            // Log sukses
             Log::info('Question deleted', [
                 'id' => $questionId
             ]);
@@ -571,7 +557,6 @@ class QuestionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            // Log error
             Log::error('Failed to delete question', [
                 'error' => $e->getMessage(),
                 'id' => $questionId
@@ -621,10 +606,11 @@ class QuestionController extends Controller
         $sheet->setCellValue('G1', 'Memory Type (TEXT/IMAGE)');
         $sheet->setCellValue('H1', 'Duration Seconds');
         $sheet->setCellValue('I1', 'PAPI Item Number');
-        $sheet->setCellValue('J1', 'PAPI Role A');
-        $sheet->setCellValue('K1', 'PAPI Need A');
-        $sheet->setCellValue('L1', 'PAPI Role B');
-        $sheet->setCellValue('M1', 'PAPI Need B');
+        // KITA HILANGKAN KOLOM ROLE/NEED DARI TEMPLATE KARENA INGIN DISIMPLIFIKASI
+        // $sheet->setCellValue('J1', 'PAPI Role A');
+        // $sheet->setCellValue('K1', 'PAPI Need A');
+        // $sheet->setCellValue('L1', 'PAPI Role B');
+        // $sheet->setCellValue('M1', 'PAPI Need B');
         
         $writer = new Xlsx($spreadsheet);
         $fileName = 'questions_template.xlsx';

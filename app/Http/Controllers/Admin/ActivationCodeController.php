@@ -31,12 +31,17 @@ class ActivationCodeController extends Controller
             'test_id' => 'required|exists:tests,id',
             'quantity' => 'required|integer|min:1|max:1000',
             'batch_name' => 'nullable|string|max:255',
+            // Tambahan: Anda bisa menambahkan 'expiry_days' di sini jika ingin mengontrol masa kadaluarsa
         ]);
 
         $test = Test::findOrFail($request->test_id);
         $quantity = $request->quantity;
         $batchId = uniqid('batch_');
         $batchName = $request->batch_name ?? ($test->title . ' - ' . now()->format('d M Y'));
+
+        // SOLUSI: Tentukan tanggal kadaluarsa (expires_at)
+        // Disetel 1 tahun (365 hari) dari sekarang sebagai nilai default yang aman.
+        $expiresAt = now()->addDays(365); 
 
         for ($i = 0; $i < $quantity; $i++) {
             $code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 10));
@@ -50,6 +55,8 @@ class ActivationCodeController extends Controller
                 'test_id' => $request->test_id,
                 'code' => $formattedCode,
                 'status' => 'Pending',
+                // PERBAIKAN UTAMA: Menyertakan nilai untuk kolom yang wajib (NOT NULL)
+                'expires_at' => $expiresAt, 
             ]);
         }
 
