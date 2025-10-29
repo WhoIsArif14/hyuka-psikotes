@@ -6,25 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up()
     {
         Schema::table('papi_questions', function (Blueprint $table) {
             $table->unsignedBigInteger('alat_tes_id')->nullable()->after('id');
-            $table->foreign('alat_tes_id')->references('id')->on('alat_tes')->onDelete('cascade');
+            $table->foreign('alat_tes_id')
+                  ->references('id')
+                  ->on('alat_tes')
+                  ->onDelete('cascade');
         });
     }
 
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::table('papi_questions', function (Blueprint $table) {
-            //
+            $table->dropForeign(['alat_tes_id']);
+            $table->dropColumn('alat_tes_id');
         });
     }
 };

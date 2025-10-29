@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\ActivationCode; // <<< Tambahkan Model ini
+use App\Models\ActivationCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -44,37 +44,33 @@ class TestAccessController extends Controller
                 'kode_aktivasi_peserta' => ['Kode Aktivasi tidak valid atau tidak ditemukan.'],
             ]);
         }
+        
+        // 2. Cek Kadaluarsa (Berlaku untuk kode lama maupun baru)
+        if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'kode_aktivasi_peserta' => ['Kode sudah kadaluarsa.'],
+            ]);
+        }
 
-        // 2. Tentukan status User (sudah dipakai atau belum)
         if ($activationCode->user_id) {
             // --- KODE SUDAH PERNAH DIPAKAI (LOGIN USER LAMA) ---
-            
             $user = User::find($activationCode->user_id);
-
-            // Cek kadaluarsa, meskipun user sudah dibuat (opsional)
-            if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
-                 throw ValidationException::withMessages([
-                    'kode_aktivasi_peserta' => ['Kode sudah kadaluarsa.'],
-                ]);
+            
+            // Cek apakah user ditemukan
+            if (!$user) {
+                // Jika user ID ada di kode aktivasi tapi user-nya hilang
+                throw ValidationException::withMessages(['kode_aktivasi_peserta' => ['User yang terhubung ke kode ini tidak ditemukan.']]);
             }
 
         } else {
             // --- KODE BELUM PERNAH DIPAKAI (BUAT USER BARU) ---
-
-            // Cek kadaluarsa sebelum membuat user baru
-            if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
-                 throw ValidationException::withMessages([
-                    'kode_aktivasi_peserta' => ['Kode sudah kadaluarsa.'],
-                ]);
-            }
             
             // 3. Buat User baru
             $user = User::create([
                 'name' => 'Peserta ' . $inputCode,
-                'email' => $inputCode . '@temp.hyuka.com', // Email dummy/acak sementara
-                'password' => Hash::make(Str::random(10)), // Password acak
+                'email' => $inputCode . '@temp.hyuka.com',
+                'password' => Hash::make(Str::random(10)),
                 'role' => 'user',
-                // Simpan kode aktivasi di tabel users (untuk referensi, opsional)
                 'kode_aktivasi_peserta' => $inputCode, 
             ]);
 
@@ -86,6 +82,12 @@ class TestAccessController extends Controller
         // 5. Login User
         Auth::login($user); 
         $request->session()->regenerate();
+        
+        // ***************************************************************
+        // !!! PERBAIKAN KRITIS !!!
+        // Simpan ID Kode Aktivasi ke session untuk digunakan di Controller berikutnya.
+        // ***************************************************************
+        session(['current_activation_id' => $activationCode->id]);
         
         // Pengalihan ke halaman pengisian data diri (di mana user akan mengisi data asli)
         return redirect()->route('user.data.edit'); 

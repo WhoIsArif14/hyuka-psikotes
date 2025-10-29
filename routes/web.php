@@ -4,7 +4,8 @@ use Illuminate\Support\Facades\Route;
 // User-side Controllers
 use App\Http\Controllers\TestAccessController; 
 use App\Http\Controllers\UserDataController; 
-use App\Http\Controllers\UserTestController; // <<< Akan kita gunakan untuk rute baru
+use App\Http\Controllers\UserTestController;
+use App\Http\Controllers\PapiTestController; // <<< TAMBAH: Controller khusus PAPI
 // Admin-side Controllers
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ClientController;
@@ -16,7 +17,6 @@ use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\TestCategoryController;
 use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\AlatTesController;
-use App\Http\Controllers\Admin\TestCreationWizardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ActivationCodeController;
 // Auth & Profile Controllers
@@ -53,16 +53,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update'); 
     
     // 2. Rute Baru untuk Start Test
-    // Tambahkan route tanpa parameter (nama: tests.start) — ini untuk pemanggilan lama
     Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
-
-    // Tambahkan juga route yang menerima parameter {test}, jika ingin panggilan langsung via id
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
 
-    // 3. Rute Tes yang Sudah Ada
+    // 3. Rute Tes Umum (Pilihan Ganda, dll.)
     Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
     Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
     Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
+
+    // 4. Rute Khusus PAPI Kostick
+    // Ini diperlukan jika PapiTestController Anda memiliki fungsi yang terpisah
+    Route::post('tests/{test}/papi/submit', [PapiTestController::class, 'submitTest'])->name('papi.submit');
 });
 
 
@@ -105,16 +106,6 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('activation-codes/{code}/export', [ActivationCodeController::class, 'exportBatch'])
             ->name('codes.export');
 
-        // Wizard Pembuatan Tes
-        Route::prefix('create-test')->name('wizard.')->group(function () {
-            Route::get('step-1', [TestCreationWizardController::class, 'step1_category'])->name('step1');
-            Route::post('step-1', [TestCreationWizardController::class, 'postStep1_category'])->name('post_step1');
-            Route::get('step-2', [TestCreationWizardController::class, 'step2_template'])->name('step2');
-            Route::post('step-2', [TestCreationWizardController::class, 'postStep2_template'])->name('post_step2');
-            Route::get('{test}/step-3', [TestCreationWizardController::class, 'step3_schedule'])->name('step3');
-            Route::post('{test}/step-3', [TestCreationWizardController::class, 'postStep3_schedule'])->name('post_step3');
-        });
-
         // ==========================================================
         // MANAJEMEN UMUM & PEMISAHAN TESTS/ALAT-TES
         // ==========================================================
@@ -136,6 +127,8 @@ Route::middleware(['auth', IsAdmin::class])
         // ==========================================================
         // RUTE QUESTIONS
         // ==========================================================
+        
+        // Rute INDEX, CREATE, STORE - Sudah benar karena menggunakan AlatTes
         Route::get('alat-tes/{alat_te}/questions', [QuestionController::class, 'index'])
             ->name('alat-tes.questions.index');
 
@@ -144,13 +137,22 @@ Route::middleware(['auth', IsAdmin::class])
 
         Route::post('alat-tes/{alat_te}/questions', [QuestionController::class, 'store'])
             ->name('alat-tes.questions.store');
-
+        
+        // Rute SHOW, UPDATE, DESTROY (untuk soal umum) - Menggunakan {question} saja
         Route::get('questions/{question}', [QuestionController::class, 'show'])
             ->name('questions.show');
 
-        Route::get('questions/{question}/edit', [QuestionController::class, 'edit'])
+        // !!! PERBAIKAN KRITIS UNTUK 404 NOT FOUND !!!
+        // Mengubah rute edit agar menyertakan {alat_te} yang dibutuhkan Controller
+        Route::get('alat-tes/{alat_te}/questions/{question}/edit', [QuestionController::class, 'edit'])
             ->name('questions.edit');
 
+        // !!! RUTE BARU KHUSUS UPDATE PAPI KOSTICK !!!
+        // Ini diperlukan untuk formulir edit_papi.blade.php
+        Route::put('alat-tes/{alat_te}/questions/{papi_question}/update-papi', [QuestionController::class, 'updatePapi'])
+            ->name('questions.update_papi');
+
+        // Rute Update (soal umum)
         Route::put('questions/{question}', [QuestionController::class, 'update'])
             ->name('questions.update');
 

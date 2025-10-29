@@ -28,34 +28,59 @@
                     <form id="test-form" method="POST" action="{{ route('tests.store', $test) }}">
                         @csrf
                         <div class="space-y-8">
-                            @foreach ($test->questions as $question)
+                            {{-- ✅ Cek sumber pertanyaan --}}
+                            @php
+                                $questions = isset($alatTes) ? $alatTes->questions : $test->questions;
+                            @endphp
+
+                            @foreach ($questions as $question)
                                 <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
                                     <div class="font-semibold text-lg mb-4">
                                         <p>{{ $loop->iteration }}. {{ $question->question_text }}</p>
                                         @if ($question->image_path)
-                                            <img src="{{ asset('storage/' . $question->image_path) }}" alt="Gambar Soal" class="mt-4 rounded-md max-w-full md:max-w-lg">
+                                            <img src="{{ asset('storage/' . $question->image_path) }}" alt="Gambar Soal"
+                                                class="mt-4 rounded-md max-w-full md:max-w-lg">
                                         @endif
                                     </div>
 
-                                    <div class="space-y-3">
-                                        @foreach($question->options as $option)
-                                            <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-100 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300">
-                                                <input type="radio" name="questions[{{ $question->id }}]" value="{{ $option->id }}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mt-1">
-                                                <div class="ml-3 text-gray-700">
-                                                    <span>{{ $option->option_text }}</span>
-                                                    @if ($option->image_path)
-                                                         <img src="{{ asset('storage/' . $option->image_path) }}" alt="Gambar Opsi" class="mt-2 rounded-md max-w-xs">
-                                                    @endif
-                                                </div>
-                                            </label>
-                                        @endforeach
-                                    </div>
+                                    @php
+                                        // Pastikan opsi dalam format array
+                                        $options = is_string($question->options)
+                                            ? json_decode($question->options, true)
+                                            : $question->options ?? [];
+                                    @endphp
+
+                                    @if (is_array($options) && count($options) > 0)
+                                        <div class="space-y-3">
+                                            @foreach ($options as $option)
+                                                <label
+                                                    class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-100 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-300">
+                                                    <input type="radio" name="questions[{{ $question->id }}]"
+                                                        value="{{ $option['index'] ?? $loop->index }}"
+                                                        class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mt-1">
+
+
+                                                    <div class="ml-3 text-gray-700">
+                                                        <span>{{ $option['text'] ?? '' }}</span>
+
+                                                        @if (!empty($option['image_path']))
+                                                            <img src="{{ asset('storage/' . $option['image_path']) }}"
+                                                                alt="Gambar Opsi" class="mt-2 rounded-md max-w-xs">
+                                                        @endif
+                                                    </div>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <p class="text-red-500 text-sm">Tidak ada opsi jawaban untuk soal ini.</p>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
 
                         <div class="mt-8 flex justify-end">
-                            <button type="submit" class="inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                            <button type="submit"
+                                class="inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
                                 Selesai Mengerjakan
                             </button>
                         </div>
@@ -67,21 +92,17 @@
     </div>
 
     <script>
-        // --- SCRIPT BARU UNTUK MENCEGAH PINDAH TAB ---
+        // --- CEGAH PINDAH TAB ---
         let hasLeftPage = false;
-        document.addEventListener('visibilitychange', function () {
+        document.addEventListener('visibilitychange', function() {
             if (document.hidden && !hasLeftPage) {
-                // Tandai bahwa user sudah pernah meninggalkan halaman
                 hasLeftPage = true;
-                // Beri peringatan (opsional)
-                alert('Anda telah meninggalkan halaman tes. Untuk menjaga integritas, tes Anda akan otomatis diselesaikan.');
-                // Submit form secara otomatis
+                alert('Anda telah meninggalkan halaman tes. Tes akan otomatis diselesaikan.');
                 document.getElementById('test-form').submit();
             }
         });
-        // ---------------------------------------------
 
-        // --- SCRIPT TIMER (TIDAK BERUBAH) ---
+        // --- TIMER ---
         function timer(seconds) {
             return {
                 timeLeft: seconds,
@@ -91,7 +112,6 @@
                         if (this.timeLeft <= 0) {
                             clearInterval(interval);
                             this.timeLeft = 0;
-                            // Hanya submit jika belum pernah meninggalkan halaman
                             if (!hasLeftPage) {
                                 document.getElementById('test-form').submit();
                             }

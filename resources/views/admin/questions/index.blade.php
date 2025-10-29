@@ -249,11 +249,85 @@
 
             ---
 
-            {{-- Daftar Soal --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Daftar Soal</h3>
+            {{-- ✅ TAMPILKAN SOAL PAPI (jika ada) --}}
+            @if ($papiQuestions->count() > 0)
+                <div class="mb-6">
+                    <h4 class="text-md font-semibold text-red-700 mb-3">📋 Soal PAPI Kostick</h4>
+                    <div class="space-y-4">
+                        @foreach ($papiQuestions as $papiQuestion)
+                            <div class="border border-red-200 rounded-lg p-4 hover:shadow-md transition bg-red-50">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-2">
+                                            <span
+                                                class="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded">
+                                                PAPI KOSTICK
+                                            </span>
+                                            <span
+                                                class="bg-red-200 text-red-900 text-xs font-semibold px-2 py-1 rounded">
+                                                Item #{{ $papiQuestion->item_number }}
+                                            </span>
+                                        </div>
 
-                @if ($questions->count() > 0)
+                                        {{-- Pernyataan A dan B --}}
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex items-start">
+                                                <span class="font-semibold mr-2 text-gray-700">A.</span>
+                                                <span class="text-gray-800">{{ $papiQuestion->statement_a }}</span>
+                                            </div>
+                                            <div class="flex items-start">
+                                                <span class="font-semibold mr-2 text-gray-700">B.</span>
+                                                <span class="text-gray-800">{{ $papiQuestion->statement_b }}</span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Scoring Key (jika sudah diisi) --}}
+                                        @if ($papiQuestion->role_a || $papiQuestion->need_a || $papiQuestion->role_b || $papiQuestion->need_b)
+                                            <div class="mt-3 text-xs bg-red-100 p-2 rounded border border-red-300">
+                                                <p class="font-semibold text-red-800 mb-1">Scoring Key:</p>
+                                                <div class="grid grid-cols-2 gap-2 text-gray-700">
+                                                    <div>A: Role {{ $papiQuestion->role_a ?? '-' }} / Need
+                                                        {{ $papiQuestion->need_a ?? '-' }}</div>
+                                                    <div>B: Role {{ $papiQuestion->role_b ?? '-' }} / Need
+                                                        {{ $papiQuestion->need_b ?? '-' }}</div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- ✅ PERBAIKAN: Gunakan route yang benar --}}
+                                    <div class="flex space-x-2 ml-4">
+                                        <a href="{{ route('admin.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $papiQuestion->id]) }}"
+                                            class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                            Edit
+                                        </a>
+                                        <form method="POST"
+                                            action="{{ route('admin.questions.destroy', $papiQuestion->id) }}"
+                                            onsubmit="return confirm('Yakin ingin menghapus soal PAPI Item {{ $papiQuestion->item_number }}?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="text-red-600 hover:text-red-800 font-medium text-sm">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Pagination PAPI --}}
+                    <div class="mt-4">
+                        {{ $papiQuestions->links() }}
+                    </div>
+                </div>
+            @endif
+
+            {{-- ✅ TAMPILKAN SOAL UMUM (jika ada) --}}
+            @if ($questions->count() > 0)
+                <div class="mb-6">
+                    <h4 class="text-md font-semibold text-gray-700 mb-3">📝 Soal Umum</h4>
                     <div class="space-y-4">
                         @foreach ($questions as $index => $question)
                             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
@@ -271,14 +345,6 @@
                                                 <span
                                                     class="bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded">
                                                     ⏱️ {{ $question->duration_seconds }}s
-                                                </span>
-                                            @endif
-
-                                            {{-- Tampilkan Nomor PAPI jika ada --}}
-                                            @if ($question->type == 'PAPIKOSTICK' && $question->item_number)
-                                                <span
-                                                    class="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded">
-                                                    Item PAPI: {{ $question->item_number }}
                                                 </span>
                                             @endif
                                         </div>
@@ -307,9 +373,7 @@
                                             </div>
                                         @endif
 
-                                        @if (
-                                            ($question->type == 'PILIHAN_GANDA' || $question->type == 'HAFALAN' || $question->type == 'PAPIKOSTICK') &&
-                                                $question->options)
+                                        @if (($question->type == 'PILIHAN_GANDA' || $question->type == 'HAFALAN') && $question->options)
                                             @php
                                                 $opts = is_string($question->options)
                                                     ? json_decode($question->options, true)
@@ -329,28 +393,18 @@
                                                                 </div>
                                                             @endif
                                                         </div>
-                                                        @if ($question->correct_answer_index == $key && $question->type != 'PAPIKOSTICK')
+                                                        @if ($question->correct_answer_index == $key)
                                                             <span class="ml-2 text-green-600 text-xs">✓ Benar</span>
                                                         @endif
                                                     </div>
                                                 @endforeach
                                             </div>
                                         @endif
-
-                                        {{-- KODE PAPI SCORING KEY DIHAPUS KARENA TIDAK ADA LAGI INPUT ROLE/NEED --}}
-                                        {{-- Blok ini DIHAPUS:
-                                @if ($question->type == 'PAPIKOSTICK')
-                                    <div class="mt-3 text-xs bg-red-50 p-2 rounded-lg border border-red-200">
-                                        <p class="font-semibold text-red-700">PAPI Scoring Key:</p>
-                                        <p class="text-gray-700">A: Role {{ $question->role_a ?? '-' }} / Need {{ $question->need_a ?? '-' }}</p>
-                                        <p class="text-gray-700">B: Role {{ $question->role_b ?? '-' }} / Need {{ $question->need_b ?? '-' }}</p>
-                                    </div>
-                                @endif
-                                --}}
                                     </div>
 
+                                    {{-- ✅ PERBAIKAN: Gunakan route yang benar --}}
                                     <div class="flex space-x-2 ml-4">
-                                        <a href="{{ route('admin.questions.edit', $question->id) }}"
+                                        <a href="{{ route('admin.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}"
                                             class="text-blue-600 hover:text-blue-800 font-medium">
                                             Edit
                                         </a>
@@ -370,15 +424,19 @@
                         @endforeach
                     </div>
 
+                    {{-- Pagination Soal Umum --}}
                     <div class="mt-4">
                         {{ $questions->links() }}
                     </div>
-                @else
-                    <div class="text-center py-8 text-gray-500">
-                        <p>Belum ada soal. Klik "Tambah Soal" untuk membuat soal pertama.</p>
-                    </div>
-                @endif
-            </div>
+                </div>
+            @endif
+
+            {{-- ✅ JIKA TIDAK ADA SOAL SAMA SEKALI --}}
+            @if ($questions->count() == 0 && $papiQuestions->count() == 0)
+                <div class="text-center py-8 text-gray-500">
+                    <p>Belum ada soal. Klik "Tambah Soal" untuk membuat soal pertama.</p>
+                </div>
+            @endif
 
         </div>
     </div>
@@ -410,6 +468,8 @@
 
             // [LOGIC IMAGE PREVIEW - START]
             const setupImagePreviewLogic = (imageInput, previewImg, imagePreview, removeBtn) => {
+                if (!imageInput) return;
+
                 imageInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
@@ -433,7 +493,9 @@
             };
 
             // Setup main question image preview
-            setupImagePreviewLogic(questionImage, previewImg, imagePreview, removeImageBtn);
+            if (questionImage && previewImg && imagePreview && removeImageBtn) {
+                setupImagePreviewLogic(questionImage, previewImg, imagePreview, removeImageBtn);
+            }
 
             // Handle option image preview setup
             function setupOptionImagePreview(optionItem) {
@@ -442,7 +504,9 @@
                 const previewImg = optionItem.querySelector('.option-preview-img');
                 const removeBtn = optionItem.querySelector('.remove-option-image-btn');
 
-                setupImagePreviewLogic(imageInput, previewImg, previewContainer, removeBtn);
+                if (imageInput && previewContainer && previewImg) {
+                    setupImagePreviewLogic(imageInput, previewImg, previewContainer, removeBtn);
+                }
             }
 
             // Setup initial option image previews
@@ -452,17 +516,21 @@
             // [LOGIC IMAGE PREVIEW - END]
 
             // [LOGIC FORM TOGGLE]
-            toggleFormBtn.addEventListener('click', function() {
-                const isHidden = formContainer.style.display === 'none';
-                formContainer.style.display = isHidden ? 'block' : 'none';
-                toggleFormBtn.textContent = isHidden ? 'Sembunyikan Form' : 'Tambah Soal';
-                if (isHidden) toggleContainers();
-            });
+            if (toggleFormBtn && formContainer) {
+                toggleFormBtn.addEventListener('click', function() {
+                    const isHidden = formContainer.style.display === 'none';
+                    formContainer.style.display = isHidden ? 'block' : 'none';
+                    toggleFormBtn.textContent = isHidden ? 'Sembunyikan Form' : 'Tambah Soal';
+                    if (isHidden) toggleContainers();
+                });
+            }
 
-            cancelBtn.addEventListener('click', function() {
-                formContainer.style.display = 'none';
-                toggleFormBtn.textContent = 'Tambah Soal';
-            });
+            if (cancelBtn && formContainer && toggleFormBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    formContainer.style.display = 'none';
+                    toggleFormBtn.textContent = 'Tambah Soal';
+                });
+            }
 
             // [LOGIC UPDATE LABELS & BUTTONS]
             function updateOptionLabels() {
@@ -477,37 +545,48 @@
                     const letter = String.fromCharCode(65 + index);
 
                     // Update names and placeholders
-                    label.textContent = `Opsi ${letter}`;
-                    input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
-                    input.name = `options[${index}][text]`;
-                    imageInput.name = `options[${index}][image_file]`;
-                    radio.value = index;
+                    if (label) label.textContent = `Opsi ${letter}`;
+                    if (input) {
+                        input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
+                        input.name = `options[${index}][text]`;
+                    }
+                    if (imageInput) imageInput.name = `options[${index}][image_file]`;
+                    if (radio) radio.value = index;
                     if (hiddenIndex) hiddenIndex.value = index;
 
-                    // Atur tombol hapus (Hanya jika bukan PAPI dan lebih dari 2 opsi)
+                    // Atur tombol hapus
                     if (removeBtn) {
-                        removeBtn.style.display = optionCount > 2 && typeSelect.value !== 'PAPIKOSTICK' ?
-                            'block' : 'none';
+                        const isPapi = typeSelect && typeSelect.value === 'PAPIKOSTICK';
+                        const totalOptions = document.querySelectorAll('.option-item').length;
+                        removeBtn.style.display = totalOptions > 2 && !isPapi ? 'block' : 'none';
                     }
                 });
             }
 
             // [LOGIC CONTAINER TOGGLE]
             function toggleContainers() {
+                if (!typeSelect) return;
+
                 const selectedType = typeSelect.value;
 
+                console.log('Selected Type:', selectedType); // ✅ Debug
+
                 // 1. Reset/Sembunyikan Semua Default
-                optionsSection.style.display = 'none';
-                memoryContainer.classList.add('hidden');
-                papiContainer.classList.add('hidden');
-                questionTextContainer.style.display = 'block';
-                questionImageContainer.style.display = 'block';
-                addOptionBtn.style.display = 'block';
+                if (optionsSection) optionsSection.style.display = 'none';
+                if (memoryContainer) memoryContainer.classList.add('hidden');
+                if (papiContainer) papiContainer.classList.add('hidden');
+                if (questionTextContainer) questionTextContainer.style.display = 'block';
+                if (questionImageContainer) questionImageContainer.style.display = 'block';
+                if (addOptionBtn) addOptionBtn.style.display = 'block';
 
                 // Reset Labels
-                document.getElementById('question-text-label').textContent = 'Teks Pertanyaan';
-                document.getElementById('question-text-hint').textContent = 'Pertanyaan untuk siswa';
-                document.getElementById('options-hint').textContent = 'Pilihan jawaban untuk pertanyaan';
+                const questionTextLabel = document.getElementById('question-text-label');
+                const questionTextHint = document.getElementById('question-text-hint');
+                const optionsHint = document.getElementById('options-hint');
+
+                if (questionTextLabel) questionTextLabel.textContent = 'Teks Pertanyaan';
+                if (questionTextHint) questionTextHint.textContent = 'Pertanyaan untuk siswa';
+                if (optionsHint) optionsHint.textContent = 'Pilihan jawaban untuk pertanyaan';
 
                 document.querySelectorAll('.option-item').forEach((item, index) => {
                     item.style.display = 'block';
@@ -520,19 +599,20 @@
 
                 // 2. Tampilkan Kontainer Berdasarkan Tipe
                 if (selectedType === 'PAPIKOSTICK') {
-                    papiContainer.classList.remove('hidden');
-                    optionsSection.style.display = 'block';
-                    questionImageContainer.style.display = 'none';
+                    if (papiContainer) papiContainer.classList.remove('hidden');
+                    if (optionsSection) optionsSection.style.display = 'block';
+                    if (questionImageContainer) questionImageContainer.style.display = 'none';
 
                     // Ganti Label untuk PAPI
-                    document.getElementById('question-text-label').textContent = 'Nomor Soal PAPI (1-90)';
-                    document.getElementById('question_text').placeholder = 'Masukkan Nomor Soal (mis: 45) di sini.';
-                    document.getElementById('question-text-hint').textContent =
+                    if (questionTextLabel) questionTextLabel.textContent = 'Nomor Soal PAPI (1-90)';
+                    const questionTextInput = document.getElementById('question_text');
+                    if (questionTextInput) questionTextInput.placeholder = 'Masukkan Nomor Soal (mis: 45) di sini.';
+                    if (questionTextHint) questionTextHint.textContent =
                         'Kolom ini hanya untuk Nomor Soal PAPI. Teks pernyataan diisi di Opsi A dan B.';
 
                     // Atur Opsi Jawaban untuk PAPI (Hanya A dan B)
-                    addOptionBtn.style.display = 'none';
-                    document.getElementById('options-hint').textContent =
+                    if (addOptionBtn) addOptionBtn.style.display = 'none';
+                    if (optionsHint) optionsHint.textContent =
                         'Hanya Opsi A dan B yang digunakan untuk Pasangan Pernyataan PAPI.';
 
                     document.querySelectorAll('.option-item').forEach((item, index) => {
@@ -541,33 +621,40 @@
                         if (index >= 2) {
                             item.style.display = 'none';
                         } else {
-                            if (radioBlock) radioBlock.style.display = 'none'; // Sembunyikan "Benar"
+                            if (radioBlock) radioBlock.style.display = 'none';
                         }
                     });
 
                 } else if (selectedType === 'ESSAY') {
-                    optionsSection.style.display = 'none';
-                    addOptionBtn.style.display = 'none';
+                    if (optionsSection) optionsSection.style.display = 'none';
+                    if (addOptionBtn) addOptionBtn.style.display = 'none';
+
+                } else if (selectedType === 'PILIHAN_GANDA') {
+                    // ✅ PERBAIKAN: Tampilkan section opsi untuk Pilihan Ganda
+                    console.log('Showing options section for PILIHAN_GANDA'); // ✅ Debug
+                    if (optionsSection) optionsSection.style.display = 'block';
+                    if (addOptionBtn) addOptionBtn.style.display = 'block';
 
                 } else if (selectedType === 'HAFALAN') {
-                    memoryContainer.classList.remove('hidden');
-                    optionsSection.style.display = 'block';
-                    questionImageContainer.style.display = 'none';
+                    if (memoryContainer) memoryContainer.classList.remove('hidden');
+                    if (optionsSection) optionsSection.style.display = 'block';
+                    if (questionImageContainer) questionImageContainer.style.display = 'none';
 
-                    document.getElementById('question-text-label').textContent = '❓ Pertanyaan (setelah hafalan)';
-                    document.getElementById('question-text-hint').textContent =
+                    if (questionTextLabel) questionTextLabel.textContent = '❓ Pertanyaan (setelah hafalan)';
+                    if (questionTextHint) questionTextHint.textContent =
                         'Pertanyaan yang akan muncul setelah materi hafalan hilang';
                 }
             }
 
             // [LOGIC TAMBAH OPSI]
-            addOptionBtn.addEventListener('click', function() {
-                const newIndex = optionsList.children.length;
-                const letter = String.fromCharCode(65 + newIndex);
+            if (addOptionBtn && optionsList) {
+                addOptionBtn.addEventListener('click', function() {
+                    const newIndex = optionsList.children.length;
+                    const letter = String.fromCharCode(65 + newIndex);
 
-                const newOption = document.createElement('div');
-                newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
-                newOption.innerHTML = `
+                    const newOption = document.createElement('div');
+                    newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
+                    newOption.innerHTML = `
                     <div class="flex items-start space-x-3 w-full">
                         <div class="flex items-start space-x-3 w-full">
                             <div class="flex items-center pt-2 correct-radio-block">
@@ -602,30 +689,38 @@
                     </div>
                 `;
 
-                optionsList.appendChild(newOption);
-                setupOptionImagePreview(newOption);
-                optionCount = optionsList.children.length; // Update count
-                updateOptionLabels();
-            });
+                    optionsList.appendChild(newOption);
+                    setupOptionImagePreview(newOption);
+                    optionCount = optionsList.children.length;
+                    updateOptionLabels();
+                });
+            }
 
             // [LOGIC HAPUS OPSI]
-            optionsList.addEventListener('click', function(e) {
-                const removeBtn = e.target.closest('.remove-option-btn');
-                const optionItem = e.target.closest('.option-item');
+            if (optionsList) {
+                optionsList.addEventListener('click', function(e) {
+                    const removeBtn = e.target.closest('.remove-option-btn');
+                    const optionItem = e.target.closest('.option-item');
 
-                if (removeBtn && optionItem && optionsList.children.length > 2) {
-                    optionItem.remove();
-                    optionCount = optionsList.children.length; // Update count
-                    updateOptionLabels();
-                } else if (removeBtn) {
-                    alert('Minimal harus ada 2 Opsi Jawaban.');
-                }
-            });
+                    if (removeBtn && optionItem && optionsList.children.length > 2) {
+                        optionItem.remove();
+                        optionCount = optionsList.children.length;
+                        updateOptionLabels();
+                    } else if (removeBtn) {
+                        alert('Minimal harus ada 2 Opsi Jawaban.');
+                    }
+                });
+            }
 
+            // ✅ PENTING: Trigger saat page load dan saat type berubah
+            if (typeSelect) {
+                typeSelect.addEventListener('change', toggleContainers);
 
-            typeSelect.addEventListener('change', toggleContainers);
-            toggleContainers();
+                // ✅ Trigger saat page load untuk set initial state
+                toggleContainers();
+            }
 
+            // ✅ Jika ada error validation, trigger lagi
             @if ($errors->any())
                 toggleContainers();
             @endif

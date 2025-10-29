@@ -66,10 +66,6 @@
                     Alat Tes
                     </a>
                 
-                <a href="{{ route('admin.wizard.step1') }}"
-                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.wizard.*') ? 'bg-gray-700' : '' }}">
-                    Buat Sesi Tes
-                    </a>
                 <a href="{{ route('admin.codes.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.codes.*') ? 'bg-gray-700' : '' }}">
                     Kode Aktivasi

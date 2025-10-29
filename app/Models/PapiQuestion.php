@@ -13,6 +13,7 @@ class PapiQuestion extends Model
     
     // Kolom Role/Need tetap di fillable karena Controller mengisinya dengan NULL
     protected $fillable = [
+        'alat_tes_id',
         'item_number',
         'statement_a',
         'statement_b',

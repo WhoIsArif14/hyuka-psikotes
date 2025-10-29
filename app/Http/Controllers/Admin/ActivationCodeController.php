@@ -11,17 +11,50 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Illuminate\Support\Facades\DB;
 
 class ActivationCodeController extends Controller
 {
     public function index()
     {
-        $codes = ActivationCode::with('test')
+        // Ambil semua kode, kelompokkan, lalu paginate manual
+        $allCodes = ActivationCode::with('test')
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
-        
+            ->get();
+
+        $groupedCodes = $allCodes->groupBy(function ($code) {
+            return $code->batch_id ?? ($code->test_id . '_' . $code->created_at->format('YmdHis'));
+        });
+
+        // Convert ke collection untuk pagination
+        $batches = $groupedCodes->map(function ($batchCodes, $batchKey) {
+            $firstCode = $batchCodes->first();
+            return (object)[
+                'batch_id' => $batchKey,
+                'batch_name' => $firstCode->batch_name,
+                'test_id' => $firstCode->test_id,
+                'test' => $firstCode->test,
+                'id' => $firstCode->id,
+                'created_at' => $firstCode->created_at,
+                'start_test_at' => $firstCode->start_test_at,
+                'total_qty' => $batchCodes->count(),
+                'used_count' => $batchCodes->where('status', 'Used')->count(),
+            ];
+        })->values();
+
+        // Manual pagination
+        $perPage = request('per_page', 10);
+        $currentPage = request('page', 1);
+        $codes = new \Illuminate\Pagination\LengthAwarePaginator(
+            $batches->forPage($currentPage, $perPage),
+            $batches->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+
         $tests = Test::orderBy('title')->get();
-        
+
         return view('admin.codes.index', compact('codes', 'tests'));
     }
 
@@ -41,11 +74,11 @@ class ActivationCodeController extends Controller
 
         // SOLUSI: Tentukan tanggal kadaluarsa (expires_at)
         // Disetel 1 tahun (365 hari) dari sekarang sebagai nilai default yang aman.
-        $expiresAt = now()->addDays(365); 
+        $expiresAt = now()->addDays(365);
 
         for ($i = 0; $i < $quantity; $i++) {
             $code = strtoupper(substr(md5(uniqid(rand(), true)), 0, 10));
-            
+
             // Format: XXXX-XXXX
             $formattedCode = substr($code, 0, 4) . '-' . substr($code, 4, 4);
 
@@ -56,7 +89,7 @@ class ActivationCodeController extends Controller
                 'code' => $formattedCode,
                 'status' => 'Pending',
                 // PERBAIKAN UTAMA: Menyertakan nilai untuk kolom yang wajib (NOT NULL)
-                'expires_at' => $expiresAt, 
+                'expires_at' => $expiresAt,
             ]);
         }
 
@@ -67,11 +100,11 @@ class ActivationCodeController extends Controller
     public function show($id)
     {
         $code = ActivationCode::with('test')->findOrFail($id);
-        
+
         // Jika ada parameter batch, ambil semua kode dalam batch tersebut
         if (request('batch')) {
             $batchKey = request('batch');
-            
+
             // Cari semua kode dengan batch_id yang sama
             if (isset($code->batch_id)) {
                 $batchCodes = ActivationCode::where('batch_id', $code->batch_id)
@@ -93,7 +126,7 @@ class ActivationCodeController extends Controller
         } else {
             $batchCodes = collect([$code]);
         }
-        
+
         return view('admin.codes.show', [
             'code' => $code,
             'batchCodes' => $batchCodes,
@@ -103,18 +136,18 @@ class ActivationCodeController extends Controller
     public function destroy($id)
     {
         $code = ActivationCode::findOrFail($id);
-        
+
         // Jika ada batch_ids di request, hapus multiple
         if (request()->has('batch_ids')) {
             $batchIds = json_decode(request('batch_ids'), true);
             ActivationCode::whereIn('id', $batchIds)->delete();
-            
+
             return redirect()->route('admin.codes.index')
                 ->with('success', 'Batch kode aktivasi berhasil dihapus.');
         }
-        
+
         $code->delete();
-        
+
         return redirect()->route('admin.codes.index')
             ->with('success', 'Kode aktivasi berhasil dihapus.');
     }
@@ -122,11 +155,11 @@ class ActivationCodeController extends Controller
     public function exportBatch(Request $request, $id)
     {
         $code = ActivationCode::with('test')->findOrFail($id);
-        
+
         // Ambil semua kode dalam batch
         if ($request->batch) {
             $batchKey = $request->batch;
-            
+
             if (isset($code->batch_id)) {
                 $batchCodes = ActivationCode::where('batch_id', $code->batch_id)
                     ->with('test', 'user')
@@ -150,7 +183,7 @@ class ActivationCodeController extends Controller
         // Buat Spreadsheet
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        
+
         // Set properties
         $spreadsheet->getProperties()
             ->setCreator('Hyuka Admin')
@@ -167,29 +200,29 @@ class ActivationCodeController extends Controller
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB('4472C4');
         $sheet->getStyle('A1')->getFont()->getColor()->setRGB('FFFFFF');
-        
+
         // Info Batch
         $sheet->setCellValue('A3', 'Modul:');
         $sheet->setCellValue('B3', $code->test->title ?? 'N/A');
         $sheet->getStyle('A3')->getFont()->setBold(true);
-        
+
         $sheet->setCellValue('A4', 'Tanggal Generate:');
         $sheet->setCellValue('B4', $code->created_at->format('d-m-Y H:i'));
         $sheet->getStyle('A4')->getFont()->setBold(true);
-        
+
         $sheet->setCellValue('A5', 'Total Kode:');
         $sheet->setCellValue('B5', $batchCodes->count());
         $sheet->getStyle('A5')->getFont()->setBold(true);
-        
+
         $sheet->setCellValue('A6', 'Kode Digunakan:');
         $sheet->setCellValue('B6', $batchCodes->where('status', 'Used')->count() . ' / ' . $batchCodes->count());
         $sheet->getStyle('A6')->getFont()->setBold(true);
-        
+
         // Header Tabel
         $headerRow = 8;
         $headers = ['No', 'Kode Aktivasi', 'Status', 'Digunakan Oleh', 'Tanggal Digunakan', 'Nama Peserta'];
         $columns = ['A', 'B', 'C', 'D', 'E', 'F'];
-        
+
         foreach ($headers as $index => $header) {
             $column = $columns[$index];
             $sheet->setCellValue($column . $headerRow, $header);
@@ -211,11 +244,11 @@ class ActivationCodeController extends Controller
             $sheet->setCellValue('D' . $row, $item->user->email ?? '-');
             $sheet->setCellValue('E' . $row, $item->used_at ? \Carbon\Carbon::parse($item->used_at)->format('d-m-Y H:i') : '-');
             $sheet->setCellValue('F' . $row, $item->user_name ?? ($item->user->name ?? '-'));
-            
+
             // Center align untuk No dan Status
             $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle('C' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            
+
             // Warna status
             if ($item->status == 'Used' || $item->status == 'Completed') {
                 $sheet->getStyle('C' . $row)->getFill()
@@ -233,7 +266,7 @@ class ActivationCodeController extends Controller
                     ->getStartColor()->setRGB('FFC7CE'); // Merah muda
                 $sheet->getStyle('C' . $row)->getFont()->getColor()->setRGB('9C0006');
             }
-            
+
             $row++;
         }
 
@@ -242,7 +275,7 @@ class ActivationCodeController extends Controller
         $sheet->getStyle('A' . $headerRow . ':F' . $lastRow)->getBorders()->getAllBorders()
             ->setBorderStyle(Border::BORDER_THIN)
             ->getColor()->setRGB('000000');
-        
+
         // Border tebal untuk header
         $sheet->getStyle('A' . $headerRow . ':F' . $headerRow)->getBorders()->getOutline()
             ->setBorderStyle(Border::BORDER_MEDIUM);
@@ -251,7 +284,7 @@ class ActivationCodeController extends Controller
         foreach (range('A', 'F') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
-        
+
         // Set minimum width
         $sheet->getColumnDimension('B')->setWidth(20); // Kode Aktivasi
         $sheet->getColumnDimension('D')->setWidth(25); // Email
@@ -263,7 +296,7 @@ class ActivationCodeController extends Controller
         // Set header untuk download
         $filename = 'Kode_Aktivasi_' . ($code->batch_name ?? $code->test->title ?? 'Export') . '_' . now()->format('YmdHis') . '.xlsx';
         $filename = preg_replace('/[^A-Za-z0-9_\-]/', '.', $filename); // Clean filename
-        
+
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');

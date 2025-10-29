@@ -11,12 +11,11 @@ class AlatTes extends Model
 
     protected $table = 'alat_tes';
     
-    // PENTING: Hanya masukkan field yang ADA di tabel database Anda
     protected $fillable = [
         'name',
         'duration_minutes',
-        'slug',           // Tambahkan jika kolom ini ada di database
-        'description',    // Tambahkan jika kolom ini ada di database
+        'slug',
+        'description',
     ];
 
     protected $casts = [
@@ -32,44 +31,65 @@ class AlatTes extends Model
     }
 
     /**
+     * ✅ TAMBAHAN: Relationship ke PapiQuestions
+     */
+    public function papiQuestions()
+    {
+        return $this->hasMany(PapiQuestion::class, 'alat_tes_id');
+    }
+
+    /**
      * Mengecek apakah alat tes ini adalah PAPI Kostick
      * 
      * @return bool
      */
     public function isPapiKostick()
     {
-        if (!isset($this->slug)) {
-            return false;
+        // Cek slug dulu
+        if (isset($this->slug) && !empty($this->slug)) {
+            $slug = strtolower(trim($this->slug));
+            
+            if (in_array($slug, [
+                'papi-kostick',
+                'papikostick',
+                'papi_kostick',
+                'papi kostick'
+            ])) {
+                return true;
+            }
         }
         
-        $slug = strtolower(trim($this->slug));
+        // ✅ Cek name jika slug tidak ada/tidak match
+        if (isset($this->name) && !empty($this->name)) {
+            $name = strtolower(trim($this->name));
+            
+            if (str_contains($name, 'papi') || 
+                str_contains($name, 'kostick') || 
+                str_contains($name, 'mami')) {
+                return true;
+            }
+        }
         
-        // Cek berbagai kemungkinan format slug PAPI
-        return in_array($slug, [
-            'papi-kostick',
-            'papikostick',
-            'papi_kostick',
-            'papi kostick'
-        ]);
+        return false;
     }
 
     /**
-     * Mendapatkan jumlah total soal
-     * (Baik dari questions maupun papi_questions)
+     * ✅ PERBAIKAN: Mendapatkan jumlah total soal dengan filter alat_tes_id
      * 
      * @return int
      */
     public function getTotalQuestionsAttribute()
     {
         if ($this->isPapiKostick()) {
-            return PapiQuestion::count();
+            // ✅ Filter berdasarkan alat_tes_id
+            return PapiQuestion::where('alat_tes_id', $this->id)->count();
         }
         
         return $this->questions()->count();
     }
 
     /**
-     * Mendapatkan semua soal dengan pagination
+     * ✅ PERBAIKAN: Mendapatkan semua soal dengan pagination dan filter alat_tes_id
      * 
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
@@ -77,9 +97,28 @@ class AlatTes extends Model
     public function getQuestionsPaginated($perPage = 10)
     {
         if ($this->isPapiKostick()) {
-            return PapiQuestion::orderBy('item_number')->paginate($perPage);
+            // ✅ Filter berdasarkan alat_tes_id
+            return PapiQuestion::where('alat_tes_id', $this->id)
+                              ->orderBy('item_number')
+                              ->paginate($perPage);
         }
         
         return $this->questions()->paginate($perPage);
+    }
+
+    /**
+     * ✅ TAMBAHAN: Helper untuk mendapatkan semua soal (tanpa pagination)
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getAllQuestions()
+    {
+        if ($this->isPapiKostick()) {
+            return PapiQuestion::where('alat_tes_id', $this->id)
+                              ->orderBy('item_number')
+                              ->get();
+        }
+        
+        return $this->questions;
     }
 }

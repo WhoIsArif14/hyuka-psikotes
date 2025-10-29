@@ -10,18 +10,18 @@ class Question extends Model
     use HasFactory;
 
     protected $fillable = [
-        'test_id',
-        'alat_tes_id', // Ada 2 foreign key di tabel
-        'memory_item_id',
+        'alat_tes_id',
+        'test_id',  // ✅ Pastikan ini ada
         'type',
-        'question_text',
         'image_path',
-        'options',
-        'correct_answer_index',
+        'question_text',
         'memory_content',
         'memory_type',
         'duration_seconds',
+        'options',
+        'correct_answer_index',
     ];
+
 
     protected $casts = [
         'options' => 'array', // Otomatis convert JSON ke array

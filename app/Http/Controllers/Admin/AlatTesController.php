@@ -13,29 +13,41 @@ class AlatTesController extends Controller
 {
     /**
      * Menampilkan daftar semua Alat Tes.
-     * PERBAIKAN: Menambahkan logic untuk menghitung soal PAPI
+     * PERBAIKAN: Menggunakan ID alat tes untuk menghitung soal PAPI.
      */
     public function index()
     {
-        // Ambil semua data Alat Tes dengan jumlah soal
         $AlatTes = AlatTes::latest()->get()->map(function ($alatTes) {
-            // Cek apakah ini PAPI Kostick
+
             if ($this->isPapiKostick($alatTes)) {
-                // Hitung soal dari tabel papi_questions
-                $alatTes->questions_count = PapiQuestion::count();
+                // ✅ Hitung soal PAPI berdasarkan alat_tes_id
+                $alatTes->questions_count = PapiQuestion::where('alat_tes_id', $alatTes->id)->count();
+
+                // ✅ Debug log
+                \Log::info('PAPI Count', [
+                    'alat_tes_id' => $alatTes->id,
+                    'name' => $alatTes->name,
+                    'count' => $alatTes->questions_count
+                ]);
             } else {
-                // Hitung soal dari tabel questions biasa
-                $alatTes->loadCount('questions');
+                // ✅ Hitung soal umum
+                $alatTes->questions_count = $alatTes->questions()->count();
+
+                // ✅ Debug log
+                \Log::info('Regular Questions Count', [
+                    'alat_tes_id' => $alatTes->id,
+                    'name' => $alatTes->name,
+                    'count' => $alatTes->questions_count
+                ]);
             }
-            
+
             return $alatTes;
         });
 
-        // Convert ke paginator
         $perPage = 10;
         $currentPage = request()->get('page', 1);
         $pagedData = $AlatTes->slice(($currentPage - 1) * $perPage, $perPage)->all();
-        
+
         $AlatTes = new \Illuminate\Pagination\LengthAwarePaginator(
             $pagedData,
             $AlatTes->count(),
@@ -52,25 +64,28 @@ class AlatTesController extends Controller
      */
     private function isPapiKostick($alatTes)
     {
-        if (!isset($alatTes->slug)) {
-            return false;
+        // Cek slug
+        if (isset($alatTes->slug) && !empty($alatTes->slug)) {
+            $slug = strtolower(trim($alatTes->slug));
+            if (in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick'])) {
+                return true;
+            }
         }
-        
-        $slug = strtolower(trim($alatTes->slug));
-        
-        return in_array($slug, [
-            'papi-kostick',
-            'papikostick',
-            'papi_kostick',
-            'papi kostick'
-        ]);
+
+        // Cek name jika slug tidak ada
+        if (isset($alatTes->name) && !empty($alatTes->name)) {
+            $name = strtolower(trim($alatTes->name));
+            if (str_contains($name, 'papi') || str_contains($name, 'kostick') || str_contains($name, 'mami')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    /**
-     * Menampilkan form untuk membuat Alat Tes baru.
-     */
-    public function create()
+    public function create() // <-- METHOD INI YANG HILANG ATAU SALAH NAMA
     {
+        // Biasanya, di sini Anda hanya mengembalikan view yang berisi form input.
         return view('admin.alat-tes.create');
     }
 
@@ -87,15 +102,14 @@ class AlatTesController extends Controller
 
         try {
             $alatTes = AlatTes::create($validated);
-            
+
             Log::info('Alat Tes created', ['id' => $alatTes->id, 'name' => $alatTes->name]);
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes baru berhasil dibuat.');
-                
         } catch (\Exception $e) {
             Log::error('Failed to create Alat Tes', ['error' => $e->getMessage()]);
-            
+
             return back()->withInput()->withErrors(['error' => 'Gagal menyimpan: ' . $e->getMessage()]);
         }
     }
@@ -120,57 +134,52 @@ class AlatTesController extends Controller
 
         try {
             $alat_te->update($validated);
-            
+
             Log::info('Alat Tes updated', ['id' => $alat_te->id, 'name' => $alat_te->name]);
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes berhasil diperbarui.');
-                
         } catch (\Exception $e) {
             Log::error('Failed to update Alat Tes', ['error' => $e->getMessage()]);
-            
+
             return back()->withInput()->withErrors(['error' => 'Gagal memperbarui: ' . $e->getMessage()]);
         }
     }
-
     /**
      * Menghapus Alat Tes dari database.
-     * PERBAIKAN: Menambahkan proteksi untuk PAPI
      */
     public function destroy(AlatTes $alat_te)
     {
         try {
-            // PROTEKSI: Jangan izinkan hapus PAPI Kostick jika ada soal
             if ($this->isPapiKostick($alat_te)) {
-                $papiCount = PapiQuestion::count();
-                
+                // Perbaikan: Hitung soal PAPI yang terkait dengan ID Alat Tes ini.
+                $papiCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
+
                 if ($papiCount > 0) {
                     return back()->withErrors([
                         'error' => 'Tidak dapat menghapus Alat Tes PAPI Kostick karena masih ada ' . $papiCount . ' soal.'
                     ]);
                 }
             } else {
-                // Untuk alat tes biasa, cek jumlah soal
                 $questionCount = $alat_te->questions()->count();
-                
+
                 if ($questionCount > 0) {
                     return back()->withErrors([
                         'error' => 'Tidak dapat menghapus Alat Tes karena masih ada ' . $questionCount . ' soal.'
                     ]);
                 }
             }
-            
+
             $name = $alat_te->name;
             $alat_te->delete();
-            
+
             Log::info('Alat Tes deleted', ['name' => $name]);
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes berhasil dihapus.');
-                
         } catch (\Exception $e) {
             Log::error('Failed to delete Alat Tes', ['error' => $e->getMessage()]);
-            
+
             return back()->withErrors(['error' => 'Gagal menghapus: ' . $e->getMessage()]);
         }
     }
