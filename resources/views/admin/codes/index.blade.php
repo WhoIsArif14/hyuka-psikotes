@@ -8,6 +8,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            {{-- ALERTS --}}
             @if (session('success'))
                 <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded" role="alert">
                     <p class="font-bold">Sukses!</p>
@@ -22,9 +23,11 @@
                 </div>
             @endif
 
+            {{-- CARD UTAMA --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <!-- Header dengan tombol Add -->
+
+                    {{-- HEADER --}}
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-semibold text-gray-800">Kode Aktivasi</h3>
                         <button type="button" id="toggleFormBtn"
@@ -37,7 +40,7 @@
                         </button>
                     </div>
 
-                    <!-- Form Generate Kode (Hidden by default) -->
+                    {{-- FORM GENERATE --}}
                     <div id="formContainer" style="display: none;"
                         class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <h4 class="text-lg font-medium text-gray-900 mb-4">Buat Kode Aktivasi Massal</h4>
@@ -45,8 +48,9 @@
                             @csrf
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label for="batch_name" class="block text-sm font-medium text-gray-700 mb-1">Nama
-                                        Batch (Opsional)</label>
+                                    <label for="batch_name" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Nama Batch (Opsional)
+                                    </label>
                                     <input type="text" name="batch_name" id="batch_name"
                                         placeholder="Contoh: Batch Januari 2025"
                                         class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -63,8 +67,9 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Jumlah
-                                        Kode (Qty)</label>
+                                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Jumlah Kode (Qty)
+                                    </label>
                                     <input type="number" name="quantity" id="quantity" required min="1"
                                         max="1000" value="10"
                                         class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -83,7 +88,7 @@
                         </form>
                     </div>
 
-                    <!-- Filter & Pagination Info -->
+                    {{-- FILTER --}}
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-600">Tampilkan</span>
@@ -103,55 +108,47 @@
                         </div>
                     </div>
 
-                    <!-- Tabel Kode Aktivasi (Grouped by Batch) -->
+                    {{-- TABEL --}}
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 border border-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th
-                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r">
-                                        Nama
-                                    </th>
+                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border-r">
+                                        Nama</th>
                                     <th
-                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r">
-                                        QTY
-                                    </th>
+                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border-r">
+                                        QTY</th>
                                     <th
-                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r">
-                                        Modul
-                                    </th>
+                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border-r">
+                                        Modul</th>
                                     <th
-                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r">
-                                        Start Test At
-                                    </th>
+                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border-r">
+                                        Start Test At</th>
                                     <th
-                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r">
-                                        Status
-                                    </th>
-                                    <th
-                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Action
+                                        class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border-r">
+                                        Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Action
                                     </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse ($codes as $batch)
                                     @php
-                                        $totalQty = $batch->total_qty;
-                                        $usedCount = $batch->used_count;
+                                        $totalQty = $batch->total_qty ?? 0;
+                                        $usedCount = $batch->used_count ?? 0;
                                         $batchStatus =
                                             $usedCount == $totalQty
                                                 ? 'Completed'
                                                 : ($usedCount > 0
                                                     ? 'On Progress'
                                                     : 'Pending');
-                                        $batchKey = $batch->batch_id;
                                     @endphp
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-3 text-sm border-r">
-                                            <a href="{{ route('admin.codes.show', $batch->id) }}?batch={{ $batchKey }}"
+                                            <a href="{{ route('admin.codes.show', $batch->id) }}"
                                                 class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-                                                {{ $batch->batch_name ?? ($batch->test->title ?? 'Batch ' . substr($batchKey, 0, 8)) }}
+                                                {{ $batch->batch_name ?? ($batch->test->title ?? 'Batch ' . $loop->iteration) }}
                                             </a>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-700 border-r">
@@ -161,14 +158,17 @@
                                             {{ $batch->test->title ?? 'N/A' }}
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-700 border-r">
-                                            {{ $batch->start_test_at ? \Carbon\Carbon::parse($batch->start_test_at)->format('Y-m-d H:i:s') : '-' }}
+                                            {{ isset($batch->start_test_at) && $batch->start_test_at
+                                                ? \Carbon\Carbon::parse($batch->start_test_at)->format('Y-m-d H:i:s')
+                                                : '-' }}
                                         </td>
+
                                         <td class="px-4 py-3 text-sm border-r">
                                             <span
                                                 class="px-3 py-1 text-xs font-medium rounded-full
-                    @if ($batchStatus == 'On Progress') bg-blue-100 text-blue-800
-                    @elseif($batchStatus == 'Completed') bg-green-100 text-green-800
-                    @else bg-yellow-100 text-yellow-800 @endif">
+                                                @if ($batchStatus == 'On Progress') bg-blue-100 text-blue-800
+                                                @elseif($batchStatus == 'Completed') bg-green-100 text-green-800
+                                                @else bg-yellow-100 text-yellow-800 @endif">
                                                 {{ $batchStatus }}
                                             </span>
                                             <span
@@ -176,16 +176,23 @@
                                         </td>
                                         <td class="px-4 py-3 text-sm">
                                             <div class="flex gap-2">
-                                                <a href="{{ route('admin.codes.show', $batch->id) }}?batch={{ $batchKey }}"
+                                                <a href="{{ route('admin.codes.show', $batch->id) }}"
                                                     class="text-blue-600 hover:text-blue-800 font-medium">
                                                     Detail
                                                 </a>
                                                 <span class="text-gray-300">|</span>
-                                                <button type="button"
-                                                    onclick="deleteBatch('{{ $batchKey }}', '{{ $batch->id }}')"
-                                                    class="text-red-600 hover:text-red-800 font-medium">
-                                                    Hapus
-                                                </button>
+
+                                                {{-- HAPUS --}}
+                                                <form action="{{ route('admin.codes.destroy', $batch->id) }}"
+                                                    method="POST" style="display: inline;"
+                                                    onsubmit="return confirm('Yakin ingin menghapus batch ini ({{ $totalQty }} kode)?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="text-red-600 hover:text-red-800 font-medium">
+                                                        Hapus
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
@@ -200,7 +207,7 @@
                         </table>
                     </div>
 
-                    <!-- Pagination Info -->
+                    {{-- PAGINATION --}}
                     <div class="flex justify-between items-center mt-4">
                         <div class="text-sm text-gray-600">
                             Menampilkan {{ $codes->firstItem() ?? 0 }} sampai {{ $codes->lastItem() ?? 0 }} dari
@@ -215,51 +222,38 @@
         </div>
     </div>
 
-    <!-- Hidden form for batch delete -->
-    <form id="batchDeleteForm" method="POST" style="display: none;">
-        @csrf
-        @method('DELETE')
-        <input type="hidden" name="batch_ids" id="batchIdsInput">
-    </form>
-
+    {{-- SCRIPT --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const toggleFormBtn = document.getElementById('toggleFormBtn');
             const cancelBtn = document.getElementById('cancelBtn');
             const formContainer = document.getElementById('formContainer');
 
-            toggleFormBtn.addEventListener('click', function() {
-                if (formContainer.style.display === 'none') {
-                    formContainer.style.display = 'block';
-                    toggleFormBtn.innerHTML =
-                        '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Close';
-                } else {
+            if (toggleFormBtn && formContainer) {
+                toggleFormBtn.addEventListener('click', function() {
+                    if (formContainer.style.display === 'none') {
+                        formContainer.style.display = 'block';
+                        toggleFormBtn.innerHTML =
+                            '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Close';
+                    } else {
+                        formContainer.style.display = 'none';
+                        toggleFormBtn.innerHTML =
+                            '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Add';
+                    }
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
                     formContainer.style.display = 'none';
                     toggleFormBtn.innerHTML =
                         '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Add';
-                }
-            });
-
-            cancelBtn.addEventListener('click', function() {
-                formContainer.style.display = 'none';
-                toggleFormBtn.innerHTML =
-                    '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Add';
-            });
+                });
+            }
 
             @if ($errors->any())
                 formContainer.style.display = 'block';
-                toggleFormBtn.innerHTML =
-                    '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Close';
             @endif
         });
-
-        function deleteBatch(batchKey, batchIds) {
-            if (confirm('Yakin ingin menghapus batch ini beserta ' + batchIds.length + ' kode aktivasi?')) {
-                const form = document.getElementById('batchDeleteForm');
-                document.getElementById('batchIdsInput').value = JSON.stringify(batchIds);
-                form.action = '{{ route('admin.codes.destroy', ':id') }}'.replace(':id', batchIds[0]);
-                form.submit();
-            }
-        }
     </script>
 </x-admin-layout>
