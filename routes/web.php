@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TestAccessController; 
 use App\Http\Controllers\UserDataController; 
 use App\Http\Controllers\UserTestController;
-use App\Http\Controllers\PapiTestController; // <<< TAMBAH: Controller khusus PAPI
+use App\Http\Controllers\PapiTestController;
 // Admin-side Controllers
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ClientController;
@@ -52,17 +52,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile/edit', [UserDataController::class, 'edit'])->name('user.data.edit'); 
     Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update'); 
     
-    // 2. Rute Baru untuk Start Test
+    // 2. Rute untuk Start Test
     Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
 
-    // 3. Rute Tes Umum (Pilihan Ganda, dll.)
+    // 3. ✅ RUTE BARU: SISTEM 1 SOAL PER HALAMAN (HARUS DI ATAS tests/{test})
+    Route::get('/tests/{test}/question/{number}', [UserTestController::class, 'showQuestion'])
+        ->name('tests.question');
+    Route::post('/tests/{test}/question/{number}', [UserTestController::class, 'saveAnswer'])
+        ->name('tests.answer');
+
+    // 4. Rute Tes Umum (Legacy - untuk backward compatibility)
     Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
     Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
     Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
 
-    // 4. Rute Khusus PAPI Kostick
-    // Ini diperlukan jika PapiTestController Anda memiliki fungsi yang terpisah
+    // 5. Rute Khusus PAPI Kostick
     Route::post('tests/{test}/papi/submit', [PapiTestController::class, 'submitTest'])->name('papi.submit');
 });
 
@@ -128,7 +133,7 @@ Route::middleware(['auth', IsAdmin::class])
         // RUTE QUESTIONS
         // ==========================================================
         
-        // Rute INDEX, CREATE, STORE - Sudah benar karena menggunakan AlatTes
+        // Rute INDEX, CREATE, STORE - Menggunakan AlatTes
         Route::get('alat-tes/{alat_te}/questions', [QuestionController::class, 'index'])
             ->name('alat-tes.questions.index');
 
@@ -138,17 +143,15 @@ Route::middleware(['auth', IsAdmin::class])
         Route::post('alat-tes/{alat_te}/questions', [QuestionController::class, 'store'])
             ->name('alat-tes.questions.store');
         
-        // Rute SHOW, UPDATE, DESTROY (untuk soal umum) - Menggunakan {question} saja
+        // Rute SHOW, UPDATE, DESTROY (untuk soal umum)
         Route::get('questions/{question}', [QuestionController::class, 'show'])
             ->name('questions.show');
 
-        // !!! PERBAIKAN KRITIS UNTUK 404 NOT FOUND !!!
-        // Mengubah rute edit agar menyertakan {alat_te} yang dibutuhkan Controller
+        // Rute Edit - Menyertakan {alat_te}
         Route::get('alat-tes/{alat_te}/questions/{question}/edit', [QuestionController::class, 'edit'])
             ->name('questions.edit');
 
-        // !!! RUTE BARU KHUSUS UPDATE PAPI KOSTICK !!!
-        // Ini diperlukan untuk formulir edit_papi.blade.php
+        // Rute Update PAPI Kostick
         Route::put('alat-tes/{alat_te}/questions/{papi_question}/update-papi', [QuestionController::class, 'updatePapi'])
             ->name('questions.update_papi');
 
