@@ -288,26 +288,33 @@ class QuestionController extends Controller
 
     public function edit(AlatTes $alat_te, Question $question)
     {
-        // 1. Cek apakah ini Alat Tes PAPI Kostick
-        $isPapi = $this->checkIsPapi($alat_te);
+        // ✅ TAMBAHKAN INI DI BARIS PERTAMA
+        \Log::info('Edit method called', [
+            'alat_te_id' => $alat_te->id,
+            'question_id' => $question->id,
+            'question_type' => $question->type
+        ]);
+
+        $AlatTes = $alat_te;
+        $isPapi = $this->checkIsPapi($AlatTes);
 
         if ($isPapi) {
-
-            // 2. Jika PAPI: Ambil data spesifik dari tabel papi_questions
             $papiQuestion = PapiQuestion::find($question->id);
 
             if (!$papiQuestion) {
                 return back()->with('error', 'Soal PAPI tidak ditemukan dengan ID: ' . $question->id);
             }
 
-            // 3. Lewatkan variabel ke view dengan nama yang BENAR: 'papiQuestion'
-            return view('admin.questions.edit_papi', compact('alat_te', 'papiQuestion'));
+            return view('admin.questions.edit_papi', compact('AlatTes', 'papiQuestion'));
         } else {
-            // 4. Jika bukan PAPI (Soal Umum)
-            $question->load('options');
+            // ✅ TAMBAHKAN LOG SEBELUM RENDER VIEW
+            \Log::info('Rendering edit view', [
+                'view' => 'admin.questions.edit',
+                'AlatTes_id' => $AlatTes->id,
+                'question_id' => $question->id
+            ]);
 
-            // View edit umum
-            return view('admin.questions.edit', compact('alat_te', 'question'));
+            return view('admin.questions.edit', compact('AlatTes', 'question'));
         }
     }
 

@@ -1,12 +1,12 @@
 <x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Edit Soal PAPI Kostick: Item ') }}{{ $question->item_number }}
+            {{ __('Edit Soal: ') }}{{ $question->type }}
         </h2>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
                 @if ($errors->any())
@@ -21,95 +21,283 @@
                     </div>
                 @endif
 
-                <div class="bg-white p-6 rounded-xl border border-red-300">
-                    
-                    {{-- PERBAIKAN PENTING DI SINI: Action URL HARUS MENGGUNAKAN route update dengan 2 parameter --}}
-                    <form method="POST" 
-                          action="{{ route('admin.alat-tes.questions.update', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}" 
-                          id="papiEditForm">
-                        @csrf
-                        @method('PUT')
+                {{-- ✅ PERBAIKAN: Ganti 'id' menjadi 'question' --}}
+                <form method="POST"
+                    action="{{ route('admin.alat-tes.questions.update', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}"
+                    enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
 
-                        {{-- Item Number --}}
-                        <div class="mb-4">
-                            <label for="papi_item_number" class="block text-sm font-medium text-red-700">Nomor Soal PAPI (1-90)</label>
-                            <input id="papi_item_number" 
-                                   name="papi_item_number" 
-                                   type="number" 
-                                   min="1" max="90" 
-                                   value="{{ old('papi_item_number', $question->item_number) }}" 
-                                   required
-                                   class="mt-1 block w-full rounded-lg border-red-300 shadow-sm focus:border-red-500 focus:ring-red-500">
-                            @error('papi_item_number')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
+                    {{-- Tipe Pertanyaan (Read Only) --}}
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Tipe Pertanyaan</label>
+                        <input type="text" value="{{ $question->type }}" disabled
+                            class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-100 shadow-sm">
+                        <input type="hidden" name="type" value="{{ $question->type }}">
+                        <p class="text-xs text-gray-500 mt-1">Tipe soal tidak dapat diubah. Hapus dan buat baru jika ingin mengganti tipe.</p>
+                    </div>
 
-                        {{-- Statements --}}
-                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-t pt-3 mt-3">Teks Pernyataan</h4>
+                    {{-- Upload Gambar Pertanyaan --}}
+                    @if($question->type !== 'HAFALAN')
+                    <div class="mb-4">
+                        <label for="question_image" class="block text-sm font-medium text-gray-700 mb-1">
+                            Upload Gambar Pertanyaan (Opsional)
+                        </label>
                         
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label for="statement_a" class="block text-sm font-medium text-gray-700">Pernyataan A</label>
-                                <textarea id="statement_a" name="statement_a" rows="3" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('statement_a', $question->statement_a) }}</textarea>
-                                @error('statement_a')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        @if($question->image_path)
+                            <div class="mb-3">
+                                <img src="{{ asset('storage/' . $question->image_path) }}" alt="Current Image"
+                                    class="max-w-sm max-h-64 rounded-lg border border-gray-200 shadow-sm">
+                                <p class="text-xs text-gray-500 mt-1">Gambar saat ini. Upload gambar baru untuk menggantinya.</p>
                             </div>
-                            <div>
-                                <label for="statement_b" class="block text-sm font-medium text-gray-700">Pernyataan B</label>
-                                <textarea id="statement_b" name="statement_b" rows="3" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('statement_b', $question->statement_b) }}</textarea>
-                                @error('statement_b')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                            </div>
+                        @endif
+
+                        <input type="file" id="question_image" name="question_image" accept="image/*"
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF. Maksimal 2MB</p>
+                    </div>
+                    @endif
+
+                    {{-- MATERI HAFALAN (hanya untuk tipe HAFALAN) --}}
+                    @if($question->type === 'HAFALAN')
+                    <div class="border border-indigo-200 bg-indigo-50 p-4 rounded-lg mb-4">
+                        <h4 class="text-md font-semibold text-indigo-700 mb-3">📚 Materi Hafalan</h4>
+                        
+                        <div class="mb-3">
+                            <label for="memory_content" class="block text-sm font-medium text-gray-700">Konten Memori</label>
+                            <textarea id="memory_content" name="memory_content" rows="4" required
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">{{ old('memory_content', $question->memory_content) }}</textarea>
                         </div>
 
-                        {{-- Role and Need --}}
-                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-t pt-3 mt-3">Kunci Penskoran (Role & Need)</h4>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            {{-- Role A / Need A --}}
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <h5 class="font-bold mb-2 text-sm">Kunci Pernyataan A</h5>
-                                <label for="role_a" class="block text-xs font-medium text-gray-700">Role A (G, L, I, T, V, S, R, D, C, E)</label>
-                                <input id="role_a" name="role_a" type="text" maxlength="1" 
-                                       value="{{ old('role_a', $question->role_a) }}" 
-                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
-                                @error('role_a')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                                
-                                <label for="need_a" class="block text-xs font-medium text-gray-700 mt-3">Need A (N, A, P, X, B, O, Z, K, F, W)</label>
-                                <input id="need_a" name="need_a" type="text" maxlength="1" 
-                                       value="{{ old('need_a', $question->need_a) }}" 
-                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
-                                @error('need_a')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                                <label for="memory_type" class="block text-sm font-medium text-gray-700">Tipe Konten</label>
+                                <select id="memory_type" name="memory_type" required
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                    <option value="TEXT" {{ old('memory_type', $question->memory_type) == 'TEXT' ? 'selected' : '' }}>Teks</option>
+                                    <option value="IMAGE" {{ old('memory_type', $question->memory_type) == 'IMAGE' ? 'selected' : '' }}>Gambar</option>
+                                </select>
                             </div>
-                            
-                            {{-- Role B / Need B --}}
+
                             <div>
-                                <h5 class="font-bold mb-2 text-sm">Kunci Pernyataan B</h5>
-                                <label for="role_b" class="block text-xs font-medium text-gray-700">Role B (G, L, I, T, V, S, R, D, C, E)</label>
-                                <input id="role_b" name="role_b" type="text" maxlength="1" 
-                                       value="{{ old('role_b', $question->role_b) }}" 
-                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
-                                @error('role_b')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                                
-                                <label for="need_b" class="block text-xs font-medium text-gray-700 mt-3">Need B (N, A, P, X, B, O, Z, K, F, W)</label>
-                                <input id="need_b" name="need_b" type="text" maxlength="1" 
-                                       value="{{ old('need_b', $question->need_b) }}" 
-                                       required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm uppercase">
-                                @error('need_b')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                                <label for="duration_seconds" class="block text-sm font-medium text-gray-700">Durasi Tampil (Detik)</label>
+                                <input id="duration_seconds" name="duration_seconds" type="number" min="1" required
+                                    value="{{ old('duration_seconds', $question->duration_seconds) }}"
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
                             </div>
                         </div>
+                    </div>
+                    @endif
 
-                        {{-- Action Buttons --}}
-                        <div class="flex justify-end mt-6 space-x-3 border-t pt-4">
-                            <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}" 
-                               class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md">
-                                Batal
-                            </a>
-                            <button type="submit"
-                                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition">
-                                Update Soal PAPI
+                    {{-- TEKS PERTANYAAN --}}
+                    <div class="mb-4">
+                        <label for="question_text" class="block text-sm font-medium text-gray-700">
+                            @if($question->type === 'HAFALAN')
+                                ❓ Pertanyaan (setelah hafalan)
+                            @else
+                                Teks Pertanyaan
+                            @endif
+                        </label>
+                        <textarea id="question_text" name="question_text" rows="3" required
+                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">{{ old('question_text', $question->question_text) }}</textarea>
+                    </div>
+
+                    {{-- OPSI JAWABAN (untuk PILIHAN_GANDA dan HAFALAN) --}}
+                    @if($question->type === 'PILIHAN_GANDA' || $question->type === 'HAFALAN')
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-md font-semibold text-gray-800">Opsi Jawaban</h4>
+                            <button type="button" id="addOptionBtn"
+                                class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">
+                                ➕ Tambah Opsi
                             </button>
                         </div>
-                    </form>
-                </div>
+
+                        <div class="border border-gray-200 p-4 rounded-lg">
+                            <div id="optionsList" class="space-y-3">
+                                @php
+                                    $opts = is_string($question->options) ? json_decode($question->options, true) : ($question->options ?? []);
+                                @endphp
+                                
+                                @forelse($opts as $index => $option)
+                                <div class="option-item bg-gray-50 p-3 rounded-lg" data-index="{{ $index }}">
+                                    <div class="flex items-start space-x-3 w-full">
+                                        <div class="flex items-center pt-2">
+                                            <input type="radio" name="is_correct" value="{{ $index }}"
+                                                class="h-4 w-4 text-green-600"
+                                                {{ old('is_correct', $question->correct_answer_index) == $index ? 'checked' : '' }} required>
+                                            <label class="ml-2 text-sm text-gray-600">Benar</label>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-medium text-gray-500 option-label">
+                                                Opsi {{ chr(65 + $index) }}
+                                            </label>
+                                            <input type="text" name="options[{{ $index }}][text]"
+                                                value="{{ old('options.' . $index . '.text', $option['text'] ?? '') }}"
+                                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input"
+                                                placeholder="Masukkan teks untuk Opsi {{ chr(65 + $index) }}">
+                                            <input type="hidden" name="options[{{ $index }}][index]" value="{{ $index }}">
+
+                                            {{-- Gambar Opsi (jika ada) --}}
+                                            @if(isset($option['image_path']) && $option['image_path'])
+                                                <div class="mt-2">
+                                                    <img src="{{ asset('storage/' . $option['image_path']) }}" 
+                                                        alt="Opsi {{ chr(65 + $index) }}"
+                                                        class="max-w-xs max-h-32 rounded border border-gray-200">
+                                                    <p class="text-xs text-gray-500 mt-1">Gambar saat ini</p>
+                                                </div>
+                                            @endif
+
+                                            {{-- Upload Gambar Opsi Baru --}}
+                                            <div class="mt-2">
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">
+                                                    Upload Gambar Opsi Baru (Opsional)
+                                                </label>
+                                                <input type="file" name="options[{{ $index }}][image_file]" accept="image/*"
+                                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                            </div>
+                                        </div>
+                                        <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2"
+                                            style="{{ count($opts) <= 2 ? 'display: none;' : '' }}">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                @empty
+                                {{-- Jika tidak ada opsi, buat 4 opsi default --}}
+                                @for($i = 0; $i < 4; $i++)
+                                <div class="option-item bg-gray-50 p-3 rounded-lg" data-index="{{ $i }}">
+                                    <div class="flex items-start space-x-3 w-full">
+                                        <div class="flex items-center pt-2">
+                                            <input type="radio" name="is_correct" value="{{ $i }}" class="h-4 w-4 text-green-600" {{ $i == 0 ? 'checked' : '' }} required>
+                                            <label class="ml-2 text-sm text-gray-600">Benar</label>
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-medium text-gray-500 option-label">Opsi {{ chr(65 + $i) }}</label>
+                                            <input type="text" name="options[{{ $i }}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                            <input type="hidden" name="options[{{ $i }}][index]" value="{{ $i }}">
+                                        </div>
+                                        <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2" style="{{ $i < 2 ? 'display: none;' : '' }}">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                @endfor
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Action Buttons --}}
+                    <div class="flex justify-end mt-6 space-x-3 border-t pt-4">
+                        <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">
+                            Batal
+                        </a>
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition">
+                            💾 Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addOptionBtn = document.getElementById('addOptionBtn');
+            const optionsList = document.getElementById('optionsList');
+
+            // Fungsi update label dan index
+            function updateOptionLabels() {
+                const items = optionsList.querySelectorAll('.option-item');
+                items.forEach((item, index) => {
+                    const label = item.querySelector('.option-label');
+                    const input = item.querySelector('.option-input');
+                    const radio = item.querySelector('input[type="radio"]');
+                    const removeBtn = item.querySelector('.remove-option-btn');
+                    const hiddenIndex = item.querySelector('input[name*="[index]"]');
+                    const imageInput = item.querySelector('input[type="file"]');
+
+                    const letter = String.fromCharCode(65 + index);
+                    
+                    if (label) label.textContent = `Opsi ${letter}`;
+                    if (input) {
+                        input.name = `options[${index}][text]`;
+                        input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
+                    }
+                    if (imageInput) imageInput.name = `options[${index}][image_file]`;
+                    if (radio) radio.value = index;
+                    if (hiddenIndex) hiddenIndex.value = index;
+                    if (removeBtn) removeBtn.style.display = items.length > 2 ? 'block' : 'none';
+                });
+            }
+
+            // Tambah opsi baru
+            if (addOptionBtn && optionsList) {
+                addOptionBtn.addEventListener('click', function() {
+                    const newIndex = optionsList.children.length;
+                    const letter = String.fromCharCode(65 + newIndex);
+                    
+                    const newOption = document.createElement('div');
+                    newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
+                    newOption.innerHTML = `
+                        <div class="flex items-start space-x-3 w-full">
+                            <div class="flex items-center pt-2">
+                                <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600" required>
+                                <label class="ml-2 text-sm text-gray-600">Benar</label>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-500 option-label">Opsi ${letter}</label>
+                                <input type="text" name="options[${newIndex}][text]" 
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input"
+                                    placeholder="Masukkan teks untuk Opsi ${letter}">
+                                <input type="hidden" name="options[${newIndex}][index]" value="${newIndex}">
+                                <div class="mt-2">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                                    <input type="file" name="options[${newIndex}][image_file]" accept="image/*"
+                                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                </div>
+                            </div>
+                            <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    
+                    optionsList.appendChild(newOption);
+                    updateOptionLabels();
+                });
+            }
+
+            // Hapus opsi
+            if (optionsList) {
+                optionsList.addEventListener('click', function(e) {
+                    const removeBtn = e.target.closest('.remove-option-btn');
+                    const optionItem = e.target.closest('.option-item');
+                    
+                    if (removeBtn && optionItem) {
+                        const totalOptions = optionsList.children.length;
+                        if (totalOptions > 2) {
+                            optionItem.remove();
+                            updateOptionLabels();
+                        } else {
+                            alert('Minimal harus ada 2 Opsi Jawaban.');
+                        }
+                    }
+                });
+            }
+
+            // Initial update
+            updateOptionLabels();
+        });
+    </script>
 </x-admin-layout>

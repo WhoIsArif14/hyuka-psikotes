@@ -404,8 +404,8 @@
 
                                     {{-- ✅ PERBAIKAN: Gunakan route yang benar --}}
                                     <div class="flex space-x-2 ml-4">
-                                        <a href="{{ route('admin.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}"
-                                            class="text-blue-600 hover:text-blue-800 font-medium">
+                                        <a
+                                            href="{{ route('admin.alat-tes.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}">
                                             Edit
                                         </a>
                                         <form method="POST"
