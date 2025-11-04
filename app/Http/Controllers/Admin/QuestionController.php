@@ -89,7 +89,7 @@ class QuestionController extends Controller
         // 1. VALIDASI TIPE & DEFENISI RULES
         $rules = [
             'type' => ['required', Rule::in(['PILIHAN_GANDA', 'ESSAY', 'HAFALAN', 'PAPIKOSTICK'])],
-            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ];
 
         // 2. TENTUKAN LOGIKA VALIDASI
@@ -112,7 +112,7 @@ class QuestionController extends Controller
             if ($request->type === 'PILIHAN_GANDA' || $request->type === 'HAFALAN') {
                 $rules['options'] = 'required|array|min:2';
                 $rules['options.*.text'] = 'nullable|string|max:500';
-                $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+                $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
                 $rules['is_correct'] = 'required|integer|min:0';
             }
 
@@ -396,7 +396,7 @@ class QuestionController extends Controller
         // 2. Definisikan Rules Validasi (Hanya untuk tipe umum)
         $rules = [
             'type' => ['required', Rule::in(['PILIHAN_GANDA', 'ESSAY', 'HAFALAN'])],
-            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ];
 
         if ($request->type === 'PILIHAN_GANDA' || $request->type === 'ESSAY' || $request->type === 'HAFALAN') {
@@ -406,7 +406,7 @@ class QuestionController extends Controller
         if ($request->type === 'PILIHAN_GANDA' || $request->type === 'HAFALAN') {
             $rules['options'] = 'required|array|min:2';
             $rules['options.*.text'] = 'nullable|string|max:500';
-            $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
             $rules['is_correct'] = 'required|integer|min:0';
         }
 
@@ -577,7 +577,7 @@ class QuestionController extends Controller
         $alatTes = AlatTes::findOrFail($alat_te);
 
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:2048'
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120'
         ]);
 
         // NOTE: Implementasi import (memerlukan Maatwebsite/Laravel-Excel dan Importer Class)

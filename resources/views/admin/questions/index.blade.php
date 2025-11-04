@@ -90,7 +90,7 @@
                                     Hapus
                                 </button>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF. Maksimal 2MB</p>
+                            <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF. Maksimal 5MB</p>
 
                             <div id="imagePreview" class="mt-3" style="display: none;">
                                 <img id="previewImg" src="" alt="Preview"

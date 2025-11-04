@@ -34,7 +34,7 @@ class MemoryItemController extends Controller
     {
         $validated = $request->validate([
             'content' => 'required_if:type,TEXT|string|nullable',
-            'image_file' => 'required_if:type,IMAGE|image|mimes:jpeg,png,jpg,gif|max:2048|nullable',
+            'image_file' => 'required_if:type,IMAGE|image|mimes:jpeg,png,jpg,gif|max:5120|nullable',
             'type' => 'required|in:TEXT,IMAGE',
             'duration_seconds' => 'required|integer|min:1',
             'order' => 'required|integer|min:1',
