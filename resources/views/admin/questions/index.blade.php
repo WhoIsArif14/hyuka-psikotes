@@ -60,8 +60,7 @@
                             </select>
                         </div>
 
-                        {{-- Input Khusus PAPI KOSTICK (Hanya Item Number) --}}
-                        {{-- Blok ini disederhanakan dan semua input role_a, need_a, role_b, need_b DIHAPUS --}}
+                        {{-- Input Khusus PAPI KOSTICK --}}
                         <div id="papi-scoring-container"
                             class="border border-red-200 bg-red-50 p-4 rounded-lg mb-4 hidden">
                             <h4 class="text-md font-semibold text-red-700 mb-3">⚙️ Pengaturan PAPI KOSTICK</h4>
@@ -142,7 +141,7 @@
                             </div>
                         </div>
 
-                        {{-- TEKS PERTANYAAN (setelah hafalan) --}}
+                        {{-- TEKS PERTANYAAN --}}
                         <div id="question-text-container" class="mb-4">
                             <label for="question_text" class="block text-sm font-medium text-gray-700">
                                 <span id="question-text-label">Teks Pertanyaan</span>
@@ -247,8 +246,6 @@
                 </div>
             </div>
 
-            ---
-
             {{-- ✅ TAMPILKAN SOAL PAPI (jika ada) --}}
             @if ($papiQuestions->count() > 0)
                 <div class="mb-6">
@@ -295,9 +292,9 @@
                                         @endif
                                     </div>
 
-                                    {{-- ✅ PERBAIKAN: Gunakan route yang benar --}}
+                                    {{-- ✅ PERBAIKAN: Gunakan route yang BENAR --}}
                                     <div class="flex space-x-2 ml-4">
-                                        <a href="{{ route('admin.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $papiQuestion->id]) }}"
+                                        <a href="{{ route('admin.alat-tes.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $papiQuestion->id]) }}"
                                             class="text-blue-600 hover:text-blue-800 font-medium text-sm">
                                             Edit
                                         </a>
@@ -353,8 +350,7 @@
                                         @if ($question->type == 'HAFALAN' && $question->memory_content)
                                             <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">
                                                 <p class="text-xs font-semibold text-indigo-700 mb-1">📚 Materi Hafalan
-                                                    ({{ $question->memory_type }})
-                                                    :</p>
+                                                    ({{ $question->memory_type }}):</p>
                                                 <p class="text-sm text-gray-700 whitespace-pre-line">
                                                     {{ $question->memory_content }}</p>
                                             </div>
@@ -402,10 +398,10 @@
                                         @endif
                                     </div>
 
-                                    {{-- ✅ PERBAIKAN: Gunakan route yang benar --}}
+                                    {{-- ✅ SUDAH BENAR - Soal Umum --}}
                                     <div class="flex space-x-2 ml-4">
-                                        <a
-                                            href="{{ route('admin.alat-tes.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}">
+                                        <a href="{{ route('admin.alat-tes.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}"
+                                            class="text-blue-600 hover:text-blue-800 font-medium text-sm">
                                             Edit
                                         </a>
                                         <form method="POST"
@@ -414,7 +410,7 @@
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
-                                                class="text-red-600 hover:text-red-800 font-medium">
+                                                class="text-red-600 hover:text-red-800 font-medium text-sm">
                                                 Hapus
                                             </button>
                                         </form>
@@ -466,7 +462,7 @@
                 optionCount = optionsList.children.length;
             }
 
-            // [LOGIC IMAGE PREVIEW - START]
+            // Image Preview Logic
             const setupImagePreviewLogic = (imageInput, previewImg, imagePreview, removeBtn) => {
                 if (!imageInput) return;
 
@@ -492,12 +488,10 @@
                 }
             };
 
-            // Setup main question image preview
             if (questionImage && previewImg && imagePreview && removeImageBtn) {
                 setupImagePreviewLogic(questionImage, previewImg, imagePreview, removeImageBtn);
             }
 
-            // Handle option image preview setup
             function setupOptionImagePreview(optionItem) {
                 const imageInput = optionItem.querySelector('.option-image-input');
                 const previewContainer = optionItem.querySelector('.option-image-preview');
@@ -509,13 +503,11 @@
                 }
             }
 
-            // Setup initial option image previews
             document.querySelectorAll('.option-item').forEach(item => {
                 setupOptionImagePreview(item);
             });
-            // [LOGIC IMAGE PREVIEW - END]
 
-            // [LOGIC FORM TOGGLE]
+            // Form Toggle
             if (toggleFormBtn && formContainer) {
                 toggleFormBtn.addEventListener('click', function() {
                     const isHidden = formContainer.style.display === 'none';
@@ -532,7 +524,7 @@
                 });
             }
 
-            // [LOGIC UPDATE LABELS & BUTTONS]
+            // Update Option Labels
             function updateOptionLabels() {
                 document.querySelectorAll('.option-item').forEach((item, index) => {
                     const label = item.querySelector('.option-label');
@@ -544,7 +536,6 @@
 
                     const letter = String.fromCharCode(65 + index);
 
-                    // Update names and placeholders
                     if (label) label.textContent = `Opsi ${letter}`;
                     if (input) {
                         input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
@@ -554,7 +545,6 @@
                     if (radio) radio.value = index;
                     if (hiddenIndex) hiddenIndex.value = index;
 
-                    // Atur tombol hapus
                     if (removeBtn) {
                         const isPapi = typeSelect && typeSelect.value === 'PAPIKOSTICK';
                         const totalOptions = document.querySelectorAll('.option-item').length;
@@ -563,15 +553,13 @@
                 });
             }
 
-            // [LOGIC CONTAINER TOGGLE]
+            // Toggle Containers
             function toggleContainers() {
                 if (!typeSelect) return;
 
                 const selectedType = typeSelect.value;
 
-                console.log('Selected Type:', selectedType); // ✅ Debug
-
-                // 1. Reset/Sembunyikan Semua Default
+                // Reset/Hide All
                 if (optionsSection) optionsSection.style.display = 'none';
                 if (memoryContainer) memoryContainer.classList.add('hidden');
                 if (papiContainer) papiContainer.classList.add('hidden');
@@ -597,20 +585,18 @@
                     if (removeBtn) removeBtn.style.display = index >= 2 ? 'block' : 'none';
                 });
 
-                // 2. Tampilkan Kontainer Berdasarkan Tipe
+                // Show Containers Based on Type
                 if (selectedType === 'PAPIKOSTICK') {
                     if (papiContainer) papiContainer.classList.remove('hidden');
                     if (optionsSection) optionsSection.style.display = 'block';
                     if (questionImageContainer) questionImageContainer.style.display = 'none';
 
-                    // Ganti Label untuk PAPI
                     if (questionTextLabel) questionTextLabel.textContent = 'Nomor Soal PAPI (1-90)';
                     const questionTextInput = document.getElementById('question_text');
                     if (questionTextInput) questionTextInput.placeholder = 'Masukkan Nomor Soal (mis: 45) di sini.';
                     if (questionTextHint) questionTextHint.textContent =
                         'Kolom ini hanya untuk Nomor Soal PAPI. Teks pernyataan diisi di Opsi A dan B.';
 
-                    // Atur Opsi Jawaban untuk PAPI (Hanya A dan B)
                     if (addOptionBtn) addOptionBtn.style.display = 'none';
                     if (optionsHint) optionsHint.textContent =
                         'Hanya Opsi A dan B yang digunakan untuk Pasangan Pernyataan PAPI.';
@@ -630,8 +616,6 @@
                     if (addOptionBtn) addOptionBtn.style.display = 'none';
 
                 } else if (selectedType === 'PILIHAN_GANDA') {
-                    // ✅ PERBAIKAN: Tampilkan section opsi untuk Pilihan Ganda
-                    console.log('Showing options section for PILIHAN_GANDA'); // ✅ Debug
                     if (optionsSection) optionsSection.style.display = 'block';
                     if (addOptionBtn) addOptionBtn.style.display = 'block';
 
@@ -646,7 +630,7 @@
                 }
             }
 
-            // [LOGIC TAMBAH OPSI]
+            // Add Option
             if (addOptionBtn && optionsList) {
                 addOptionBtn.addEventListener('click', function() {
                     const newIndex = optionsList.children.length;
@@ -696,7 +680,7 @@
                 });
             }
 
-            // [LOGIC HAPUS OPSI]
+            // Remove Option
             if (optionsList) {
                 optionsList.addEventListener('click', function(e) {
                     const removeBtn = e.target.closest('.remove-option-btn');
@@ -712,15 +696,13 @@
                 });
             }
 
-            // ✅ PENTING: Trigger saat page load dan saat type berubah
+            // Initial Trigger
             if (typeSelect) {
                 typeSelect.addEventListener('change', toggleContainers);
-
-                // ✅ Trigger saat page load untuk set initial state
                 toggleContainers();
             }
 
-            // ✅ Jika ada error validation, trigger lagi
+            // If validation errors, trigger again
             @if ($errors->any())
                 toggleContainers();
             @endif

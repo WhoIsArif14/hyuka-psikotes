@@ -3,8 +3,8 @@
 use Illuminate\Support\Facades\Route;
 
 // User-side Controllers
-use App\Http\Controllers\TestAccessController; 
-use App\Http\Controllers\UserDataController; 
+use App\Http\Controllers\TestAccessController;
+use App\Http\Controllers\UserDataController;
 use App\Http\Controllers\UserTestController;
 use App\Http\Controllers\PapiTestController;
 
@@ -53,9 +53,9 @@ Route::post('/logout', [TestAccessController::class, 'logout'])->name('logout');
 */
 Route::middleware(['auth'])->group(function () {
     // 1. Pengisian Data Diri
-    Route::get('/profile/edit', [UserDataController::class, 'edit'])->name('user.data.edit'); 
-    Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update'); 
-    
+    Route::get('/profile/edit', [UserDataController::class, 'edit'])->name('user.data.edit');
+    Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update');
+
     // 2. Start Test
     Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
@@ -174,4 +174,9 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('peserta', [PesertaController::class, 'index'])->name('peserta.index');
         Route::get('peserta/{user}', [PesertaController::class, 'show'])->name('peserta.show');
         Route::delete('peserta/{user}', [PesertaController::class, 'destroy'])->name('peserta.destroy');
+
+        Route::post('/api/cheating/log', [App\Http\Controllers\Api\CheatingDetectionController::class, 'logViolation'])
+            ->name('api.cheating.log');
+        Route::get('/api/cheating/status', [App\Http\Controllers\Api\CheatingDetectionController::class, 'checkStatus'])
+            ->name('api.cheating.status');
     });
