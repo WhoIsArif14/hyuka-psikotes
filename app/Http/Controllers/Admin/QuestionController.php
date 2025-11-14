@@ -90,6 +90,8 @@ class QuestionController extends Controller
         $rules = [
             'type' => ['required', Rule::in(['PILIHAN_GANDA', 'ESSAY', 'HAFALAN', 'PAPIKOSTICK'])],
             'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'example_question' => 'nullable|string',
+            'instructions' => 'nullable|string',
         ];
 
         // 2. TENTUKAN LOGIKA VALIDASI
@@ -123,10 +125,32 @@ class QuestionController extends Controller
             }
         }
 
+        // ✅ CUSTOM VALIDATION MESSAGES
         $request->validate($rules, [
+            // PAPI Messages
             'papi_item_number.unique' => 'Nomor Soal PAPI ini sudah digunakan.',
             'options.0.text.required' => 'Pernyataan A (Opsi A) wajib diisi.',
             'options.1.text.required' => 'Pernyataan B (Opsi B) wajib diisi.',
+            
+            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR PERTANYAAN
+            'question_image.max' => '⚠️ Ukuran gambar pertanyaan terlalu besar! File yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
+            'question_image.image' => '⚠️ File yang diupload harus berupa gambar (JPG, PNG, GIF).',
+            'question_image.mimes' => '⚠️ Format gambar tidak didukung. Hanya JPG, JPEG, PNG, dan GIF yang diperbolehkan.',
+            
+            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR OPSI
+            'options.*.image_file.max' => '⚠️ Ukuran gambar opsi terlalu besar! Salah satu gambar opsi yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
+            'options.*.image_file.image' => '⚠️ File opsi yang diupload harus berupa gambar.',
+            'options.*.image_file.mimes' => '⚠️ Format gambar opsi tidak didukung. Hanya JPG, JPEG, PNG, GIF, dan WEBP yang diperbolehkan.',
+            
+            // General Messages
+            'question_text.required' => 'Teks pertanyaan wajib diisi.',
+            'options.required' => 'Minimal harus ada 2 opsi jawaban.',
+            'options.min' => 'Minimal harus ada 2 opsi jawaban.',
+            'is_correct.required' => 'Anda harus menandai satu opsi sebagai jawaban yang benar.',
+            'memory_content.required' => 'Konten materi hafalan wajib diisi.',
+            'memory_type.required' => 'Tipe konten hafalan harus dipilih (TEXT atau IMAGE).',
+            'duration_seconds.required' => 'Durasi tampil materi hafalan wajib diisi.',
+            'duration_seconds.min' => 'Durasi minimal adalah 1 detik.',
         ]);
 
         // 3. LOGIKA PENYIMPANAN PAPI
@@ -134,14 +158,11 @@ class QuestionController extends Controller
             try {
                 DB::beginTransaction();
 
-                // ✅ PERBAIKAN: Tambahkan alat_tes_id
                 $papiQuestion = PapiQuestion::create([
-                    'alat_tes_id' => $alat_te,  // ✅ TAMBAHKAN INI
+                    'alat_tes_id' => $alat_te,
                     'item_number' => $request->papi_item_number,
                     'statement_a' => $request->input('options.0.text'),
                     'statement_b' => $request->input('options.1.text'),
-
-                    // SET SEMUA ROLE DAN NEED KE NULL, AKAN DIUPDATE NANTI
                     'role_a' => null,
                     'need_a' => null,
                     'role_b' => null,
@@ -183,10 +204,12 @@ class QuestionController extends Controller
 
             $questionData = [
                 'alat_tes_id' => $alat_te,
-                'test_id' => null,  // ✅ TAMBAHKAN INI (atau isi dengan ID test jika ada)
+                'test_id' => null,
                 'type' => $request->type,
                 'image_path' => $imagePath,
                 'question_text' => $request->question_text ?? null,
+                'example_question' => $request->example_question ?? null,
+                'instructions' => $request->instructions ?? null,
                 'memory_content' => $request->memory_content ?? null,
                 'memory_type' => $request->memory_type ?? null,
                 'duration_seconds' => $request->duration_seconds ?? null,
@@ -288,7 +311,6 @@ class QuestionController extends Controller
 
     public function edit(AlatTes $alat_te, Question $question)
     {
-        // ✅ TAMBAHKAN INI DI BARIS PERTAMA
         \Log::info('Edit method called', [
             'alat_te_id' => $alat_te->id,
             'question_id' => $question->id,
@@ -307,7 +329,6 @@ class QuestionController extends Controller
 
             return view('admin.questions.edit_papi', compact('AlatTes', 'papiQuestion'));
         } else {
-            // ✅ TAMBAHKAN LOG SEBELUM RENDER VIEW
             \Log::info('Rendering edit view', [
                 'view' => 'admin.questions.edit',
                 'AlatTes_id' => $AlatTes->id,
@@ -397,6 +418,8 @@ class QuestionController extends Controller
         $rules = [
             'type' => ['required', Rule::in(['PILIHAN_GANDA', 'ESSAY', 'HAFALAN'])],
             'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'example_question' => 'nullable|string',
+            'instructions' => 'nullable|string',
         ];
 
         if ($request->type === 'PILIHAN_GANDA' || $request->type === 'ESSAY' || $request->type === 'HAFALAN') {
@@ -416,7 +439,28 @@ class QuestionController extends Controller
             $rules['duration_seconds'] = 'required|integer|min:1';
         }
 
-        $validated = $request->validate($rules);
+        // ✅ CUSTOM VALIDATION MESSAGES UNTUK UPDATE
+        $validated = $request->validate($rules, [
+            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR PERTANYAAN
+            'question_image.max' => '⚠️ Ukuran gambar pertanyaan terlalu besar! File yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
+            'question_image.image' => '⚠️ File yang diupload harus berupa gambar (JPG, PNG, GIF).',
+            'question_image.mimes' => '⚠️ Format gambar tidak didukung. Hanya JPG, JPEG, PNG, dan GIF yang diperbolehkan.',
+            
+            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR OPSI
+            'options.*.image_file.max' => '⚠️ Ukuran gambar opsi terlalu besar! Salah satu gambar opsi yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
+            'options.*.image_file.image' => '⚠️ File opsi yang diupload harus berupa gambar.',
+            'options.*.image_file.mimes' => '⚠️ Format gambar opsi tidak didukung. Hanya JPG, JPEG, PNG, GIF, dan WEBP yang diperbolehkan.',
+            
+            // General Messages
+            'question_text.required' => 'Teks pertanyaan wajib diisi.',
+            'options.required' => 'Minimal harus ada 2 opsi jawaban.',
+            'options.min' => 'Minimal harus ada 2 opsi jawaban.',
+            'is_correct.required' => 'Anda harus menandai satu opsi sebagai jawaban yang benar.',
+            'memory_content.required' => 'Konten materi hafalan wajib diisi.',
+            'memory_type.required' => 'Tipe konten hafalan harus dipilih (TEXT atau IMAGE).',
+            'duration_seconds.required' => 'Durasi tampil materi hafalan wajib diisi.',
+            'duration_seconds.min' => 'Durasi minimal adalah 1 detik.',
+        ]);
 
         try {
             DB::beginTransaction();
@@ -435,6 +479,8 @@ class QuestionController extends Controller
                 'type' => $request->type,
                 'image_path' => $imagePath,
                 'question_text' => $request->question_text ?? null,
+                'example_question' => $request->example_question ?? null,
+                'instructions' => $request->instructions ?? null,
                 'memory_content' => $request->memory_content ?? null,
                 'memory_type' => $request->memory_type ?? null,
                 'duration_seconds' => $request->duration_seconds ?? null,
@@ -578,6 +624,10 @@ class QuestionController extends Controller
 
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:5120'
+        ], [
+            'file.required' => 'File Excel wajib diupload.',
+            'file.mimes' => 'File harus berformat Excel (XLSX, XLS) atau CSV.',
+            'file.max' => '⚠️ Ukuran file terlalu besar! Maksimal 5 MB (5120 KB).',
         ]);
 
         // NOTE: Implementasi import (memerlukan Maatwebsite/Laravel-Excel dan Importer Class)
@@ -602,13 +652,15 @@ class QuestionController extends Controller
 
         $sheet->setCellValue('A1', 'Tipe (PILIHAN_GANDA/ESSAY/HAFALAN/PAPIKOSTICK)');
         $sheet->setCellValue('B1', 'Teks Pertanyaan');
-        $sheet->setCellValue('C1', 'Opsi A (Teks)');
-        $sheet->setCellValue('D1', 'Opsi B (Teks)');
-        $sheet->setCellValue('E1', 'Jawaban Benar (Index 0/1/2...)');
-        $sheet->setCellValue('F1', 'Memory Content (Jika Hafalan)');
-        $sheet->setCellValue('G1', 'Memory Type (TEXT/IMAGE)');
-        $sheet->setCellValue('H1', 'Duration Seconds');
-        $sheet->setCellValue('I1', 'PAPI Item Number');
+        $sheet->setCellValue('C1', 'Contoh Soal');
+        $sheet->setCellValue('D1', 'Instruksi');
+        $sheet->setCellValue('E1', 'Opsi A (Teks)');
+        $sheet->setCellValue('F1', 'Opsi B (Teks)');
+        $sheet->setCellValue('G1', 'Jawaban Benar (Index 0/1/2...)');
+        $sheet->setCellValue('H1', 'Memory Content (Jika Hafalan)');
+        $sheet->setCellValue('I1', 'Memory Type (TEXT/IMAGE)');
+        $sheet->setCellValue('J1', 'Duration Seconds');
+        $sheet->setCellValue('K1', 'PAPI Item Number');
 
         $writer = new Xlsx($spreadsheet);
         $fileName = 'questions_template.xlsx';

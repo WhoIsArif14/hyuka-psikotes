@@ -10,11 +10,6 @@ class UserAnswer extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'test_result_id',
         'question_id',
@@ -23,20 +18,27 @@ class UserAnswer extends Model
     ];
 
     /**
-     * Get the test result that this answer belongs to.
+     * Relasi ke hasil tes.
      */
     public function testResult(): BelongsTo
     {
         return $this->belongsTo(TestResult::class);
     }
 
-    // --- RELASI BARU YANG MEMPERBAIKI ERROR ---
     /**
-     * Get the option that was chosen for this answer.
-     * Setiap jawaban (UserAnswer) dimiliki oleh satu pilihan (Option).
+     * Relasi ke pertanyaan.
+     * (Direkomendasikan menambahkan ini agar lebih mudah memanggil data)
      */
-    public function option(): BelongsTo
+    public function question(): BelongsTo
     {
-        return $this->belongsTo(Option::class);
+        return $this->belongsTo(Question::class);
     }
+
+    // ❌ Hapus / nonaktifkan relasi Option,
+    // karena sistem sekarang menyimpan opsi dalam kolom JSON `questions.options`
+    //
+    // public function option(): BelongsTo
+    // {
+    //     return $this->belongsTo(Option::class);
+    // }
 }

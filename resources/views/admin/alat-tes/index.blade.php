@@ -14,10 +14,31 @@
                 </a>
             </div>
 
+            {{-- Notifikasi Success --}}
             @if (session('success'))
-                <div id="success-message"
-                    class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert">
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-md" role="alert">
+                    <p class="font-medium">Berhasil!</p>
                     <p>{{ session('success') }}</p>
+                </div>
+            @endif
+
+            {{-- Notifikasi Error --}}
+            @if (session('error'))
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
+                    <p class="font-medium">Gagal!</p>
+                    <p>{{ session('error') }}</p>
+                </div>
+            @endif
+
+            {{-- Notifikasi Validation Errors --}}
+            @if ($errors->any())
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
+                    <p class="font-medium">Terjadi kesalahan:</p>
+                    <ul class="list-disc list-inside mt-2">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
 
@@ -50,7 +71,11 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="button"
-                                                    class="text-red-600 hover:text-red-900 delete-btn">Hapus</button>
+                                                    class="text-red-600 hover:text-red-900 delete-btn"
+                                                    data-name="{{ $item->name }}"
+                                                    data-count="{{ $item->questions_count }}">
+                                                    Hapus
+                                                </button>
                                             </form>
                                         </div>
                                     </td>
@@ -79,18 +104,36 @@
             deleteButtons.forEach(button => {
                 button.addEventListener('click', function () {
                     const form = this.closest('.delete-form');
+                    const name = this.getAttribute('data-name');
+                    const questionCount = parseInt(this.getAttribute('data-count'));
+
+                    let warningText = questionCount > 0 
+                        ? `Alat Tes "${name}" memiliki ${questionCount} soal. Semua soal akan ikut terhapus permanen!`
+                        : `Alat Tes "${name}" akan dihapus permanen!`;
 
                     Swal.fire({
                         title: 'Yakin ingin menghapus?',
-                        text: "Semua soal di dalam alat tes ini juga akan ikut terhapus.",
+                        html: warningText,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
                         cancelButtonColor: '#6c757d',
                         confirmButtonText: 'Ya, hapus!',
-                        cancelButtonText: 'Batal'
+                        cancelButtonText: 'Batal',
+                        focusCancel: true
                     }).then((result) => {
                         if (result.isConfirmed) {
+                            // Tampilkan loading
+                            Swal.fire({
+                                title: 'Menghapus...',
+                                html: 'Mohon tunggu sebentar',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            
                             form.submit();
                         }
                     });
@@ -103,8 +146,19 @@
                     icon: 'success',
                     title: 'Berhasil!',
                     text: '{{ session('success') }}',
-                    timer: 2000,
-                    showConfirmButton: false
+                    timer: 3000,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK'
+                });
+            @endif
+
+            // Notifikasi error (jika ada session error)
+            @if (session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: '{{ session('error') }}',
+                    confirmButtonText: 'OK'
                 });
             @endif
         });

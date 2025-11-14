@@ -76,79 +76,200 @@
                             </div>
                         </div>
 
-                        {{-- Upload Gambar Pertanyaan --}}
-                        <div class="mb-4" id="question-image-container">
-                            <label for="question_image" class="block text-sm font-medium text-gray-700 mb-1">
-                                Upload Gambar Pertanyaan (Opsional)
-                            </label>
-                            <div class="flex items-center gap-3">
-                                <input type="file" id="question_image" name="question_image" accept="image/*"
-                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                <button type="button" id="removeImageBtn" style="display: none;"
-                                    class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                    Hapus
+                        {{-- TAB NAVIGATION --}}
+                        <div class="mb-6 border-b border-gray-200">
+                            <nav class="flex space-x-4" id="tabNav">
+                                <button type="button" 
+                                        class="tab-btn px-4 py-3 font-medium text-sm border-b-2 border-blue-600 text-blue-600" 
+                                        data-tab="soal">
+                                    📝 Soal Utama
                                 </button>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF. Maksimal 5MB</p>
-
-                            <div id="imagePreview" class="mt-3" style="display: none;">
-                                <img id="previewImg" src="" alt="Preview"
-                                    class="max-w-xs rounded-lg border border-gray-300">
-                            </div>
-
-                            @error('question_image')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
+                                <button type="button" 
+                                        class="tab-btn px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" 
+                                        data-tab="contoh">
+                                    📚 Contoh Soal
+                                </button>
+                                <button type="button" 
+                                        class="tab-btn px-4 py-3 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" 
+                                        data-tab="instruksi">
+                                    ❓ Instruksi
+                                </button>
+                            </nav>
                         </div>
 
-                        {{-- MATERI HAFALAN CONTAINER --}}
-                        <div id="memory-container"
-                            class="border border-indigo-200 bg-indigo-50 p-4 rounded-lg mb-4 hidden">
-                            <h4 class="text-md font-semibold text-indigo-700 mb-3">📚 Materi Hafalan</h4>
-                            <p class="text-sm text-gray-600 mb-3">Materi ini akan ditampilkan selama beberapa detik,
-                                kemudian siswa akan menjawab pertanyaan di bawah.</p>
-
-                            <div class="mb-3">
-                                <label for="memory_content" class="block text-sm font-medium text-gray-700">Konten
-                                    Memori</label>
-                                <textarea id="memory_content" name="memory_content" rows="4"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm"
-                                    placeholder="Contoh: BUNGA - Dahlia, Flamboyan, Laret, Soka, Yasmin&#10;PERKAKAS - Cangkul, Jarum, Kikir, Palu, Wajan">{{ old('memory_content') }}</textarea>
-                                <p class="text-xs text-gray-500 mt-1">Masukkan materi yang harus dihafal siswa</p>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label for="memory_type" class="block text-sm font-medium text-gray-700">Tipe
-                                        Konten</label>
-                                    <select id="memory_type" name="memory_type"
-                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
-                                        <option value="TEXT"
-                                            {{ old('memory_type', 'TEXT') == 'TEXT' ? 'selected' : '' }}>Teks</option>
-                                        <option value="IMAGE" {{ old('memory_type') == 'IMAGE' ? 'selected' : '' }}>
-                                            Gambar</option>
-                                    </select>
+                        {{-- TAB CONTENT --}}
+                        <div class="tab-contents">
+                            {{-- TAB SOAL UTAMA --}}
+                            <div class="tab-content" id="tab-soal">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                    <div class="flex gap-3">
+                                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <div>
+                                            <h3 class="font-semibold text-blue-900 mb-1">Soal yang akan dijawab peserta</h3>
+                                            <p class="text-sm text-blue-700">Ini adalah soal aktual yang akan diberikan kepada peserta dalam tes.</p>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label for="duration_seconds" class="block text-sm font-medium text-gray-700">Durasi
-                                        Tampil (Detik)</label>
-                                    <input id="duration_seconds" name="duration_seconds" type="number" min="1"
-                                        value="{{ old('duration_seconds', 10) }}"
-                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
-                                    <p class="text-xs text-gray-500 mt-1">Berapa lama materi ditampilkan</p>
+                                {{-- MATERI HAFALAN CONTAINER --}}
+                                <div id="memory-container"
+                                    class="border border-indigo-200 bg-indigo-50 p-4 rounded-lg mb-4 hidden">
+                                    <h4 class="text-md font-semibold text-indigo-700 mb-3">📚 Materi Hafalan</h4>
+                                    <p class="text-sm text-gray-600 mb-3">Materi ini akan ditampilkan selama beberapa detik,
+                                        kemudian peserta akan menjawab pertanyaan di bawah.</p>
+
+                                    <div class="mb-3">
+                                        <label for="memory_content" class="block text-sm font-medium text-gray-700">Konten
+                                            Memori</label>
+                                        <textarea id="memory_content" name="memory_content" rows="4"
+                                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm"
+                                            placeholder="Contoh: BUNGA - Dahlia, Flamboyan, Laret, Soka, Yasmin&#10;PERKAKAS - Cangkul, Jarum, Kikir, Palu, Wajan">{{ old('memory_content') }}</textarea>
+                                        <p class="text-xs text-gray-500 mt-1">Masukkan materi yang harus dihafal peserta</p>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label for="memory_type" class="block text-sm font-medium text-gray-700">Tipe
+                                                Konten</label>
+                                            <select id="memory_type" name="memory_type"
+                                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                                <option value="TEXT"
+                                                    {{ old('memory_type', 'TEXT') == 'TEXT' ? 'selected' : '' }}>Teks</option>
+                                                <option value="IMAGE" {{ old('memory_type') == 'IMAGE' ? 'selected' : '' }}>
+                                                    Gambar</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label for="duration_seconds" class="block text-sm font-medium text-gray-700">Durasi
+                                                Tampil (Detik)</label>
+                                            <input id="duration_seconds" name="duration_seconds" type="number" min="1"
+                                                value="{{ old('duration_seconds', 10) }}"
+                                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                            <p class="text-xs text-gray-500 mt-1">Berapa lama materi ditampilkan</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Upload Gambar Pertanyaan --}}
+                                <div class="mb-4" id="question-image-container">
+                                    <label for="question_image" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Upload Gambar Pertanyaan (Opsional)
+                                    </label>
+                                    
+                                    {{-- ✅ WARNING BOX --}}
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mb-2 flex items-start gap-2">
+                                        <svg class="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <p class="text-xs text-yellow-800">
+                                            <strong>Perhatian:</strong> Ukuran file maksimal <strong class="text-red-600">5 MB</strong>. File yang lebih besar akan ditolak.
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3">
+                                        <input type="file" id="question_image" name="question_image" accept="image/*"
+                                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                        <button type="button" id="removeImageBtn" style="display: none;"
+                                            class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                            Hapus
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG, GIF. <span class="text-red-600 font-semibold">Maksimal 5MB</span></p>
+
+                                    <div id="imagePreview" class="mt-3" style="display: none;">
+                                        <img id="previewImg" src="" alt="Preview"
+                                            class="max-w-xs rounded-lg border border-gray-300">
+                                    </div>
+
+                                    @error('question_image')
+                                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- TEKS PERTANYAAN --}}
+                                <div id="question-text-container" class="mb-4">
+                                    <label for="question_text" class="block text-sm font-medium text-gray-700">
+                                        <span id="question-text-label">Teks Pertanyaan</span>
+                                    </label>
+                                    <textarea id="question_text" name="question_text" rows="3"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm" placeholder="Masukkan teks pertanyaan di sini.">{{ old('question_text') }}</textarea>
+                                    <p class="text-xs text-gray-500 mt-1" id="question-text-hint">Pertanyaan untuk peserta</p>
+                                </div>
+                            </div>
+
+                            {{-- TAB CONTOH SOAL --}}
+                            <div class="tab-content hidden" id="tab-contoh">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                    <div class="flex gap-3">
+                                        <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                        </svg>
+                                        <div>
+                                            <h3 class="font-semibold text-green-900 mb-1">Contoh untuk pemahaman peserta</h3>
+                                            <p class="text-sm text-green-700">Berikan contoh soal serupa dengan jawabannya untuk membantu peserta memahami format tes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="example_question" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Contoh Soal & Pembahasan (Opsional)
+                                    </label>
+                                    <textarea 
+                                        id="example_question" 
+                                        name="example_question" 
+                                        rows="12"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                                        placeholder="Contoh:&#10;&#10;Soal: Jika 2 + 3 = 5, maka 4 + 5 = ?&#10;&#10;Pilihan:&#10;A. 7&#10;B. 8&#10;C. 9&#10;D. 10&#10;&#10;Jawaban: C (9)&#10;&#10;Pembahasan: &#10;Kita tinggal menjumlahkan kedua angka, 4 + 5 = 9. Pola yang sama dengan contoh di soal awal.">{{ old('example_question') }}</textarea>
+                                    <p class="text-xs text-gray-500 mt-2">💡 Berikan contoh lengkap dengan jawaban dan pembahasannya agar peserta paham format soal</p>
+                                </div>
+                            </div>
+
+                            {{-- TAB INSTRUKSI --}}
+                            <div class="tab-content hidden" id="tab-instruksi">
+                                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                                    <div class="flex gap-3">
+                                        <svg class="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <div>
+                                            <h3 class="font-semibold text-purple-900 mb-1">Panduan cara mengerjakan</h3>
+                                            <p class="text-sm text-purple-700">Jelaskan cara mengerjakan soal, tips, dan hal-hal yang perlu diperhatikan peserta.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="instructions" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Instruksi & Cara Menjawab (Opsional)
+                                    </label>
+                                    <textarea 
+                                        id="instructions" 
+                                        name="instructions" 
+                                        rows="10"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Contoh:&#10;&#10;Cara mengerjakan:&#10;1. Baca soal dengan teliti dan pahami apa yang ditanyakan&#10;2. Perhatikan kata kunci dalam soal&#10;3. Analisis setiap pilihan jawaban dengan hati-hati&#10;4. Pilih jawaban yang paling tepat&#10;5. Periksa kembali jawaban Anda sebelum melanjutkan&#10;&#10;Tips penting:&#10;• Kerjakan soal yang mudah terlebih dahulu&#10;• Jangan terlalu lama di satu soal (maks 2 menit)&#10;• Eliminasi jawaban yang jelas salah&#10;• Jika ragu, gunakan logika dan intuisi Anda&#10;&#10;Perhatian:&#10;⚠️ Jawaban tidak bisa diubah setelah diklik&#10;⚠️ Pastikan pilihan Anda sudah benar">{{ old('instructions') }}</textarea>
+                                    <p class="text-xs text-gray-500 mt-2">💡 Berikan instruksi yang jelas dan mudah dipahami untuk membantu peserta</p>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- TEKS PERTANYAAN --}}
-                        <div id="question-text-container" class="mb-4">
-                            <label for="question_text" class="block text-sm font-medium text-gray-700">
-                                <span id="question-text-label">Teks Pertanyaan</span>
-                            </label>
-                            <textarea id="question_text" name="question_text" rows="3"
-                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm" placeholder="Masukkan teks pertanyaan di sini.">{{ old('question_text') }}</textarea>
-                            <p class="text-xs text-gray-500 mt-1" id="question-text-hint">Pertanyaan untuk siswa</p>
+                        {{-- PREVIEW INFO --}}
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                Urutan Tampilan untuk peserta
+                            </h4>
+                            <div class="space-y-2 text-sm text-gray-700 ml-7">
+                                <p><span class="font-semibold">1. Instruksi</span> → Ditampilkan di awal sebelum peserta mulai tes</p>
+                                <p><span class="font-semibold">2. Contoh Soal</span> → Ditampilkan untuk pemahaman format soal</p>
+                                <p><span class="font-semibold">3. Soal Utama</span> → Soal yang akan dijawab oleh peserta</p>
+                            </div>
                         </div>
 
                         {{-- OPSI JAWABAN --}}
@@ -197,9 +318,16 @@
 
                                                         {{-- Upload Gambar untuk Opsi --}}
                                                         <div class="mt-3">
-                                                            <label
-                                                                class="block text-xs font-medium text-gray-600 mb-1">Upload
-                                                                Gambar Opsi (Opsional)</label>
+                                                            <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                                                            
+                                                            {{-- ✅ WARNING BOX UNTUK OPSI --}}
+                                                            <div class="bg-yellow-50 border border-yellow-200 rounded p-1.5 mb-2 flex items-start gap-1.5">
+                                                                <svg class="w-3 h-3 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                                </svg>
+                                                                <p class="text-xs text-yellow-800">Maks <strong class="text-red-600">5 MB</strong></p>
+                                                            </div>
+                                                            
                                                             <input type="file"
                                                                 name="options[{{ $i }}][image_file]"
                                                                 accept="image/*"
@@ -346,6 +474,22 @@
                                             @endif
                                         </div>
 
+                                        {{-- Tampilkan Instruksi --}}
+                                        @if ($question->instructions)
+                                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3">
+                                                <p class="text-xs font-semibold text-purple-700 mb-1">❓ Instruksi:</p>
+                                                <p class="text-sm text-gray-700 whitespace-pre-line">{{ Str::limit($question->instructions, 150) }}</p>
+                                            </div>
+                                        @endif
+
+                                        {{-- Tampilkan Contoh Soal --}}
+                                        @if ($question->example_question)
+                                            <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                                                <p class="text-xs font-semibold text-green-700 mb-1">📚 Contoh Soal:</p>
+                                                <p class="text-sm text-gray-700 whitespace-pre-line">{{ Str::limit($question->example_question, 150) }}</p>
+                                            </div>
+                                        @endif
+
                                         {{-- Tampilkan Materi Hafalan --}}
                                         @if ($question->type == 'HAFALAN' && $question->memory_content)
                                             <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">
@@ -437,6 +581,20 @@
         </div>
     </div>
 
+    <style>
+        /* Tab Styles */
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        .tab-btn:hover {
+            border-bottom-color: #9CA3AF;
+        }
+        .tab-btn.active {
+            border-bottom-color: #2563EB !important;
+            color: #2563EB !important;
+        }
+    </style>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -457,18 +615,74 @@
             const previewImg = document.getElementById('previewImg');
             const removeImageBtn = document.getElementById('removeImageBtn');
 
+            // ✅ FILE SIZE VALIDATION CONSTANT
+            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB dalam bytes
+
+            // ===== TAB NAVIGATION LOGIC =====
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all buttons
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                        btn.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active', 'border-blue-600', 'text-blue-600');
+                    this.classList.remove('border-transparent', 'text-gray-500');
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // Show target tab content
+                    const targetContent = document.getElementById('tab-' + targetTab);
+                    if (targetContent) {
+                        targetContent.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // Set first tab as active by default
+            if (tabButtons.length > 0) {
+                tabButtons[0].click();
+            }
+
             let optionCount = 4;
             if (optionsList) {
                 optionCount = optionsList.children.length;
             }
 
-            // Image Preview Logic
-            const setupImagePreviewLogic = (imageInput, previewImg, imagePreview, removeBtn) => {
+            // ✅ IMAGE PREVIEW WITH FILE SIZE VALIDATION
+            const validateAndPreviewImage = (imageInput, previewImg, imagePreview, removeBtn) => {
                 if (!imageInput) return;
 
                 imageInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
+                        // ✅ VALIDASI UKURAN FILE
+                        if (file.size > MAX_FILE_SIZE) {
+                            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                            alert(
+                                `❌ FILE TERLALU BESAR!\n\n` +
+                                `Nama file: ${file.name}\n` +
+                                `Ukuran file: ${fileSizeMB} MB\n` +
+                                `Maksimal: 5 MB\n\n` +
+                                `Silakan pilih file yang lebih kecil atau kompres gambar terlebih dahulu.`
+                            );
+                            e.target.value = ''; // Reset input
+                            if (imagePreview) imagePreview.style.display = 'none';
+                            if (removeBtn) removeBtn.style.display = 'none';
+                            return;
+                        }
+
+                        // Preview jika valid
                         const reader = new FileReader();
                         reader.onload = function(e) {
                             previewImg.src = e.target.result;
@@ -488,10 +702,12 @@
                 }
             };
 
+            // Apply untuk gambar pertanyaan utama
             if (questionImage && previewImg && imagePreview && removeImageBtn) {
-                setupImagePreviewLogic(questionImage, previewImg, imagePreview, removeImageBtn);
+                validateAndPreviewImage(questionImage, previewImg, imagePreview, removeImageBtn);
             }
 
+            // Setup untuk gambar opsi
             function setupOptionImagePreview(optionItem) {
                 const imageInput = optionItem.querySelector('.option-image-input');
                 const previewContainer = optionItem.querySelector('.option-image-preview');
@@ -499,13 +715,57 @@
                 const removeBtn = optionItem.querySelector('.remove-option-image-btn');
 
                 if (imageInput && previewContainer && previewImg) {
-                    setupImagePreviewLogic(imageInput, previewImg, previewContainer, removeBtn);
+                    validateAndPreviewImage(imageInput, previewImg, previewContainer, removeBtn);
                 }
             }
 
+            // Apply untuk semua opsi yang ada
             document.querySelectorAll('.option-item').forEach(item => {
                 setupOptionImagePreview(item);
             });
+
+            // ✅ VALIDASI SAAT SUBMIT FORM
+            const questionForm = document.getElementById('questionForm');
+            if (questionForm) {
+                questionForm.addEventListener('submit', function(e) {
+                    let oversizedFiles = [];
+                    
+                    // Check gambar pertanyaan utama
+                    const qImg = document.getElementById('question_image');
+                    if (qImg && qImg.files[0]) {
+                        if (qImg.files[0].size > MAX_FILE_SIZE) {
+                            const sizeMB = (qImg.files[0].size / (1024 * 1024)).toFixed(2);
+                            oversizedFiles.push(`• Gambar Pertanyaan: ${sizeMB} MB`);
+                        }
+                    }
+                    
+                    // Check semua gambar opsi
+                    document.querySelectorAll('.option-image-input').forEach((input, i) => {
+                        if (input.files[0]) {
+                            if (input.files[0].size > MAX_FILE_SIZE) {
+                                const sizeMB = (input.files[0].size / (1024 * 1024)).toFixed(2);
+                                const letter = String.fromCharCode(65 + i);
+                                oversizedFiles.push(`• Gambar Opsi ${letter}: ${sizeMB} MB`);
+                            }
+                        }
+                    });
+                    
+                    // Jika ada file yang oversized, tampilkan alert dan batalkan submit
+                    if (oversizedFiles.length > 0) {
+                        e.preventDefault();
+                        alert(
+                            `❌ TIDAK DAPAT MENYIMPAN!\n\n` +
+                            `File berikut melebihi batas maksimal 5 MB:\n\n` +
+                            `${oversizedFiles.join('\n')}\n\n` +
+                            `Mohon ganti dengan file yang lebih kecil atau kompres gambar terlebih dahulu.`
+                        );
+                        
+                        // Scroll ke form agar user bisa melihat
+                        formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return false;
+                    }
+                });
+            }
 
             // Form Toggle
             if (toggleFormBtn && formContainer) {
@@ -573,7 +833,7 @@
                 const optionsHint = document.getElementById('options-hint');
 
                 if (questionTextLabel) questionTextLabel.textContent = 'Teks Pertanyaan';
-                if (questionTextHint) questionTextHint.textContent = 'Pertanyaan untuk siswa';
+                if (questionTextHint) questionTextHint.textContent = 'Pertanyaan untuk peserta';
                 if (optionsHint) optionsHint.textContent = 'Pilihan jawaban untuk pertanyaan';
 
                 document.querySelectorAll('.option-item').forEach((item, index) => {
@@ -652,6 +912,12 @@
                                 
                                 <div class="mt-3">
                                     <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded p-1.5 mb-2 flex items-start gap-1.5">
+                                        <svg class="w-3 h-3 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <p class="text-xs text-yellow-800">Maks <strong class="text-red-600">5 MB</strong></p>
+                                    </div>
                                     <input type="file" 
                                             name="options[${newIndex}][image_file]" 
                                             accept="image/*"

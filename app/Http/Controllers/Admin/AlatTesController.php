@@ -83,15 +83,16 @@ class AlatTesController extends Controller
         return false;
     }
 
-    public function create() // <-- METHOD INI YANG HILANG ATAU SALAH NAMA
+    /**
+     * Menampilkan form untuk membuat Alat Tes baru.
+     */
+    public function create()
     {
-        // Biasanya, di sini Anda hanya mengembalikan view yang berisi form input.
         return view('admin.alat-tes.create');
     }
 
     /**
      * Menyimpan Alat Tes baru ke database.
-     * TETAP SIMPLE seperti kode lama, tapi dengan logging
      */
     public function store(Request $request)
     {
@@ -145,42 +146,69 @@ class AlatTesController extends Controller
             return back()->withInput()->withErrors(['error' => 'Gagal memperbarui: ' . $e->getMessage()]);
         }
     }
+
     /**
      * Menghapus Alat Tes dari database.
+     * PERBAIKAN: Cascade delete - hapus semua soal terkait sebelum menghapus alat tes
      */
     public function destroy(AlatTes $alat_te)
     {
         try {
-            if ($this->isPapiKostick($alat_te)) {
-                // Perbaikan: Hitung soal PAPI yang terkait dengan ID Alat Tes ini.
-                $papiCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
-
-                if ($papiCount > 0) {
-                    return back()->withErrors([
-                        'error' => 'Tidak dapat menghapus Alat Tes PAPI Kostick karena masih ada ' . $papiCount . ' soal.'
-                    ]);
-                }
-            } else {
-                $questionCount = $alat_te->questions()->count();
-
-                if ($questionCount > 0) {
-                    return back()->withErrors([
-                        'error' => 'Tidak dapat menghapus Alat Tes karena masih ada ' . $questionCount . ' soal.'
-                    ]);
-                }
-            }
+            DB::beginTransaction();
 
             $name = $alat_te->name;
+            $deletedQuestionsCount = 0;
+
+            // Hapus semua soal terkait terlebih dahulu
+            if ($this->isPapiKostick($alat_te)) {
+                // Hapus soal PAPI
+                $deletedQuestionsCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
+                PapiQuestion::where('alat_tes_id', $alat_te->id)->delete();
+
+                Log::info('Deleted PAPI questions for Alat Tes', [
+                    'alat_tes_id' => $alat_te->id,
+                    'alat_tes_name' => $name,
+                    'deleted_questions' => $deletedQuestionsCount
+                ]);
+            } else {
+                // Hapus soal umum
+                $deletedQuestionsCount = $alat_te->questions()->count();
+                $alat_te->questions()->delete();
+
+                Log::info('Deleted regular questions for Alat Tes', [
+                    'alat_tes_id' => $alat_te->id,
+                    'alat_tes_name' => $name,
+                    'deleted_questions' => $deletedQuestionsCount
+                ]);
+            }
+
+            // Hapus alat tes
             $alat_te->delete();
 
-            Log::info('Alat Tes deleted', ['name' => $name]);
+            DB::commit();
+
+            Log::info('Alat Tes deleted successfully', [
+                'name' => $name,
+                'total_questions_deleted' => $deletedQuestionsCount
+            ]);
+
+            $message = $deletedQuestionsCount > 0
+                ? "Alat Tes '{$name}' dan {$deletedQuestionsCount} soal berhasil dihapus."
+                : "Alat Tes '{$name}' berhasil dihapus.";
 
             return redirect()->route('admin.alat-tes.index')
-                ->with('success', 'Alat Tes berhasil dihapus.');
+                ->with('success', $message);
         } catch (\Exception $e) {
-            Log::error('Failed to delete Alat Tes', ['error' => $e->getMessage()]);
+            DB::rollBack();
 
-            return back()->withErrors(['error' => 'Gagal menghapus: ' . $e->getMessage()]);
+            Log::error('Failed to delete Alat Tes', [
+                'alat_tes_id' => $alat_te->id ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('admin.alat-tes.index')
+                ->with('error', 'Gagal menghapus Alat Tes: ' . $e->getMessage());
         }
     }
 }

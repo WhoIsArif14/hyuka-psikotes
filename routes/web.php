@@ -169,6 +169,10 @@ Route::middleware(['auth', IsAdmin::class])
         Route::post('questions/{question}/options', [OptionController::class, 'store'])->name('questions.options.store');
         Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
 
+        Route::post('alat-tes/{alat_te}/example-questions', [QuestionController::class, 'storeExample'])
+    ->name('alat-tes.example-questions.store');
+Route::delete('alat-tes/{alat_te}/example-questions/{example}', [QuestionController::class, 'destroyExample'])
+    ->name('alat-tes.example-questions.destroy');
         // User & Peserta
         Route::resource('users', UserController::class)->except(['create', 'store']);
         Route::get('peserta', [PesertaController::class, 'index'])->name('peserta.index');
