@@ -32,6 +32,18 @@ use App\Http\Middleware\IsAdmin;
 
 /*
 |--------------------------------------------------------------------------
+| ✅ CSRF TOKEN REFRESH ROUTE (PENTING UNTUK PREVENT 419)
+|--------------------------------------------------------------------------
+*/
+Route::get('/csrf-token', function() {
+    return response()->json([
+        'token' => csrf_token(),
+        'timestamp' => now()->timestamp
+    ]);
+})->name('csrf-token');
+
+/*
+|--------------------------------------------------------------------------
 | ALUR PESERTA BARU (LOGIN DENGAN KODE AKTIVASI PESERTA)
 |--------------------------------------------------------------------------
 */
@@ -48,14 +60,23 @@ Route::post('/logout', [TestAccessController::class, 'logout'])->name('logout');
 
 /*
 |--------------------------------------------------------------------------
-| ALUR DATA DIRI DAN TES (DILINDUNGI OLEH AUTH)
+| ALUR DATA DIRI (AUTH TANPA CEK PROFILE)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    // 1. Pengisian Data Diri
+    // ✅ Data Diri (boleh diakses meskipun profile belum lengkap)
     Route::get('/profile/edit', [UserDataController::class, 'edit'])->name('user.data.edit');
     Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update');
+});
 
+/*
+|--------------------------------------------------------------------------
+| ALUR TES (AUTH + CEK PROFILE COMPLETED)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+    // ✅ TODO: Tambahkan middleware 'check.profile' setelah dibuat
+    
     // 2. Start Test
     Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
@@ -170,15 +191,17 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
 
         Route::post('alat-tes/{alat_te}/example-questions', [QuestionController::class, 'storeExample'])
-    ->name('alat-tes.example-questions.store');
-Route::delete('alat-tes/{alat_te}/example-questions/{example}', [QuestionController::class, 'destroyExample'])
-    ->name('alat-tes.example-questions.destroy');
+            ->name('alat-tes.example-questions.store');
+        Route::delete('alat-tes/{alat_te}/example-questions/{example}', [QuestionController::class, 'destroyExample'])
+            ->name('alat-tes.example-questions.destroy');
+            
         // User & Peserta
         Route::resource('users', UserController::class)->except(['create', 'store']);
         Route::get('peserta', [PesertaController::class, 'index'])->name('peserta.index');
         Route::get('peserta/{user}', [PesertaController::class, 'show'])->name('peserta.show');
         Route::delete('peserta/{user}', [PesertaController::class, 'destroy'])->name('peserta.destroy');
 
+        // API Cheating Detection
         Route::post('/api/cheating/log', [App\Http\Controllers\Api\CheatingDetectionController::class, 'logViolation'])
             ->name('api.cheating.log');
         Route::get('/api/cheating/status', [App\Http\Controllers\Api\CheatingDetectionController::class, 'checkStatus'])

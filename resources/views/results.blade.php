@@ -27,7 +27,7 @@
                     </div>
 
                     <div class="mt-10">
-                        <a href="{{ route('custom.logout') }}" class="inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                        <a href="{{ route('logout') }}" class="inline-flex items-center px-6 py-3 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
                             Selesai & Keluar
                         </a>
                     </div>

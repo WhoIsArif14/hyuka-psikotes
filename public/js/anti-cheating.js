@@ -1,6 +1,9 @@
 /**
  * ANTI-CHEATING SYSTEM FOR PSIKOTES
  * Deteksi: Tab Switch, Screenshot, Copy-Paste, Right Click, DevTools
+ * * CATATAN: Pencegahan PrintScreen (PrtSc) secara absolut tidak mungkin dilakukan 
+ * di browser karena itu adalah fungsi Sistem Operasi (OS). Kode ini 
+ * memaksimalkan deteksi dan mengganggu clipboard (salinan) hasil screenshot.
  */
 
 class AntiCheatingSystem {
@@ -58,60 +61,54 @@ class AntiCheatingSystem {
     }
 
     // ============================================
-    // DETEKSI SCREENSHOT (PRINT SCREEN)
+    // DETEKSI SCREENSHOT (PRINT SCREEN) - KODE INI DIPERBAIKI
     // ============================================
-    detectScreenshot() {
-        // Method 1: Detect keyboard shortcuts
-        document.addEventListener('keyup', (e) => {
-            // Print Screen key
-            if (e.key === 'PrintScreen' || e.keyCode === 44) {
-                this.logViolation('SCREENSHOT', 'Print Screen terdeteksi (keyup)');
-                this.showWarning('🚫 SCREENSHOT TERDETEKSI! Ini adalah pelanggaran!');
-                
-                // Blank clipboard untuk mencegah screenshot
-                navigator.clipboard.writeText('SCREENSHOT TIDAK DIIZINKAN');
-            }
-        });
+    // ============================================
+// DETEKSI SCREENSHOT (PRINT SCREEN) - VERSI JAMIN MUNCUL PERINGATAN
+// ============================================
+detectScreenshot() {
+    // Gunakan keydown untuk mendeteksi penekanan tombol segera
+    document.addEventListener('keydown', (e) => {
+        
+        // 1. Tombol Print Screen (key 'PrintScreen' atau keyCode 44)
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            // *Penting*: Lakukan logging dan warning dulu, meskipun preventDefault gagal
+            this.logViolation('SCREENSHOT', 'Print Screen terdeteksi');
+            this.showWarning('🚫 SCREENSHOT TERDETEKSI! Ini adalah pelanggaran!');
 
-        document.addEventListener('keydown', (e) => {
-            // Print Screen + kombinasi key lain
-            if (e.key === 'PrintScreen' || e.keyCode === 44) {
-                e.preventDefault();
-                this.logViolation('SCREENSHOT', 'Print Screen terdeteksi (keydown)');
-                this.showWarning('🚫 SCREENSHOT TERDETEKSI! Ini adalah pelanggaran!');
-                return false;
+            // Coba gagalkan aksi default (meskipun tidak efektif di level OS)
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Coba blank clipboard
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText('SCREENSHOT TIDAK DIIZINKAN')
+                    .catch(err => console.warn('Clipboard write denied:', err));
             }
+            return false;
+        }
 
-            // Windows: Win + Shift + S (Snipping Tool)
-            if (e.key === 's' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                this.logViolation('SCREENSHOT', 'Snipping Tool terdeteksi');
-                this.showWarning('🚫 SCREENSHOT TOOL TERDETEKSI!');
-                return false;
-            }
+        // 2. Windows: Win + Shift + S (Snipping Tool)
+        if (e.key === 's' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            this.logViolation('SCREENSHOT', 'Snipping Tool terdeteksi');
+            this.showWarning('🚫 SCREENSHOT TOOL TERDETEKSI!');
+            return false;
+        }
 
-            // Mac: Cmd + Shift + 3/4/5
-            if (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key)) {
-                e.preventDefault();
-                this.logViolation('SCREENSHOT', 'Mac screenshot terdeteksi');
-                this.showWarning('🚫 SCREENSHOT TERDETEKSI!');
-                return false;
-            }
-        });
+        // 3. Mac: Cmd + Shift + 3/4/5
+        if (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key)) {
+            e.preventDefault();
+            this.logViolation('SCREENSHOT', 'Mac screenshot terdeteksi');
+            this.showWarning('🚫 SCREENSHOT TERDETEKSI!');
+            return false;
+        }
+    });
+}
 
-        // Method 2: Detect screenshot via clipboard
-        window.addEventListener('copy', () => {
-            setTimeout(() => {
-                navigator.clipboard.readText().then(text => {
-                    if (!text || text === 'SCREENSHOT TIDAK DIIZINKAN') {
-                        // Kemungkinan screenshot (clipboard kosong setelah print screen)
-                        this.logViolation('SCREENSHOT', 'Clipboard activity suspicious');
-                    }
-                }).catch(() => {
-                    // Permission denied - user mungkin screenshot
-                });
-            }, 100);
-        });
+        // Hapus deteksi `keyup` karena pencegahan utama sudah ada di `keydown`.
+        // Hapus juga deteksi clipboard via `copy` yang cenderung menimbulkan false positive,
+        // karena pencegahan clipboard sudah dilakukan di `keydown`.
     }
 
     // ============================================

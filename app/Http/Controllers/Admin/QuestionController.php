@@ -17,6 +17,18 @@ use Illuminate\Support\Facades\Log;
 
 class QuestionController extends Controller
 {
+    // ✅ HELPER METHOD: Sanitasi string kosong jadi null
+    /**
+     * Convert empty strings to null
+     */
+    private function sanitizeNullable($value)
+    {
+        if (is_string($value) && trim($value) === '') {
+            return null;
+        }
+        return $value;
+    }
+
     /**
      * Menampilkan daftar soal (Perlu membedakan Soal Umum vs Soal PAPI).
      */
@@ -26,7 +38,7 @@ class QuestionController extends Controller
 
         // ✅ Soal umum: urutkan dari yang terlama (soal lama di atas)
         $questions = Question::where('alat_tes_id', $AlatTes->id)
-            ->orderBy('id', 'asc')  // atau ->oldest()
+            ->orderBy('id', 'asc')
             ->paginate(10);
 
         // ✅ Soal PAPI: tetap urutkan berdasarkan item_number
@@ -46,7 +58,6 @@ class QuestionController extends Controller
      */
     private function checkIsPapi($alatTes)
     {
-        // Method 1: Cek slug jika ada
         if (isset($alatTes->slug) && !empty($alatTes->slug)) {
             $slug = strtolower(trim($alatTes->slug));
             if (in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick'])) {
@@ -55,7 +66,6 @@ class QuestionController extends Controller
             }
         }
 
-        // Method 2: Cek nama
         if (isset($alatTes->name) && !empty($alatTes->name)) {
             $name = strtolower(trim($alatTes->name));
             if (str_contains($name, 'papi') || str_contains($name, 'kostick')) {
@@ -88,7 +98,7 @@ class QuestionController extends Controller
 
         // 1. VALIDASI TIPE & DEFENISI RULES
         $rules = [
-            'type' => ['required', Rule::in(['PILIHAN_GANDA', 'ESSAY', 'HAFALAN', 'PAPIKOSTICK'])],
+            'type' => ['required', Rule::in(['PILIHAN_GANDA', 'PILIHAN_GANDA_KOMPLEKS', 'ESSAY', 'HAFALAN', 'PAPIKOSTICK'])],
             'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'example_question' => 'nullable|string',
             'instructions' => 'nullable|string',
@@ -107,15 +117,27 @@ class QuestionController extends Controller
             $rules['options.0.text'] = 'required|string|max:500';
             $rules['options.1.text'] = 'required|string|max:500';
         } else {
-            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'ESSAY' || $request->type === 'HAFALAN') {
-                $rules['question_text'] = 'required|string';
+            // ✅ PERBAIKAN: question_text opsional jika ada example_question atau instructions
+            if ($request->type === 'ESSAY') {
+                $rules['question_text'] = 'required|string|min:1';
+            } elseif ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+                // ✅ Boleh kosong jika ada contoh soal atau instruksi
+                $rules['question_text'] = 'nullable|string|min:1';
+            } elseif ($request->type === 'HAFALAN') {
+                $rules['question_text'] = 'nullable|string'; // Boleh kosong
             }
 
-            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'HAFALAN') {
+            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS' || $request->type === 'HAFALAN') {
                 $rules['options'] = 'required|array|min:2';
                 $rules['options.*.text'] = 'nullable|string|max:500';
                 $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
-                $rules['is_correct'] = 'required|integer|min:0';
+
+                if ($request->type === 'PILIHAN_GANDA') {
+                    $rules['is_correct'] = 'required|integer|min:0';
+                } elseif ($request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+                    $rules['correct_answers'] = 'required|array|min:1';
+                    $rules['correct_answers.*'] = 'integer|min:0';
+                }
             }
 
             if ($request->type === 'HAFALAN') {
@@ -123,6 +145,9 @@ class QuestionController extends Controller
                 $rules['memory_type'] = 'required|in:TEXT,IMAGE';
                 $rules['duration_seconds'] = 'required|integer|min:1';
             }
+
+            $rules['ranking_category'] = 'nullable|string|max:100';
+            $rules['ranking_weight'] = 'nullable|integer|min:1|max:100';
         }
 
         // ✅ CUSTOM VALIDATION MESSAGES
@@ -131,26 +156,31 @@ class QuestionController extends Controller
             'papi_item_number.unique' => 'Nomor Soal PAPI ini sudah digunakan.',
             'options.0.text.required' => 'Pernyataan A (Opsi A) wajib diisi.',
             'options.1.text.required' => 'Pernyataan B (Opsi B) wajib diisi.',
-            
-            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR PERTANYAAN
+
+            // FILE SIZE VALIDATION MESSAGES
             'question_image.max' => '⚠️ Ukuran gambar pertanyaan terlalu besar! File yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
             'question_image.image' => '⚠️ File yang diupload harus berupa gambar (JPG, PNG, GIF).',
             'question_image.mimes' => '⚠️ Format gambar tidak didukung. Hanya JPG, JPEG, PNG, dan GIF yang diperbolehkan.',
-            
-            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR OPSI
+
             'options.*.image_file.max' => '⚠️ Ukuran gambar opsi terlalu besar! Salah satu gambar opsi yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
             'options.*.image_file.image' => '⚠️ File opsi yang diupload harus berupa gambar.',
             'options.*.image_file.mimes' => '⚠️ Format gambar opsi tidak didukung. Hanya JPG, JPEG, PNG, GIF, dan WEBP yang diperbolehkan.',
-            
+
             // General Messages
             'question_text.required' => 'Teks pertanyaan wajib diisi.',
+            'question_text.min' => 'Teks pertanyaan minimal 1 karakter.',
             'options.required' => 'Minimal harus ada 2 opsi jawaban.',
             'options.min' => 'Minimal harus ada 2 opsi jawaban.',
             'is_correct.required' => 'Anda harus menandai satu opsi sebagai jawaban yang benar.',
+            'correct_answers.required' => 'Anda harus menandai minimal satu opsi sebagai jawaban yang benar.',
+            'correct_answers.min' => 'Minimal ada 1 jawaban yang benar harus dipilih.',
             'memory_content.required' => 'Konten materi hafalan wajib diisi.',
             'memory_type.required' => 'Tipe konten hafalan harus dipilih (TEXT atau IMAGE).',
             'duration_seconds.required' => 'Durasi tampil materi hafalan wajib diisi.',
             'duration_seconds.min' => 'Durasi minimal adalah 1 detik.',
+
+            'ranking_weight.min' => 'Bobot soal minimal adalah 1.',
+            'ranking_weight.max' => 'Bobot soal maksimal adalah 100.',
         ]);
 
         // 3. LOGIKA PENYIMPANAN PAPI
@@ -193,7 +223,7 @@ class QuestionController extends Controller
             }
         }
 
-        // 4. LOGIKA PENYIMPANAN UMUM (PILIHAN_GANDA, ESSAY, HAFALAN)
+        // 4. LOGIKA PENYIMPANAN UMUM (PILIHAN_GANDA, PILIHAN_GANDA_KOMPLEKS, ESSAY, HAFALAN)
         try {
             DB::beginTransaction();
 
@@ -202,23 +232,28 @@ class QuestionController extends Controller
                 $imagePath = $request->file('question_image')->store('questions', 'public');
             }
 
+            // ✅ PERBAIKAN: Sanitasi hanya untuk field opsional, question_text langsung pakai
             $questionData = [
                 'alat_tes_id' => $alat_te,
                 'test_id' => null,
                 'type' => $request->type,
                 'image_path' => $imagePath,
-                'question_text' => $request->question_text ?? null,
-                'example_question' => $request->example_question ?? null,
-                'instructions' => $request->instructions ?? null,
-                'memory_content' => $request->memory_content ?? null,
+                // ✅ FIX: question_text boleh kosong jika ada contoh/instruksi
+                'question_text' => $this->sanitizeNullable($request->question_text),
+                'example_question' => $this->sanitizeNullable($request->example_question),
+                'instructions' => $this->sanitizeNullable($request->instructions),
+                'memory_content' => $this->sanitizeNullable($request->memory_content),
                 'memory_type' => $request->memory_type ?? null,
                 'duration_seconds' => $request->duration_seconds ?? null,
                 'options' => null,
                 'correct_answer_index' => null,
+                'correct_answers' => null,
+                'ranking_category' => $this->sanitizeNullable($request->ranking_category),
+                'ranking_weight' => $request->ranking_weight ?? 1,
             ];
 
-            // Handle Opsi (untuk PG dan Hafalan)
-            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'HAFALAN') {
+            // Handle Opsi (untuk PG, PG Kompleks, dan Hafalan)
+            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS' || $request->type === 'HAFALAN') {
                 $processedOptions = [];
                 $optionsData = $request->options;
 
@@ -240,7 +275,16 @@ class QuestionController extends Controller
                 }
 
                 $questionData['options'] = json_encode($processedOptions);
-                $questionData['correct_answer_index'] = $request->is_correct;
+
+                // ✅ HANDLE MULTIPLE ANSWERS
+                if ($request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+                    $correctAnswers = $request->input('correct_answers', []);
+                    $questionData['correct_answers'] = json_encode(array_map('intval', $correctAnswers));
+                    $questionData['correct_answer_index'] = null;
+                } else {
+                    $questionData['correct_answer_index'] = $request->is_correct;
+                    $questionData['correct_answers'] = null;
+                }
             }
 
             // 5. SIMPAN KE DATABASE (Tabel Questions)
@@ -251,7 +295,8 @@ class QuestionController extends Controller
             Log::info('Regular question created successfully', [
                 'alat_tes_id' => $alat_te,
                 'type' => $request->type,
-                'id' => $question->id
+                'id' => $question->id,
+                'ranking_category' => $request->ranking_category,
             ]);
 
             return redirect()->route('admin.alat-tes.questions.index', $alat_te)
@@ -279,35 +324,8 @@ class QuestionController extends Controller
     }
 
     // -------------------------------------------------------------------------
-    // FUNGSI SHOW, EDIT, UPDATE, DESTROY
+    // FUNGSI UPDATE (EDIT)
     // -------------------------------------------------------------------------
-
-    /**
-     * Menampilkan detail soal (Termasuk soal PAPI).
-     */
-    public function show($questionId)
-    {
-        // 1. Cek PAPI dulu
-        $papiQuestion = PapiQuestion::find($questionId);
-
-        if ($papiQuestion) {
-            $question = $papiQuestion;
-            // Mencari AlatTes PAPI untuk konteks breadcrumb/menu
-            $alat_te = AlatTes::where('slug', 'papi-kostick')->first() ?? AlatTes::where('name', 'like', '%papi%kostick%')->first();
-
-            if (!$alat_te) {
-                $alat_te = new AlatTes(['id' => 0, 'name' => 'PAPI Kostick (Alat Tes Tidak Ditemukan)']);
-            }
-
-            return view('admin.questions.show_papi', compact('alat_te', 'question'));
-        }
-
-        // 2. Jika bukan PAPI, cari di Question umum
-        $question = Question::findOrFail($questionId);
-        $alat_te = $question->alatTes;
-
-        return view('admin.questions.show', compact('alat_te', 'question'));
-    }
 
     public function edit(AlatTes $alat_te, Question $question)
     {
@@ -350,16 +368,14 @@ class QuestionController extends Controller
             return back()->with('error', 'Gunakan rute khusus untuk memperbarui soal PAPI Kostick.');
         }
 
-        // Lanjutkan Update Soal Umum
         return $this->updateGeneralQuestion($request, $question->id, $alat_te->id);
     }
 
     /**
-     * FUNGSI KHUSUS: Mengupdate Soal PAPI (Route PUT alat-tes/{alat_te}/questions/{papi_question}/update-papi).
+     * FUNGSI KHUSUS: Mengupdate Soal PAPI
      */
     public function updatePapi(Request $request, AlatTes $alat_te, PapiQuestion $papi_question)
     {
-        // 1. Validasi Input
         $validated = $request->validate([
             'item_number' => [
                 'required',
@@ -385,7 +401,6 @@ class QuestionController extends Controller
         try {
             DB::beginTransaction();
 
-            // 2. Update Data
             $papi_question->update([
                 'item_number' => $validated['item_number'],
                 'statement_a' => $validated['statement_a'],
@@ -414,23 +429,35 @@ class QuestionController extends Controller
     {
         $questionModel = Question::findOrFail($questionId);
 
-        // 2. Definisikan Rules Validasi (Hanya untuk tipe umum)
         $rules = [
-            'type' => ['required', Rule::in(['PILIHAN_GANDA', 'ESSAY', 'HAFALAN'])],
+            'type' => ['required', Rule::in(['PILIHAN_GANDA', 'PILIHAN_GANDA_KOMPLEKS', 'ESSAY', 'HAFALAN'])],
             'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             'example_question' => 'nullable|string',
             'instructions' => 'nullable|string',
+            'ranking_category' => 'nullable|string|max:100',
+            'ranking_weight' => 'nullable|integer|min:1|max:100',
         ];
 
-        if ($request->type === 'PILIHAN_GANDA' || $request->type === 'ESSAY' || $request->type === 'HAFALAN') {
-            $rules['question_text'] = 'required|string';
+        // ✅ PERBAIKAN: Sama seperti store, question_text boleh kosong jika ada contoh/instruksi
+        if ($request->type === 'ESSAY') {
+            $rules['question_text'] = 'required|string|min:1';
+        } elseif ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+            $rules['question_text'] = 'nullable|string|min:1';
+        } elseif ($request->type === 'HAFALAN') {
+            $rules['question_text'] = 'nullable|string';
         }
 
-        if ($request->type === 'PILIHAN_GANDA' || $request->type === 'HAFALAN') {
+        if ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS' || $request->type === 'HAFALAN') {
             $rules['options'] = 'required|array|min:2';
             $rules['options.*.text'] = 'nullable|string|max:500';
             $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
-            $rules['is_correct'] = 'required|integer|min:0';
+
+            if ($request->type === 'PILIHAN_GANDA') {
+                $rules['is_correct'] = 'required|integer|min:0';
+            } elseif ($request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+                $rules['correct_answers'] = 'required|array|min:1';
+                $rules['correct_answers.*'] = 'integer|min:0';
+            }
         }
 
         if ($request->type === 'HAFALAN') {
@@ -439,23 +466,21 @@ class QuestionController extends Controller
             $rules['duration_seconds'] = 'required|integer|min:1';
         }
 
-        // ✅ CUSTOM VALIDATION MESSAGES UNTUK UPDATE
         $validated = $request->validate($rules, [
-            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR PERTANYAAN
             'question_image.max' => '⚠️ Ukuran gambar pertanyaan terlalu besar! File yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
             'question_image.image' => '⚠️ File yang diupload harus berupa gambar (JPG, PNG, GIF).',
             'question_image.mimes' => '⚠️ Format gambar tidak didukung. Hanya JPG, JPEG, PNG, dan GIF yang diperbolehkan.',
-            
-            // ✅ FILE SIZE VALIDATION MESSAGES - GAMBAR OPSI
+
             'options.*.image_file.max' => '⚠️ Ukuran gambar opsi terlalu besar! Salah satu gambar opsi yang Anda upload berukuran lebih dari 5 MB (5120 KB). Silakan kompres gambar atau pilih file yang lebih kecil.',
             'options.*.image_file.image' => '⚠️ File opsi yang diupload harus berupa gambar.',
             'options.*.image_file.mimes' => '⚠️ Format gambar opsi tidak didukung. Hanya JPG, JPEG, PNG, GIF, dan WEBP yang diperbolehkan.',
-            
-            // General Messages
+
             'question_text.required' => 'Teks pertanyaan wajib diisi.',
+            'question_text.min' => 'Teks pertanyaan minimal 1 karakter.',
             'options.required' => 'Minimal harus ada 2 opsi jawaban.',
             'options.min' => 'Minimal harus ada 2 opsi jawaban.',
             'is_correct.required' => 'Anda harus menandai satu opsi sebagai jawaban yang benar.',
+            'correct_answers.required' => 'Anda harus menandai minimal satu opsi sebagai jawaban yang benar.',
             'memory_content.required' => 'Konten materi hafalan wajib diisi.',
             'memory_type.required' => 'Tipe konten hafalan harus dipilih (TEXT atau IMAGE).',
             'duration_seconds.required' => 'Durasi tampil materi hafalan wajib diisi.',
@@ -465,28 +490,29 @@ class QuestionController extends Controller
         try {
             DB::beginTransaction();
 
-            // 3. Handle Gambar Pertanyaan
             $imagePath = $questionModel->image_path;
             if ($request->hasFile('question_image')) {
                 if ($imagePath) {
-                    Storage::disk('public')->delete($imagePath); // Hapus gambar lama
+                    Storage::disk('public')->delete($imagePath);
                 }
                 $imagePath = $request->file('question_image')->store('questions', 'public');
             }
 
-            // 4. Proses Opsi (PILIHAN GANDA/HAFALAN)
+            // ✅ PERBAIKAN: Sama seperti store
             $questionData = [
                 'type' => $request->type,
                 'image_path' => $imagePath,
-                'question_text' => $request->question_text ?? null,
-                'example_question' => $request->example_question ?? null,
-                'instructions' => $request->instructions ?? null,
-                'memory_content' => $request->memory_content ?? null,
+                'question_text' => $this->sanitizeNullable($request->question_text),
+                'example_question' => $this->sanitizeNullable($request->example_question),
+                'instructions' => $this->sanitizeNullable($request->instructions),
+                'memory_content' => $this->sanitizeNullable($request->memory_content),
                 'memory_type' => $request->memory_type ?? null,
                 'duration_seconds' => $request->duration_seconds ?? null,
+                'ranking_category' => $this->sanitizeNullable($request->ranking_category),
+                'ranking_weight' => $request->ranking_weight ?? 1,
             ];
 
-            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'HAFALAN') {
+            if ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS' || $request->type === 'HAFALAN') {
                 $processedOptions = [];
                 $optionsData = $request->options;
 
@@ -514,13 +540,22 @@ class QuestionController extends Controller
                 }
 
                 $questionData['options'] = json_encode($processedOptions);
-                $questionData['correct_answer_index'] = $request->is_correct;
+
+                // ✅ HANDLE MULTIPLE ANSWERS ON UPDATE
+                if ($request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+                    $correctAnswers = $request->input('correct_answers', []);
+                    $questionData['correct_answers'] = json_encode(array_map('intval', $correctAnswers));
+                    $questionData['correct_answer_index'] = null;
+                } else {
+                    $questionData['correct_answer_index'] = $request->is_correct;
+                    $questionData['correct_answers'] = null;
+                }
             } else {
                 $questionData['options'] = null;
                 $questionData['correct_answer_index'] = null;
+                $questionData['correct_answers'] = null;
             }
 
-            // 5. Update Model
             $questionModel->update($questionData);
 
             DB::commit();
@@ -535,7 +570,7 @@ class QuestionController extends Controller
     }
 
     /**
-     * Menghapus soal (Mencakup logika PAPI dan Umum).
+     * Menghapus soal
      */
     public function destroy($questionId)
     {
@@ -544,13 +579,11 @@ class QuestionController extends Controller
 
             $testId = null;
 
-            // 1. CEK APAKAH INI SOAL PAPI
             $papiQuestion = PapiQuestion::find($questionId);
 
             if ($papiQuestion) {
                 $itemNumber = $papiQuestion->item_number;
 
-                // Cari AlatTes PAPI untuk mendapatkan ID-nya
                 $alatTes = AlatTes::where('slug', 'papi-kostick')->first();
                 if (!$alatTes) {
                     $alatTes = AlatTes::where('name', 'like', '%papi%kostick%')->first();
@@ -574,16 +607,13 @@ class QuestionController extends Controller
                 return back()->withErrors(['error' => 'Gagal menghapus: Tidak dapat menemukan ID Alat Tes PAPI untuk redirect.']);
             }
 
-            // 2. HAPUS SOAL UMUM
             $questionModel = Question::findOrFail($questionId);
             $testId = $questionModel->alat_tes_id;
 
-            // Hapus gambar terkait
             if ($questionModel->image_path) {
                 Storage::disk('public')->delete($questionModel->image_path);
             }
 
-            // Hapus gambar opsi
             if ($questionModel->options) {
                 $options = is_string($questionModel->options) ? json_decode($questionModel->options, true) : $questionModel->options;
                 foreach ($options as $option) {
@@ -650,17 +680,20 @@ class QuestionController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $sheet->setCellValue('A1', 'Tipe (PILIHAN_GANDA/ESSAY/HAFALAN/PAPIKOSTICK)');
+        $sheet->setCellValue('A1', 'Tipe (PILIHAN_GANDA/PILIHAN_GANDA_KOMPLEKS/ESSAY/HAFALAN/PAPIKOSTICK)');
         $sheet->setCellValue('B1', 'Teks Pertanyaan');
         $sheet->setCellValue('C1', 'Contoh Soal');
         $sheet->setCellValue('D1', 'Instruksi');
         $sheet->setCellValue('E1', 'Opsi A (Teks)');
         $sheet->setCellValue('F1', 'Opsi B (Teks)');
-        $sheet->setCellValue('G1', 'Jawaban Benar (Index 0/1/2...)');
-        $sheet->setCellValue('H1', 'Memory Content (Jika Hafalan)');
-        $sheet->setCellValue('I1', 'Memory Type (TEXT/IMAGE)');
-        $sheet->setCellValue('J1', 'Duration Seconds');
-        $sheet->setCellValue('K1', 'PAPI Item Number');
+        $sheet->setCellValue('G1', 'Jawaban Benar (Index 0/1/2... untuk PILIHAN_GANDA)');
+        $sheet->setCellValue('H1', 'Jawaban Benar Multiple (0,1,2... untuk PILIHAN_GANDA_KOMPLEKS)');
+        $sheet->setCellValue('I1', 'Memory Content (Jika Hafalan)');
+        $sheet->setCellValue('J1', 'Memory Type (TEXT/IMAGE)');
+        $sheet->setCellValue('K1', 'Duration Seconds');
+        $sheet->setCellValue('L1', 'PAPI Item Number');
+        $sheet->setCellValue('M1', 'Ranking Category');
+        $sheet->setCellValue('N1', 'Ranking Weight');
 
         $writer = new Xlsx($spreadsheet);
         $fileName = 'questions_template.xlsx';

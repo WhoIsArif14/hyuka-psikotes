@@ -51,13 +51,76 @@
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
                                 <option value="PILIHAN_GANDA"
                                     {{ old('type', 'PILIHAN_GANDA') == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan
-                                    Ganda</option>
+                                    Ganda (Satu Jawaban)</option>
+                                <option value="PILIHAN_GANDA_KOMPLEKS"
+                                    {{ old('type') == 'PILIHAN_GANDA_KOMPLEKS' ? 'selected' : '' }}>Pilihan
+                                    Ganda Kompleks (Banyak Jawaban)</option>
                                 <option value="ESSAY" {{ old('type') == 'ESSAY' ? 'selected' : '' }}>Esai</option>
                                 <option value="HAFALAN" {{ old('type') == 'HAFALAN' ? 'selected' : '' }}>Hafalan
                                 </option>
                                 <option value="PAPIKOSTICK" {{ old('type') == 'PAPIKOSTICK' ? 'selected' : '' }}>PAPI
                                     KOSTICK (Pasangan Pernyataan)</option>
                             </select>
+                            <p class="text-xs text-gray-500 mt-1" id="type-hint">Pilih jenis soal yang akan dibuat</p>
+                        </div>
+
+                        {{-- ✅ KATEGORI PERANGKINGAN (NEW) --}}
+                        <div id="ranking-category-container" class="mb-4 border border-indigo-200 bg-indigo-50 p-4 rounded-lg">
+                            <h4 class="text-md font-semibold text-indigo-700 mb-3 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                📊 Kategori Perangkingan
+                            </h4>
+                            <p class="text-xs text-gray-600 mb-3">Kelompokkan soal berdasarkan aspek (Logika, Verbal, Numerik, dll) untuk analisis skor per kategori</p>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="ranking_category" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Kategori <span class="text-xs text-gray-500">(Opsional)</span>
+                                    </label>
+                                    <select id="ranking_category" name="ranking_category"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">-- Tanpa Kategori --</option>
+                                        <option value="LOGIKA" {{ old('ranking_category') == 'LOGIKA' ? 'selected' : '' }}>Logika</option>
+                                        <option value="VERBAL" {{ old('ranking_category') == 'VERBAL' ? 'selected' : '' }}>Verbal</option>
+                                        <option value="NUMERIK" {{ old('ranking_category') == 'NUMERIK' ? 'selected' : '' }}>Numerik</option>
+                                        <option value="SPASIAL" {{ old('ranking_category') == 'SPASIAL' ? 'selected' : '' }}>Spasial</option>
+                                        <option value="MEMORI" {{ old('ranking_category') == 'MEMORI' ? 'selected' : '' }}>Memori</option>
+                                        <option value="PERHATIAN" {{ old('ranking_category') == 'PERHATIAN' ? 'selected' : '' }}>Perhatian</option>
+                                        <option value="KECEPATAN" {{ old('ranking_category') == 'KECEPATAN' ? 'selected' : '' }}>Kecepatan</option>
+                                        <option value="CUSTOM" {{ old('ranking_category') == 'CUSTOM' ? 'selected' : '' }}>⚙️ Custom (Ketik Manual)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="ranking_weight" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Bobot Soal <span class="text-xs text-gray-500">(1-100)</span>
+                                    </label>
+                                    <input type="number" id="ranking_weight" name="ranking_weight" min="1" max="100"
+                                        value="{{ old('ranking_weight', 1) }}"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <p class="text-xs text-gray-500 mt-1">Default: 1 (Semakin tinggi, semakin penting)</p>
+                                </div>
+                            </div>
+
+                            {{-- Custom Category Input --}}
+                            <div id="custom-category-input" class="mt-3 hidden">
+                                <label for="custom_ranking_category" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Nama Kategori Custom
+                                </label>
+                                <input type="text" id="custom_ranking_category" 
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Contoh: Analisis Verbal, Reasoning, dll"
+                                    maxlength="100">
+                                <p class="text-xs text-gray-500 mt-1">Maksimal 100 karakter</p>
+                            </div>
+
+                            <div class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p class="text-xs text-blue-800">
+                                    <strong>💡 Cara Kerja:</strong> Kategori ini digunakan untuk menghitung skor per kategori dan membuat ranking berdasarkan aspek tertentu. Bobot mempengaruhi kontribusi soal terhadap skor total.
+                                </p>
+                            </div>
                         </div>
 
                         {{-- Input Khusus PAPI KOSTICK --}}
@@ -288,6 +351,19 @@
                                 </div>
                             </div>
 
+                            {{-- INFO MULTIPLE ANSWERS --}}
+                            <div id="multiple-answers-info" class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 hidden">
+                                <div class="flex gap-2">
+                                    <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-amber-800">Mode: Pilihan Ganda Kompleks (Banyak Jawaban Benar)</p>
+                                        <p class="text-xs text-amber-700 mt-1">✅ Centang semua opsi yang merupakan jawaban benar. Peserta harus memilih SEMUA jawaban benar untuk mendapat poin penuh.</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div id="options-container" class="border border-gray-200 p-4 rounded-lg">
                                 <div id="optionsList" class="space-y-3">
                                     {{-- Opsi A, B, C, D default (4 opsi) --}}
@@ -301,6 +377,13 @@
                                                             value="{{ $i }}"
                                                             class="h-4 w-4 text-green-600 correct-radio"
                                                             {{ old('is_correct') == $i ? 'checked' : '' }}>
+                                                        <label class="ml-2 text-sm text-gray-600 correct-label">Benar</label>
+                                                    </div>
+                                                    <div class="flex items-center pt-2 correct-checkbox-block hidden">
+                                                        <input type="checkbox" name="correct_answers[]"
+                                                            value="{{ $i }}"
+                                                            class="h-4 w-4 text-green-600 rounded correct-checkbox"
+                                                            {{ is_array(old('correct_answers')) && in_array($i, old('correct_answers')) ? 'checked' : '' }}>
                                                         <label class="ml-2 text-sm text-gray-600">Benar</label>
                                                     </div>
                                                     <div class="flex-1">
@@ -420,7 +503,6 @@
                                         @endif
                                     </div>
 
-                                    {{-- ✅ PERBAIKAN: Gunakan route yang BENAR --}}
                                     <div class="flex space-x-2 ml-4">
                                         <a href="{{ route('admin.alat-tes.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $papiQuestion->id]) }}"
                                             class="text-blue-600 hover:text-blue-800 font-medium text-sm">
@@ -458,13 +540,31 @@
                             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
-                                        <div class="flex items-center space-x-2 mb-2">
+                                        <div class="flex items-center space-x-2 mb-2 flex-wrap gap-2">
                                             <span
                                                 class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
                                                 {{ $question->type }}
                                             </span>
                                             <span class="text-gray-500 text-sm">Soal
                                                 #{{ $questions->firstItem() + $index }}</span>
+
+                                            {{-- ✅ DISPLAY RANKING CATEGORY --}}
+                                            @if ($question->ranking_category)
+                                                <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    {{ $question->ranking_category }}
+                                                </span>
+                                            @endif
+
+                                            {{-- ✅ DISPLAY WEIGHT --}}
+                                            @if ($question->ranking_weight && $question->ranking_weight > 1)
+                                                <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
+                                                    ⚖️ Bobot: {{ $question->ranking_weight }}
+                                                </span>
+                                            @endif
 
                                             @if ($question->type == 'HAFALAN')
                                                 <span
@@ -542,7 +642,6 @@
                                         @endif
                                     </div>
 
-                                    {{-- ✅ SUDAH BENAR - Soal Umum --}}
                                     <div class="flex space-x-2 ml-4">
                                         <a href="{{ route('admin.alat-tes.questions.edit', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}"
                                             class="text-blue-600 hover:text-blue-800 font-medium text-sm">
@@ -614,6 +713,12 @@
             const imagePreview = document.getElementById('imagePreview');
             const previewImg = document.getElementById('previewImg');
             const removeImageBtn = document.getElementById('removeImageBtn');
+
+            // ✅ RANKING CATEGORY ELEMENTS (NEW)
+            const rankingCategorySelect = document.getElementById('ranking_category');
+            const customCategoryInput = document.getElementById('custom-category-input');
+            const customCategoryField = document.getElementById('custom_ranking_category');
+            const rankingContainer = document.getElementById('ranking-category-container');
 
             // ✅ FILE SIZE VALIDATION CONSTANT
             const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB dalam bytes
@@ -764,6 +869,21 @@
                         formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         return false;
                     }
+
+                    // ✅ HANDLE CUSTOM CATEGORY SUBMISSION
+                    if (rankingCategorySelect && rankingCategorySelect.value === 'CUSTOM' && customCategoryField && customCategoryField.value.trim()) {
+                        const customValue = customCategoryField.value.trim().toUpperCase();
+                        
+                        // Create hidden input with custom value
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'ranking_category';
+                        hiddenInput.value = customValue;
+                        questionForm.appendChild(hiddenInput);
+                        
+                        // Disable the select to avoid double submission
+                        rankingCategorySelect.disabled = true;
+                    }
                 });
             }
 
@@ -813,11 +933,29 @@
                 });
             }
 
+            // ✅ HANDLE CUSTOM CATEGORY INPUT VISIBILITY
+            if (rankingCategorySelect && customCategoryInput) {
+                rankingCategorySelect.addEventListener('change', function() {
+                    if (this.value === 'CUSTOM') {
+                        customCategoryInput.classList.remove('hidden');
+                        if (customCategoryField) customCategoryField.required = false;
+                    } else {
+                        customCategoryInput.classList.add('hidden');
+                        if (customCategoryField) {
+                            customCategoryField.required = false;
+                            customCategoryField.value = '';
+                        }
+                    }
+                });
+            }
+
             // Toggle Containers
             function toggleContainers() {
                 if (!typeSelect) return;
 
                 const selectedType = typeSelect.value;
+                const multipleAnswersInfo = document.getElementById('multiple-answers-info');
+                const typeHint = document.getElementById('type-hint');
 
                 // Reset/Hide All
                 if (optionsSection) optionsSection.style.display = 'none';
@@ -826,6 +964,16 @@
                 if (questionTextContainer) questionTextContainer.style.display = 'block';
                 if (questionImageContainer) questionImageContainer.style.display = 'block';
                 if (addOptionBtn) addOptionBtn.style.display = 'block';
+                if (multipleAnswersInfo) multipleAnswersInfo.classList.add('hidden');
+
+                // ✅ SHOW/HIDE RANKING CATEGORY BASED ON TYPE
+                if (rankingContainer) {
+                    if (selectedType === 'PAPIKOSTICK') {
+                        rankingContainer.classList.add('hidden');
+                    } else {
+                        rankingContainer.classList.remove('hidden');
+                    }
+                }
 
                 // Reset Labels
                 const questionTextLabel = document.getElementById('question-text-label');
@@ -836,12 +984,26 @@
                 if (questionTextHint) questionTextHint.textContent = 'Pertanyaan untuk peserta';
                 if (optionsHint) optionsHint.textContent = 'Pilihan jawaban untuk pertanyaan';
 
+                // ✅ TOGGLE BETWEEN RADIO AND CHECKBOX
+                const isMultipleChoice = selectedType === 'PILIHAN_GANDA_KOMPLEKS';
+                
                 document.querySelectorAll('.option-item').forEach((item, index) => {
                     item.style.display = 'block';
                     const radioBlock = item.querySelector('.correct-radio-block');
+                    const checkboxBlock = item.querySelector('.correct-checkbox-block');
                     const removeBtn = item.querySelector('.remove-option-btn');
 
-                    if (radioBlock) radioBlock.style.display = 'flex';
+                    if (isMultipleChoice) {
+                        if (radioBlock) radioBlock.style.display = 'none';
+                        if (checkboxBlock) checkboxBlock.style.display = 'flex';
+                        if (multipleAnswersInfo) multipleAnswersInfo.classList.remove('hidden');
+                        if (typeHint) typeHint.textContent = 'Peserta harus memilih SEMUA jawaban yang benar';
+                    } else {
+                        if (radioBlock) radioBlock.style.display = 'flex';
+                        if (checkboxBlock) checkboxBlock.style.display = 'none';
+                        if (typeHint) typeHint.textContent = 'Pilih jenis soal yang akan dibuat';
+                    }
+
                     if (removeBtn) removeBtn.style.display = index >= 2 ? 'block' : 'none';
                 });
 
@@ -863,11 +1025,13 @@
 
                     document.querySelectorAll('.option-item').forEach((item, index) => {
                         const radioBlock = item.querySelector('.correct-radio-block');
+                        const checkboxBlock = item.querySelector('.correct-checkbox-block');
 
                         if (index >= 2) {
                             item.style.display = 'none';
                         } else {
                             if (radioBlock) radioBlock.style.display = 'none';
+                            if (checkboxBlock) checkboxBlock.style.display = 'none';
                         }
                     });
 
@@ -875,7 +1039,7 @@
                     if (optionsSection) optionsSection.style.display = 'none';
                     if (addOptionBtn) addOptionBtn.style.display = 'none';
 
-                } else if (selectedType === 'PILIHAN_GANDA') {
+                } else if (selectedType === 'PILIHAN_GANDA' || selectedType === 'PILIHAN_GANDA_KOMPLEKS') {
                     if (optionsSection) optionsSection.style.display = 'block';
                     if (addOptionBtn) addOptionBtn.style.display = 'block';
 
@@ -895,14 +1059,19 @@
                 addOptionBtn.addEventListener('click', function() {
                     const newIndex = optionsList.children.length;
                     const letter = String.fromCharCode(65 + newIndex);
+                    const isMultipleChoice = typeSelect && typeSelect.value === 'PILIHAN_GANDA_KOMPLEKS';
 
                     const newOption = document.createElement('div');
                     newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
                     newOption.innerHTML = `
                     <div class="flex items-start space-x-3 w-full">
                         <div class="flex items-start space-x-3 w-full">
-                            <div class="flex items-center pt-2 correct-radio-block">
+                            <div class="flex items-center pt-2 correct-radio-block" style="${isMultipleChoice ? 'display: none;' : ''}">
                                 <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600 correct-radio">
+                                <label class="ml-2 text-sm text-gray-600">Benar</label>
+                            </div>
+                            <div class="flex items-center pt-2 correct-checkbox-block" style="${isMultipleChoice ? '' : 'display: none;'}">
+                                <input type="checkbox" name="correct_answers[]" value="${newIndex}" class="h-4 w-4 text-green-600 rounded correct-checkbox">
                                 <label class="ml-2 text-sm text-gray-600">Benar</label>
                             </div>
                             <div class="flex-1">

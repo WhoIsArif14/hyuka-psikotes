@@ -11,115 +11,119 @@ class Question extends Model
 
     protected $fillable = [
         'alat_tes_id',
-        'test_id',  // ✅ Pastikan ini ada
+        'test_id',
         'type',
         'image_path',
         'question_text',
+        'example_question',
+        'instructions',
         'memory_content',
         'memory_type',
         'duration_seconds',
         'options',
         'correct_answer_index',
+        'correct_answers',       // ✅ NEW - untuk multiple answers
+        'ranking_category',
+        'ranking_weight',
     ];
-
 
     protected $casts = [
-        'options' => 'array', // Otomatis convert JSON ke array
-        'correct_answer_index' => 'integer',
-        'duration_seconds' => 'integer',
+        'options' => 'json',
+        'correct_answers' => 'json', // ✅ NEW - cast JSON array
     ];
 
-    /**
-     * Relasi ke AlatTes menggunakan test_id
-     */
-    public function AlatTes()
+    // ✅ ACCESSOR - Mendapatkan correct answers (baik single atau multiple)
+    public function getCorrectAnswersArray()
     {
-        return $this->belongsTo(AlatTes::class, 'test_id');
+        // Jika multiple answers (PILIHAN_GANDA_KOMPLEKS)
+        if ($this->correct_answers) {
+            return is_array($this->correct_answers) 
+                ? $this->correct_answers 
+                : json_decode($this->correct_answers, true);
+        }
+        
+        // Jika single answer (PILIHAN_GANDA)
+        if ($this->correct_answer_index !== null) {
+            return [$this->correct_answer_index];
+        }
+        
+        return [];
+    }
+
+    // ✅ HELPER - Check apakah soal punya multiple answers
+    public function hasMultipleCorrectAnswers()
+    {
+        return $this->type === 'PILIHAN_GANDA_KOMPLEKS' && !is_null($this->correct_answers);
+    }
+
+    // ✅ HELPER - Check apakah jawaban peserta benar
+    public function checkAnswer($userAnswer)
+    {
+        if ($this->hasMultipleCorrectAnswers()) {
+            // User harus memilih SEMUA jawaban yang benar
+            $correctAnswers = $this->getCorrectAnswersArray();
+            $userAnswerArray = is_array($userAnswer) ? $userAnswer : [$userAnswer];
+            
+            // Bandingkan: user answer harus sama persis dengan correct answers
+            sort($correctAnswers);
+            sort($userAnswerArray);
+            
+            return $correctAnswers === $userAnswerArray;
+        } else {
+            // Single answer comparison
+            return (int)$userAnswer === (int)$this->correct_answer_index;
+        }
     }
 
     /**
-     * Relasi alternatif menggunakan alat_tes_id (jika dipakai)
+     * Relationship dengan AlatTes
      */
-    public function AlatTesAlt()
+    public function alatTes()
     {
         return $this->belongsTo(AlatTes::class, 'alat_tes_id');
     }
 
     /**
-     * Relasi ke MemoryItem (jika ada model ini)
+     * Get options as array
      */
-    public function memoryItem()
-    {
-        return $this->belongsTo(MemoryItem::class);
-    }
-
-    /**
-     * Accessor untuk mendapatkan opsi sebagai array
-     */
-    public function getOptionsArrayAttribute()
+    public function getOptionsArray()
     {
         if (is_string($this->options)) {
-            return json_decode($this->options, true);
+            return json_decode($this->options, true) ?? [];
         }
-        return $this->options;
+        return $this->options ?? [];
     }
 
     /**
-     * Accessor untuk mendapatkan jawaban benar
+     * Get display type (friendly name)
      */
-    public function getCorrectAnswerAttribute()
+    public function getDisplayType()
     {
-        if ($this->type === 'PILIHAN_GANDA' && $this->options && isset($this->correct_answer_index)) {
-            $options = is_string($this->options) ? json_decode($this->options, true) : $this->options;
-            return $options[$this->correct_answer_index]['text'] ?? null;
-        }
-        return null;
-    }
-
-    /**
-     * Mutator untuk normalize type value
-     */
-    public function setTypeAttribute($value)
-    {
-        // Convert old value to new format
-        $typeMap = [
-            'multiple_choice' => 'PILIHAN_GANDA',
-            'essay' => 'ESSAY',
-            'memory' => 'HAFALAN',
+        $types = [
+            'PILIHAN_GANDA' => 'Pilihan Ganda (1 Jawaban)',
+            'PILIHAN_GANDA_KOMPLEKS' => 'Pilihan Ganda Kompleks (Banyak Jawaban)',
+            'ESSAY' => 'Esai',
+            'HAFALAN' => 'Hafalan',
+            'PAPIKOSTICK' => 'PAPI Kostick',
         ];
 
-        $this->attributes['type'] = $typeMap[$value] ?? strtoupper($value);
+        return $types[$this->type] ?? $this->type;
     }
 
     /**
-     * Scope untuk filter berdasarkan tipe
+     * Get correct answer display
      */
-    public function scopeOfType($query, $type)
+    public function getCorrectAnswerDisplay()
     {
-        return $query->where('type', $type);
-    }
-
-    /**
-     * Scope untuk pertanyaan pilihan ganda
-     */
-    public function scopePilihanGanda($query)
-    {
-        return $query->whereIn('type', ['PILIHAN_GANDA', 'multiple_choice']);
-    }
-
-    /**
-     * Scope untuk pertanyaan essay
-     */
-    public function scopeEssay($query)
-    {
-        return $query->whereIn('type', ['ESSAY', 'essay']);
-    }
-
-    /**
-     * Scope untuk pertanyaan hafalan
-     */
-    public function scopeHafalan($query)
-    {
-        return $query->whereIn('type', ['HAFALAN', 'memory']);
+        if ($this->hasMultipleCorrectAnswers()) {
+            $answers = $this->getCorrectAnswersArray();
+            $letters = array_map(function($idx) {
+                return chr(65 + $idx);
+            }, $answers);
+            return implode(', ', $letters);
+        } else {
+            $idx = $this->correct_answer_index;
+            return chr(65 + $idx);
+        }
     }
 }
