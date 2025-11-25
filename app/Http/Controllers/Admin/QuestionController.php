@@ -36,12 +36,14 @@ class QuestionController extends Controller
     {
         $AlatTes = $alat_te;
 
-        // ✅ Soal umum: urutkan dari yang terlama (soal lama di atas)
+        // Ambil soal umum (Pilihan Ganda, Esai, dll.)
         $questions = Question::where('alat_tes_id', $AlatTes->id)
             ->orderBy('id', 'asc')
             ->paginate(10);
 
-        // ✅ Soal PAPI: tetap urutkan berdasarkan item_number
+        // Ambil soal PAPI Kostick
+        // Ini adalah query yang mencari ID Alat Tes yang BENAR.
+        // Jika data di database sudah di-UPDATE dari NULL ke ID yang benar, data akan muncul.
         $papiQuestions = PapiQuestion::where('alat_tes_id', $AlatTes->id)
             ->orderBy('item_number', 'asc')
             ->paginate(10);
@@ -49,7 +51,7 @@ class QuestionController extends Controller
         return view('admin.questions.index', [
             'AlatTes' => $AlatTes,
             'questions' => $questions,
-            'papiQuestions' => $papiQuestions,
+            'papiQuestions' => $papiQuestions, // Variabel yang membawa data PAPI ke View
         ]);
     }
 

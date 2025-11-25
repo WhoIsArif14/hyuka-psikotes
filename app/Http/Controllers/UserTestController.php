@@ -36,6 +36,7 @@ class UserTestController extends Controller
 
     /**
      * Menganalisis Modul Tes dan mengarahkan ke controller yang sesuai.
+     * LOGIKA REVISI: Pertama cek apakah ini PAPI Kostick.
      */
     public function startTest(Test $test)
     {
@@ -44,15 +45,14 @@ class UserTestController extends Controller
         }
 
         $test->load('alatTes');
-        $alatTes = $test->alatTes->firstWhere(fn($alat) => $alat->questions->isNotEmpty());
+        
+        // 1. Cari Alat Tes PAPI Kostick di antara semua Alat Tes yang dipilih Tes ini.
+        $papiAlatTes = $test->alatTes->firstWhere(function ($alat) {
+             $slug = strtolower($alat->slug ?? $alat->name ?? '');
+             return in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick']);
+        });
 
-        if (!$alatTes) {
-            return redirect()->route('login')
-                ->with('error', 'Alat tes tidak ditemukan atau belum memiliki soal. Hubungi administrator.');
-        }
-
-        $slug = strtolower($alatTes->slug ?? $alatTes->name ?? '');
-        $isPapi = in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick']);
+        $isPapi = !is_null($papiAlatTes);
 
         if ($isPapi) {
             if (PapiResult::where('user_id', auth()->id())->exists()) {
@@ -60,8 +60,18 @@ class UserTestController extends Controller
                     ->with('error', 'Anda sudah menyelesaikan Tes PAPI Kostick.');
             }
 
+            // Jika PAPI ditemukan, arahkan ke PapiTestController
             $papiController = new \App\Http\Controllers\PapiTestController();
-            return $papiController->showTestForm($test);
+            return $papiController->showTestForm($test); 
+        }
+        
+        // 2. Jika bukan PAPI, cari Alat Tes Umum yang memiliki soal (menggunakan relasi 'questions' model AlatTes)
+        $alatTes = $test->alatTes->firstWhere(fn($alat) => $alat->questions->isNotEmpty());
+
+        if (!$alatTes) {
+            // Jika bukan PAPI, dan tidak ada soal umum, tampilkan error
+            return redirect()->route('login')
+                ->with('error', 'Alat tes tidak ditemukan atau belum memiliki soal. Hubungi administrator.');
         }
 
         // Reset session jawaban jika mulai tes baru
@@ -74,7 +84,7 @@ class UserTestController extends Controller
     }
 
     /**
-     * Menampilkan soal berdasarkan nomor urut
+     * Menampilkan soal berdasarkan nomor urut (Hanya untuk soal umum)
      */
     public function showQuestion(Test $test, $number)
     {
@@ -84,7 +94,7 @@ class UserTestController extends Controller
 
         $test->load('alatTes.questions');
         $alatTes = $test->alatTes->firstWhere(fn($alat) => $alat->questions->isNotEmpty());
-
+        
         if (!$alatTes) {
             return redirect()->route('login')
                 ->with('error', 'Belum ada soal untuk tes ini. Hubungi administrator.');
