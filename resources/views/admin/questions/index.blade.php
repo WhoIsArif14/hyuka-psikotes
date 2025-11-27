@@ -15,6 +15,13 @@
                 </div>
             @endif
 
+            {{-- Error Message --}}
+            @if (session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             {{-- Form Tambah Soal --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -145,19 +152,70 @@
                             </div>
                         </div>
 
-                        {{-- Input Khusus PAPI KOSTICK --}}
+                        {{-- ✅ Input Khusus PAPI KOSTICK --}}
                         <div id="papi-scoring-container"
-                            class="border border-red-200 bg-red-50 p-4 rounded-lg mb-4 hidden">
-                            <h4 class="text-md font-semibold text-red-700 mb-3">⚙️ Pengaturan PAPI KOSTICK</h4>
+                            class="border border-purple-200 bg-purple-50 p-4 rounded-lg mb-4 hidden">
+                            <h4 class="text-md font-semibold text-purple-700 mb-3">⚙️ Pengaturan PAPI KOSTICK</h4>
 
-                            <div class="mb-4">
-                                <label for="papi_item_number" class="block text-sm font-medium text-gray-700">Nomor Soal
-                                    PAPI (1-90)</label>
-                                <input id="papi_item_number" name="papi_item_number" type="number" min="1"
-                                    max="90" value="{{ old('papi_item_number') }}"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
-                                <p class="text-xs text-red-500 mt-1">CATATAN: Input Role dan Need telah dihapus. Harap
-                                    gunakan import Excel untuk mengisi aspek skor secara massal.</p>
+                            {{-- ✅ CHECKBOX AUTO-GENERATE --}}
+                            <div
+                                class="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-lg p-4">
+                                <label class="flex items-start space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="auto_generate_papi" name="auto_generate_papi"
+                                        value="1" {{ old('auto_generate_papi') ? 'checked' : '' }}
+                                        class="mt-1 h-5 w-5 text-purple-600 rounded focus:ring-purple-500">
+                                    <div class="flex-1">
+                                        <span class="font-semibold text-purple-900 text-lg">
+                                            ✨ Tambahkan 90 Soal PAPI Kostick Standar
+                                        </span>
+                                        <p class="text-sm text-purple-700 mt-1">
+                                            Centang ini untuk otomatis membuat 90 soal PAPI Kostick standar.
+                                            Anda hanya perlu mengisi <strong>Contoh Soal</strong> dan
+                                            <strong>Instruksi</strong> di tab di bawah.
+                                        </p>
+                                        <div class="mt-2 bg-white rounded p-2 text-xs text-gray-600">
+                                            <strong>📋 Yang akan di-generate:</strong>
+                                            <ul class="list-disc list-inside mt-1 space-y-0.5">
+                                                <li>90 pasangan pernyataan (Statement A & B)</li>
+                                                <li>Struktur soal sesuai standar PAPI Kostick</li>
+                                                <li>Kunci scoring dapat dilengkapi nanti via tombol Edit</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- ✅ PERINGATAN JIKA TIDAK CENTANG --}}
+                            <div id="papi-manual-warning"
+                                class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-3 hidden">
+                                <div class="flex gap-2">
+                                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-semibold text-yellow-800">⚠️ Mode Input Manual</p>
+                                        <p class="text-xs text-yellow-700 mt-1">
+                                            Anda akan membuat soal PAPI satu per satu. Ini memakan waktu lama (90 soal).
+                                            Disarankan centang checkbox di atas untuk auto-generate.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- ✅ INPUT MANUAL (Hanya muncul jika checkbox tidak dicentang) --}}
+                            <div id="papi-manual-input" class="mt-4">
+                                <div class="mb-4">
+                                    <label for="papi_item_number" class="block text-sm font-medium text-gray-700">
+                                        Nomor Soal PAPI (1-90)
+                                    </label>
+                                    <input id="papi_item_number" name="papi_item_number" type="number"
+                                        min="1" max="90" value="{{ old('papi_item_number') }}"
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                    <p class="text-xs text-gray-500 mt-1">Kosongkan jika auto-generate dicentang</p>
+                                </div>
                             </div>
                         </div>
 
@@ -193,53 +251,41 @@
                                         class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500">
                                         <option value="">-- Pilih Bidang Minat --</option>
                                         <option value="OUTDOOR"
-                                            {{ old('rmib_interest_area') == 'OUTDOOR' ? 'selected' : '' }}>
-                                            1. Outdoor (Alam Terbuka)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'OUTDOOR' ? 'selected' : '' }}>1. Outdoor
+                                            (Alam Terbuka)</option>
                                         <option value="MECHANICAL"
-                                            {{ old('rmib_interest_area') == 'MECHANICAL' ? 'selected' : '' }}>
-                                            2. Mechanical (Mekanik)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'MECHANICAL' ? 'selected' : '' }}>2.
+                                            Mechanical (Mekanik)</option>
                                         <option value="COMPUTATIONAL"
-                                            {{ old('rmib_interest_area') == 'COMPUTATIONAL' ? 'selected' : '' }}>
-                                            3. Computational (Komputasi)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'COMPUTATIONAL' ? 'selected' : '' }}>3.
+                                            Computational (Komputasi)</option>
                                         <option value="SCIENTIFIC"
-                                            {{ old('rmib_interest_area') == 'SCIENTIFIC' ? 'selected' : '' }}>
-                                            4. Scientific (Ilmiah)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'SCIENTIFIC' ? 'selected' : '' }}>4.
+                                            Scientific (Ilmiah)</option>
                                         <option value="PERSONAL_CONTACT"
-                                            {{ old('rmib_interest_area') == 'PERSONAL_CONTACT' ? 'selected' : '' }}>
-                                            5. Personal Contact (Kontak Personal)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'PERSONAL_CONTACT' ? 'selected' : '' }}>5.
+                                            Personal Contact (Kontak Personal)</option>
                                         <option value="AESTHETIC"
-                                            {{ old('rmib_interest_area') == 'AESTHETIC' ? 'selected' : '' }}>
-                                            6. Aesthetic (Estetika)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'AESTHETIC' ? 'selected' : '' }}>6.
+                                            Aesthetic (Estetika)</option>
                                         <option value="LITERARY"
-                                            {{ old('rmib_interest_area') == 'LITERARY' ? 'selected' : '' }}>
-                                            7. Literary (Sastra)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'LITERARY' ? 'selected' : '' }}>7. Literary
+                                            (Sastra)</option>
                                         <option value="MUSICAL"
-                                            {{ old('rmib_interest_area') == 'MUSICAL' ? 'selected' : '' }}>
-                                            8. Musical (Musik)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'MUSICAL' ? 'selected' : '' }}>8. Musical
+                                            (Musik)</option>
                                         <option value="SOCIAL_SERVICE"
-                                            {{ old('rmib_interest_area') == 'SOCIAL_SERVICE' ? 'selected' : '' }}>
-                                            9. Social Service (Layanan Sosial)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'SOCIAL_SERVICE' ? 'selected' : '' }}>9.
+                                            Social Service (Layanan Sosial)</option>
                                         <option value="CLERICAL"
-                                            {{ old('rmib_interest_area') == 'CLERICAL' ? 'selected' : '' }}>
-                                            10. Clerical (Administrasi)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'CLERICAL' ? 'selected' : '' }}>10.
+                                            Clerical (Administrasi)</option>
                                         <option value="PRACTICAL"
-                                            {{ old('rmib_interest_area') == 'PRACTICAL' ? 'selected' : '' }}>
-                                            11. Practical (Praktis)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'PRACTICAL' ? 'selected' : '' }}>11.
+                                            Practical (Praktis)</option>
                                         <option value="MEDICAL"
-                                            {{ old('rmib_interest_area') == 'MEDICAL' ? 'selected' : '' }}>
-                                            12. Medical (Medis)
-                                        </option>
+                                            {{ old('rmib_interest_area') == 'MEDICAL' ? 'selected' : '' }}>12. Medical
+                                            (Medis)</option>
                                     </select>
                                 </div>
                             </div>
@@ -253,14 +299,6 @@
                                     <li>Tidak ada jawaban benar/salah, hanya preferensi minat</li>
                                     <li>Hasil: Profil minat karir untuk pengarahan vocational</li>
                                 </ul>
-                            </div>
-
-                            <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <p class="text-xs text-yellow-800">
-                                    <strong>⚠️ Penting:</strong> Pastikan nomor item dan bidang minat sesuai dengan
-                                    standar RMIB.
-                                    Untuk pengisian massal, gunakan fitur import Excel.
-                                </p>
                             </div>
                         </div>
 
@@ -289,7 +327,8 @@
                         <div class="tab-contents">
                             {{-- TAB SOAL UTAMA --}}
                             <div class="tab-content" id="tab-soal">
-                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"
+                                    id="soal-utama-info">
                                     <div class="flex gap-3">
                                         <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
@@ -315,8 +354,7 @@
 
                                     <div class="mb-3">
                                         <label for="memory_content"
-                                            class="block text-sm font-medium text-gray-700">Konten
-                                            Memori</label>
+                                            class="block text-sm font-medium text-gray-700">Konten Memori</label>
                                         <textarea id="memory_content" name="memory_content" rows="4"
                                             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm"
                                             placeholder="Contoh: BUNGA - Dahlia, Flamboyan, Laret, Soka, Yasmin&#10;PERKAKAS - Cangkul, Jarum, Kikir, Palu, Wajan">{{ old('memory_content') }}</textarea>
@@ -327,23 +365,22 @@
                                     <div class="grid grid-cols-2 gap-3">
                                         <div>
                                             <label for="memory_type"
-                                                class="block text-sm font-medium text-gray-700">Tipe
-                                                Konten</label>
+                                                class="block text-sm font-medium text-gray-700">Tipe Konten</label>
                                             <select id="memory_type" name="memory_type"
                                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
                                                 <option value="TEXT"
                                                     {{ old('memory_type', 'TEXT') == 'TEXT' ? 'selected' : '' }}>Teks
                                                 </option>
                                                 <option value="IMAGE"
-                                                    {{ old('memory_type') == 'IMAGE' ? 'selected' : '' }}>
-                                                    Gambar</option>
+                                                    {{ old('memory_type') == 'IMAGE' ? 'selected' : '' }}>Gambar
+                                                </option>
                                             </select>
                                         </div>
 
                                         <div>
                                             <label for="duration_seconds"
-                                                class="block text-sm font-medium text-gray-700">Durasi
-                                                Tampil (Detik)</label>
+                                                class="block text-sm font-medium text-gray-700">Durasi Tampil
+                                                (Detik)</label>
                                             <input id="duration_seconds" name="duration_seconds" type="number"
                                                 min="1" value="{{ old('duration_seconds', 10) }}"
                                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
@@ -392,10 +429,7 @@
                                     @error('question_image')
                                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                     @enderror
-                                </div>
-
-                                {{-- TEKS PERTANYAAN --}}
-                                <div id="question-text-container" class="mb-4">
+                                    </div{{-- TEKS PERTANYAAN --}} <div id="question-text-container" class="mb-4">
                                     <label for="question_text" class="block text-sm font-medium text-gray-700">
                                         <span id="question-text-label">Teks Pertanyaan</span>
                                     </label>
@@ -645,11 +679,171 @@
                     </form>
                 </div>
             </div>
-            
+
+            {{-- ✅ DAFTAR SOAL UMUM --}}
+            @if ($questions->count() > 0)
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">📝 Daftar Soal</h3>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Pertanyaan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Kategori</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach ($questions as $index => $question)
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            {{ $questions->firstItem() + $index }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span
+                                                class="px-2 py-1 text-xs rounded-full 
+                                            {{ $question->type === 'PILIHAN_GANDA' ? 'bg-blue-100 text-blue-800' : '' }}
+                                            {{ $question->type === 'PILIHAN_GANDA_KOMPLEKS' ? 'bg-purple-100 text-purple-800' : '' }}
+                                            {{ $question->type === 'ESSAY' ? 'bg-green-100 text-green-800' : '' }}
+                                            {{ $question->type === 'HAFALAN' ? 'bg-yellow-100 text-yellow-800' : '' }}">
+                                                {{ str_replace('_', ' ', $question->type) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm">
+                                            {{ Str::limit($question->question_text ?? ($question->example_question ?? 'Tanpa teks'), 60) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            @if ($question->ranking_category)
+                                                <span class="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-800">
+                                                    {{ $question->ranking_category }}
+                                                </span>
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex gap-2">
+                                                <a href="{{ route('admin.alat-tes.questions.edit', [$AlatTes->id, $question->id]) }}"
+                                                    class="text-blue-600 hover:text-blue-800">Edit</a>
+                                                <form
+                                                    action="{{ route('admin.alat-tes.questions.destroy', [
+                                                        'alat_te' => $AlatTes->id, // PASTIKAN VARIABEL INI BENAR
+                                                        'question' => $question->id,
+                                                    ]) }}"
+                                                    method="POST"
+                                                    onsubmit="return confirm('Yakin ingin menghapus soal ini?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="text-red-600 hover:text-red-800">Hapus</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $questions->links() }}
+                    </div>
+                </div>
+            @endif
+
+            {{-- ✅ DAFTAR SOAL PAPI --}}
+            @if ($papiQuestions->count() > 0)
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">🔷 Daftar Soal PAPI Kostick</h3>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item No
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Pernyataan A</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        Pernyataan B</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunci
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach ($papiQuestions as $papi)
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                                            {{ $papi->item_number }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm">
+                                            {{ Str::limit($papi->statement_a, 50) }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm">
+                                            {{ Str::limit($papi->statement_b, 50) }}
+                                        </td>
+                                        <td class="px-6 py-4 text-xs">
+                                            @if ($papi->role_a && $papi->need_a)
+                                                <div class="text-green-600">A:
+                                                    {{ $papi->role_a }}/{{ $papi->need_a }}</div>
+                                            @endif
+                                            @if ($papi->role_b && $papi->need_b)
+                                                <div class="text-blue-600">B: {{ $papi->role_b }}/{{ $papi->need_b }}
+                                                </div>
+                                            @endif
+                                            @if (!$papi->role_a && !$papi->need_a)
+                                                <span class="text-gray-400">Belum diisi</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex gap-2">
+                                                <a href="{{ route('admin.alat-tes.questions.edit', [$AlatTes->id, $papi->id]) }}"
+                                                    class="text-blue-600 hover:text-blue-800">Edit</a>
+                                                <form
+                                                    action="route('admin.alat-tes.questions.destroy', ['alat_te' => $alatTesId, 'question' => $questionId]);"
+                                                    method="POST"
+                                                    onsubmit="return confirm('Yakin ingin menghapus soal PAPI ini?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="text-red-600 hover:text-red-800">Hapus</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $papiQuestions->links() }}
+                    </div>
+                </div>
+            @endif
+
             {{-- ✅ JIKA TIDAK ADA SOAL SAMA SEKALI --}}
             @if ($questions->count() == 0 && $papiQuestions->count() == 0)
-                <div class="text-center py-8 text-gray-500">
-                    <p>Belum ada soal. Klik "Tambah Soal" untuk membuat soal pertama.</p>
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        <p class="mt-4 text-lg font-medium">Belum ada soal</p>
+                        <p class="mt-2 text-sm">Klik tombol "Tambah Soal" di atas untuk membuat soal pertama</p>
+                    </div>
                 </div>
             @endif
 
@@ -657,7 +851,6 @@
     </div>
 
     <style>
-        /* Tab Styles */
         .tab-btn {
             transition: all 0.3s ease;
         }
@@ -674,66 +867,54 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-
             const toggleFormBtn = document.getElementById('toggleFormBtn');
             const cancelBtn = document.getElementById('cancelBtn');
             const formContainer = document.getElementById('formContainer');
             const typeSelect = document.getElementById('type');
             const optionsSection = document.getElementById('options-section');
             const memoryContainer = document.getElementById('memory-container');
-            const papiContainer = document.getElementById('papi-scoring-container');
+            const papiContainer = document.getElementById('papi-container');
             const rmibContainer = document.getElementById('rmib-scoring-container');
             const questionTextContainer = document.getElementById('question-text-container');
             const questionImageContainer = document.getElementById('question-image-container');
             const addOptionBtn = document.getElementById('addOptionBtn');
             const optionsList = document.getElementById('optionsList');
-
             const questionImage = document.getElementById('question_image');
             const imagePreview = document.getElementById('imagePreview');
             const previewImg = document.getElementById('previewImg');
             const removeImageBtn = document.getElementById('removeImageBtn');
 
-            // ✅ RANKING CATEGORY ELEMENTS
             const rankingCategorySelect = document.getElementById('ranking_category');
             const customCategoryInput = document.getElementById('custom-category-input');
             const customCategoryField = document.getElementById('custom_ranking_category');
             const rankingContainer = document.getElementById('ranking-category-container');
 
-            // ✅ FILE SIZE VALIDATION CONSTANT
-            const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB dalam bytes
+            // ✅ PAPI AUTO-GENERATE ELEMENTS
+            const autoGeneratePapi = document.getElementById('auto_generate_papi');
+            const papiManualInput = document.getElementById('papi-manual-input');
+            const papiManualWarning = document.getElementById('papi-manual-warning');
 
-            // ===== TAB NAVIGATION LOGIC =====
+            const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+            // ===== TAB NAVIGATION =====
             const tabButtons = document.querySelectorAll('.tab-btn');
             const tabContents = document.querySelectorAll('.tab-content');
 
             tabButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const targetTab = this.getAttribute('data-tab');
-
-                    // Remove active class from all buttons
                     tabButtons.forEach(btn => {
                         btn.classList.remove('active', 'border-blue-600', 'text-blue-600');
                         btn.classList.add('border-transparent', 'text-gray-500');
                     });
-
-                    // Add active class to clicked button
                     this.classList.add('active', 'border-blue-600', 'text-blue-600');
                     this.classList.remove('border-transparent', 'text-gray-500');
-
-                    // Hide all tab contents
-                    tabContents.forEach(content => {
-                        content.classList.add('hidden');
-                    });
-
-                    // Show target tab content
+                    tabContents.forEach(content => content.classList.add('hidden'));
                     const targetContent = document.getElementById('tab-' + targetTab);
-                    if (targetContent) {
-                        targetContent.classList.remove('hidden');
-                    }
+                    if (targetContent) targetContent.classList.remove('hidden');
                 });
             });
 
-            // Set first tab as active by default
             if (tabButtons.length > 0) {
                 tabButtons[0].click();
             }
@@ -743,14 +924,13 @@
                 optionCount = optionsList.children.length;
             }
 
-            // ✅ IMAGE PREVIEW WITH FILE SIZE VALIDATION
+            // ===== IMAGE VALIDATION =====
             const validateAndPreviewImage = (imageInput, previewImg, imagePreview, removeBtn) => {
                 if (!imageInput) return;
 
                 imageInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
-                        // ✅ VALIDASI UKURAN FILE
                         if (file.size > MAX_FILE_SIZE) {
                             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
                             alert(
@@ -760,13 +940,12 @@
                                 `Maksimal: 5 MB\n\n` +
                                 `Silakan pilih file yang lebih kecil atau kompres gambar terlebih dahulu.`
                             );
-                            e.target.value = ''; // Reset input
+                            e.target.value = '';
                             if (imagePreview) imagePreview.style.display = 'none';
                             if (removeBtn) removeBtn.style.display = 'none';
                             return;
                         }
 
-                        // Preview jika valid
                         const reader = new FileReader();
                         reader.onload = function(e) {
                             previewImg.src = e.target.result;
@@ -786,12 +965,10 @@
                 }
             };
 
-            // Apply untuk gambar pertanyaan utama
             if (questionImage && previewImg && imagePreview && removeImageBtn) {
                 validateAndPreviewImage(questionImage, previewImg, imagePreview, removeImageBtn);
             }
 
-            // Setup untuk gambar opsi
             function setupOptionImagePreview(optionItem) {
                 const imageInput = optionItem.querySelector('.option-image-input');
                 const previewContainer = optionItem.querySelector('.option-image-preview');
@@ -803,18 +980,16 @@
                 }
             }
 
-            // Apply untuk semua opsi yang ada
             document.querySelectorAll('.option-item').forEach(item => {
                 setupOptionImagePreview(item);
             });
 
-            // ✅ VALIDASI SAAT SUBMIT FORM
+            // ===== FORM SUBMISSION VALIDATION =====
             const questionForm = document.getElementById('questionForm');
             if (questionForm) {
                 questionForm.addEventListener('submit', function(e) {
                     let oversizedFiles = [];
 
-                    // Check gambar pertanyaan utama
                     const qImg = document.getElementById('question_image');
                     if (qImg && qImg.files[0]) {
                         if (qImg.files[0].size > MAX_FILE_SIZE) {
@@ -823,7 +998,6 @@
                         }
                     }
 
-                    // Check semua gambar opsi
                     document.querySelectorAll('.option-image-input').forEach((input, i) => {
                         if (input.files[0]) {
                             if (input.files[0].size > MAX_FILE_SIZE) {
@@ -834,7 +1008,6 @@
                         }
                     });
 
-                    // Jika ada file yang oversized, tampilkan alert dan batalkan submit
                     if (oversizedFiles.length > 0) {
                         e.preventDefault();
                         alert(
@@ -843,8 +1016,6 @@
                             `${oversizedFiles.join('\n')}\n\n` +
                             `Mohon ganti dengan file yang lebih kecil atau kompres gambar terlebih dahulu.`
                         );
-
-                        // Scroll ke form agar user bisa melihat
                         formContainer.scrollIntoView({
                             behavior: 'smooth',
                             block: 'start'
@@ -852,25 +1023,20 @@
                         return false;
                     }
 
-                    // ✅ HANDLE CUSTOM CATEGORY SUBMISSION
                     if (rankingCategorySelect && rankingCategorySelect.value === 'CUSTOM' &&
                         customCategoryField && customCategoryField.value.trim()) {
                         const customValue = customCategoryField.value.trim().toUpperCase();
-
-                        // Create hidden input with custom value
                         const hiddenInput = document.createElement('input');
                         hiddenInput.type = 'hidden';
                         hiddenInput.name = 'ranking_category';
                         hiddenInput.value = customValue;
                         questionForm.appendChild(hiddenInput);
-
-                        // Disable the select to avoid double submission
                         rankingCategorySelect.disabled = true;
                     }
                 });
             }
 
-            // Form Toggle
+            // ===== FORM TOGGLE =====
             if (toggleFormBtn && formContainer) {
                 toggleFormBtn.addEventListener('click', function() {
                     const isHidden = formContainer.style.display === 'none';
@@ -887,7 +1053,7 @@
                 });
             }
 
-            // Update Option Labels
+            // ===== UPDATE OPTION LABELS =====
             function updateOptionLabels() {
                 document.querySelectorAll('.option-item').forEach((item, index) => {
                     const label = item.querySelector('.option-label');
@@ -914,13 +1080,12 @@
                         const isPapi = typeSelect && typeSelect.value === 'PAPIKOSTICK';
                         const isRMIB = typeSelect && typeSelect.value === 'RMIB';
                         const totalOptions = document.querySelectorAll('.option-item').length;
-                        // PAPI harus 2 opsi, RMIB biasanya 5 opsi (rating scale)
                         removeBtn.style.display = totalOptions > 2 && !isPapi && !isRMIB ? 'block' : 'none';
                     }
                 });
             }
 
-            // ✅ HANDLE CUSTOM CATEGORY INPUT VISIBILITY
+            // ===== CUSTOM CATEGORY =====
             if (rankingCategorySelect && customCategoryInput) {
                 rankingCategorySelect.addEventListener('change', function() {
                     if (this.value === 'CUSTOM') {
@@ -936,7 +1101,74 @@
                 });
             }
 
-            // ✅ ENHANCED Toggle Containers WITH RMIB SUPPORT
+            // ✅ TOGGLE PAPI AUTO-GENERATE
+            if (autoGeneratePapi) {
+                autoGeneratePapi.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Mode Auto-Generate
+                        if (papiManualInput) papiManualInput.classList.add('hidden');
+                        if (papiManualWarning) papiManualWarning.classList.add('hidden');
+                        if (optionsSection) optionsSection.style.display = 'none';
+                        if (questionTextContainer) questionTextContainer.style.display = 'none';
+                        if (questionImageContainer) questionImageContainer.style.display = 'none';
+
+                        const soalUtamaInfo = document.getElementById('soal-utama-info');
+                        if (soalUtamaInfo) {
+                            soalUtamaInfo.innerHTML = `
+                            <div class="flex gap-3">
+                                <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <h3 class="font-semibold text-green-900 mb-1">✨ Mode Auto-Generate Aktif</h3>
+                                    <p class="text-sm text-green-700">90 soal PAPI Kostick akan dibuat otomatis. Fokus pada pengisian <strong>Contoh Soal</strong> dan <strong>Instruksi</strong> di tab di bawah.</p>
+                                </div>
+                            </div>
+                        `;
+                            soalUtamaInfo.classList.remove('bg-blue-50', 'border-blue-200');
+                            soalUtamaInfo.classList.add('bg-green-50', 'border-green-200');
+                        }
+
+                        const typeHint = document.getElementById('type-hint');
+                        if (typeHint) {
+                            typeHint.innerHTML =
+                                '✅ Mode Auto-Generate: 90 soal akan dibuat otomatis. Isi <strong>Contoh Soal</strong> dan <strong>Instruksi</strong>.';
+                            typeHint.classList.add('text-green-600', 'font-semibold');
+                        }
+                    } else {
+                        // Mode Manual
+                        if (papiManualInput) papiManualInput.classList.remove('hidden');
+                        if (papiManualWarning) papiManualWarning.classList.remove('hidden');
+                        if (optionsSection) optionsSection.style.display = 'block';
+                        if (questionTextContainer) questionTextContainer.style.display = 'block';
+
+                        const soalUtamaInfo = document.getElementById('soal-utama-info');
+                        if (soalUtamaInfo) {
+                            soalUtamaInfo.innerHTML = `
+                            <div class="flex gap-3">
+                                <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <h3 class="font-semibold text-blue-900 mb-1">Soal yang akan dijawab peserta</h3>
+                                    <p class="text-sm text-blue-700">Ini adalah soal aktual yang akan diberikan kepada peserta dalam tes.</p>
+                                </div>
+                            </div>
+                        `;
+                            soalUtamaInfo.classList.remove('bg-green-50', 'border-green-200');
+                            soalUtamaInfo.classList.add('bg-blue-50', 'border-blue-200');
+                        }
+
+                        const typeHint = document.getElementById('type-hint');
+                        if (typeHint) {
+                            typeHint.innerHTML = '⚠️ Mode Manual: Anda akan membuat soal satu per satu';
+                            typeHint.classList.remove('text-green-600', 'font-semibold');
+                        }
+                    }
+                });
+            }
+
+            // ===== TOGGLE CONTAINERS =====
             function toggleContainers() {
                 if (!typeSelect) return;
 
@@ -945,7 +1177,7 @@
                 const rmibRatingInfo = document.getElementById('rmib-rating-info');
                 const typeHint = document.getElementById('type-hint');
 
-                // Reset/Hide All
+                // Reset
                 if (optionsSection) optionsSection.style.display = 'none';
                 if (memoryContainer) memoryContainer.classList.add('hidden');
                 if (papiContainer) papiContainer.classList.add('hidden');
@@ -956,7 +1188,6 @@
                 if (multipleAnswersInfo) multipleAnswersInfo.classList.add('hidden');
                 if (rmibRatingInfo) rmibRatingInfo.classList.add('hidden');
 
-                // ✅ SHOW/HIDE RANKING CATEGORY BASED ON TYPE
                 if (rankingContainer) {
                     if (selectedType === 'PAPIKOSTICK') {
                         rankingContainer.classList.add('hidden');
@@ -965,7 +1196,6 @@
                     }
                 }
 
-                // Reset Labels
                 const questionTextLabel = document.getElementById('question-text-label');
                 const questionTextHint = document.getElementById('question-text-hint');
                 const optionsHint = document.getElementById('options-hint');
@@ -974,7 +1204,6 @@
                 if (questionTextHint) questionTextHint.textContent = 'Pertanyaan untuk peserta';
                 if (optionsHint) optionsHint.textContent = 'Pilihan jawaban untuk pertanyaan';
 
-                // ✅ TOGGLE BETWEEN RADIO, CHECKBOX, AND NONE
                 const isMultipleChoice = selectedType === 'PILIHAN_GANDA_KOMPLEKS';
                 const isRMIB = selectedType === 'RMIB';
 
@@ -991,7 +1220,6 @@
                         if (typeHint) typeHint.textContent =
                             'Peserta harus memilih SEMUA jawaban yang benar';
                     } else if (isRMIB) {
-                        // ✅ RMIB: Hide correct answer controls (no right/wrong answer)
                         if (radioBlock) radioBlock.style.display = 'none';
                         if (checkboxBlock) checkboxBlock.style.display = 'none';
                         if (rmibRatingInfo) rmibRatingInfo.classList.remove('hidden');
@@ -1005,28 +1233,20 @@
                     if (removeBtn) removeBtn.style.display = index >= 2 ? 'block' : 'none';
                 });
 
-                // ✅ RMIB SPECIFIC HANDLING
+                // RMIB HANDLING
                 if (selectedType === 'RMIB') {
                     if (rmibContainer) rmibContainer.classList.remove('hidden');
                     if (optionsSection) optionsSection.style.display = 'block';
-                    if (addOptionBtn) addOptionBtn.style.display = 'none'; // Fixed 5 options for rating
+                    if (addOptionBtn) addOptionBtn.style.display = 'none';
 
                     if (questionTextLabel) questionTextLabel.textContent = 'Deskripsi Aktivitas/Item';
                     if (questionTextHint) questionTextHint.textContent =
                         'Jelaskan aktivitas yang akan dinilai peserta';
                     if (optionsHint) optionsHint.textContent = 'Rating scale untuk mengukur tingkat ketertarikan';
 
-                    // Ensure 5 options for RMIB (rating scale)
                     ensureOptionCount(5);
 
-                    // Set rating labels
-                    const ratingLabels = [
-                        'Sangat Tidak Suka',
-                        'Tidak Suka',
-                        'Netral',
-                        'Suka',
-                        'Sangat Suka'
-                    ];
+                    const ratingLabels = ['Sangat Tidak Suka', 'Tidak Suka', 'Netral', 'Suka', 'Sangat Suka'];
 
                     document.querySelectorAll('.option-item').forEach((item, index) => {
                         if (index < 5) {
@@ -1040,7 +1260,7 @@
                             if (input) {
                                 input.value = ratingLabels[index];
                                 input.placeholder = ratingLabels[index];
-                                input.readOnly = true; // Lock the rating text
+                                input.readOnly = true;
                             }
                             if (radioBlock) radioBlock.style.display = 'none';
                             if (checkboxBlock) checkboxBlock.style.display = 'none';
@@ -1051,55 +1271,65 @@
                         }
                     });
                 }
-
-                // PAPIKOSTICK SPECIFIC HANDLING
+                // ✅ PAPIKOSTICK HANDLING
                 else if (selectedType === 'PAPIKOSTICK') {
                     if (papiContainer) papiContainer.classList.remove('hidden');
-                    if (optionsSection) optionsSection.style.display = 'block';
                     if (questionImageContainer) questionImageContainer.style.display = 'none';
 
-                    if (questionTextLabel) questionTextLabel.textContent = 'Nomor Soal PAPI (1-90)';
-                    const questionTextInput = document.getElementById('question_text');
-                    if (questionTextInput) questionTextInput.placeholder = 'Masukkan Nomor Soal (mis: 45) di sini.';
-                    if (questionTextHint) questionTextHint.textContent =
-                        'Kolom ini hanya untuk Nomor Soal PAPI. Teks pernyataan diisi di Opsi A dan B.';
+                    // ✅ Check auto-generate status
+                    const autoGen = document.getElementById('auto_generate_papi');
+                    if (autoGen && autoGen.checked) {
+                        if (papiManualInput) papiManualInput.classList.add('hidden');
+                        if (papiManualWarning) papiManualWarning.classList.add('hidden');
+                        if (optionsSection) optionsSection.style.display = 'none';
+                        if (questionTextContainer) questionTextContainer.style.display = 'none';
+                    } else {
+                        if (papiManualInput) papiManualInput.classList.remove('hidden');
+                        if (papiManualWarning) papiManualWarning.classList.remove('hidden');
+                        if (optionsSection) optionsSection.style.display = 'block';
+                        if (questionTextContainer) questionTextContainer.style.display = 'block';
 
-                    if (addOptionBtn) addOptionBtn.style.display = 'none';
-                    if (optionsHint) optionsHint.textContent =
-                        'Hanya Opsi A dan B yang digunakan untuk Pasangan Pernyataan PAPI.';
+                        if (questionTextLabel) questionTextLabel.textContent = 'Nomor Soal PAPI (1-90)';
+                        const questionTextInput = document.getElementById('question_text');
+                        if (questionTextInput) questionTextInput.placeholder =
+                            'Masukkan Nomor Soal (mis: 45) di sini.';
+                        if (questionTextHint) questionTextHint.textContent =
+                            'Kolom ini hanya untuk Nomor Soal PAPI. Teks pernyataan diisi di Opsi A dan B.';
 
-                    ensureOptionCount(2);
+                        if (addOptionBtn) addOptionBtn.style.display = 'none';
+                        if (optionsHint) optionsHint.textContent =
+                            'Hanya Opsi A dan B yang digunakan untuk Pasangan Pernyataan PAPI.';
 
-                    document.querySelectorAll('.option-item').forEach((item, index) => {
-                        const radioBlock = item.querySelector('.correct-radio-block');
-                        const checkboxBlock = item.querySelector('.correct-checkbox-block');
-                        const removeBtn = item.querySelector('.remove-option-btn');
+                        ensureOptionCount(2);
 
-                        if (index >= 2) {
-                            item.style.display = 'none';
-                        } else {
-                            if (radioBlock) radioBlock.style.display = 'none';
-                            if (checkboxBlock) checkboxBlock.style.display = 'none';
-                            if (removeBtn) removeBtn.style.display = 'none';
-                            item.style.display = 'block';
-                        }
-                    });
+                        document.querySelectorAll('.option-item').forEach((item, index) => {
+                            const radioBlock = item.querySelector('.correct-radio-block');
+                            const checkboxBlock = item.querySelector('.correct-checkbox-block');
+                            const removeBtn = item.querySelector('.remove-option-btn');
+
+                            if (index >= 2) {
+                                item.style.display = 'none';
+                            } else {
+                                if (radioBlock) radioBlock.style.display = 'none';
+                                if (checkboxBlock) checkboxBlock.style.display = 'none';
+                                if (removeBtn) removeBtn.style.display = 'none';
+                                item.style.display = 'block';
+                            }
+                        });
+                    }
                 }
-
-                // ESSAY HANDLING
+                // ESSAY
                 else if (selectedType === 'ESSAY') {
                     if (optionsSection) optionsSection.style.display = 'none';
                     if (addOptionBtn) addOptionBtn.style.display = 'none';
                 }
-
                 // PILIHAN_GANDA / PILIHAN_GANDA_KOMPLEKS
                 else if (selectedType === 'PILIHAN_GANDA' || selectedType === 'PILIHAN_GANDA_KOMPLEKS') {
                     if (optionsSection) optionsSection.style.display = 'block';
                     if (addOptionBtn) addOptionBtn.style.display = 'block';
                     ensureOptionCount(4);
                 }
-
-                // HAFALAN HANDLING
+                // HAFALAN
                 else if (selectedType === 'HAFALAN') {
                     if (memoryContainer) memoryContainer.classList.remove('hidden');
                     if (optionsSection) optionsSection.style.display = 'block';
@@ -1113,18 +1343,15 @@
                 }
             }
 
-            // ✅ FUNCTION TO ENSURE SPECIFIC OPTION COUNT
             function ensureOptionCount(count) {
                 const currentOptions = document.querySelectorAll('.option-item');
                 const currentCount = currentOptions.length;
 
                 if (currentCount < count) {
-                    // Add more options
                     for (let i = currentCount; i < count; i++) {
                         addNewOption();
                     }
                 } else if (currentCount > count) {
-                    // Remove extra options
                     currentOptions.forEach((item, index) => {
                         if (index >= count) {
                             item.style.display = 'none';
@@ -1137,7 +1364,6 @@
                 updateOptionLabels();
             }
 
-            // ✅ ADD NEW OPTION FUNCTION
             function addNewOption() {
                 if (!optionsList) return;
 
@@ -1148,49 +1374,44 @@
                 const newOption = document.createElement('div');
                 newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
                 newOption.innerHTML = `
+        <div class="flex items-start space-x-3 w-full">
             <div class="flex items-start space-x-3 w-full">
-                <div class="flex items-start space-x-3 w-full">
-                    <div class="flex items-center pt-2 correct-radio-block" style="${isMultipleChoice ? 'display: none;' : ''}">
-                        <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600 correct-radio">
-                        <label class="ml-2 text-sm text-gray-600">Benar</label>
-                    </div>
-                    <div class="flex items-center pt-2 correct-checkbox-block" style="${isMultipleChoice ? '' : 'display: none;'}">
-                        <input type="checkbox" name="correct_answers[]" value="${newIndex}" class="h-4 w-4 text-green-600 rounded correct-checkbox">
-                        <label class="ml-2 text-sm text-gray-600">Benar</label>
-                    </div>
-                    <div class="flex-1">
-                        <label class="block text-xs font-medium text-gray-500 option-label">Opsi ${letter}</label>
-                        <input type="text" name="options[${newIndex}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input" placeholder="Masukkan teks untuk Opsi ${letter}">
-                        <input type="hidden" name="options[${newIndex}][index]" value="${newIndex}">
-                        
-                        <div class="mt-3">
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
-                            <div class="bg-yellow-50 border border-yellow-200 rounded p-1.5 mb-2 flex items-start gap-1.5">
-                                <svg class="w-3 h-3 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                </svg>
-                                <p class="text-xs text-yellow-800">Maks <strong class="text-red-600">5 MB</strong></p>
-                            </div>
-                            <input type="file" 
-                                    name="options[${newIndex}][image_file]" 
-                                    accept="image/*"
-                                    class="option-image-input block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
-                            <div class="option-image-preview mt-2" style="display: none;">
-                                <img src="" alt="Preview Opsi" class="max-w-xs max-h-32 rounded border border-gray-300 option-preview-img">
-                                <button type="button" class="remove-option-image-btn text-red-600 hover:text-red-800 text-xs font-medium mt-1">
-                                    Hapus Gambar
-                                </button>
-                            </div>
+                <div class="flex items-center pt-2 correct-radio-block" style="${isMultipleChoice ? 'display: none;' : ''}">
+                    <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600 correct-radio">
+                    <label class="ml-2 text-sm text-gray-600">Benar</label>
+                </div>
+                <div class="flex items-center pt-2 correct-checkbox-block" style="${isMultipleChoice ? '' : 'display: none;'}">
+                    <input type="checkbox" name="correct_answers[]" value="${newIndex}" class="h-4 w-4 text-green-600 rounded correct-checkbox">
+                    <label class="ml-2 text-sm text-gray-600">Benar</label>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-500 option-label">Opsi ${letter}</label>
+                    <input type="text" name="options[${newIndex}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input" placeholder="Masukkan teks untuk Opsi ${letter}">
+                    <input type="hidden" name="options[${newIndex}][index]" value="${newIndex}">
+                    
+                    <div class="mt-3">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded p-1.5 mb-2 flex items-start gap-1.5">
+                            <svg class="w-3 h-3 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <p class="text-xs text-yellow-800">Maks <strong class="text-red-600">5 MB</strong></p>
+                        </div>
+                        <input type="file" name="options[${newIndex}][image_file]" accept="image/*" class="option-image-input block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                        <div class="option-image-preview mt-2" style="display: none;">
+                            <img src="" alt="Preview Opsi" class="max-w-xs max-h-32 rounded border border-gray-300 option-preview-img">
+                            <button type="button" class="remove-option-image-btn text-red-600 hover:text-red-800 text-xs font-medium mt-1">Hapus Gambar</button>
                         </div>
                     </div>
                 </div>
-                <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
             </div>
-        `;
+            <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    `;
 
                 optionsList.appendChild(newOption);
                 setupOptionImagePreview(newOption);
@@ -1198,12 +1419,10 @@
                 updateOptionLabels();
             }
 
-            // Add Option Button Handler
             if (addOptionBtn && optionsList) {
                 addOptionBtn.addEventListener('click', addNewOption);
             }
 
-            // Remove Option Handler
             if (optionsList) {
                 optionsList.addEventListener('click', function(e) {
                     const removeBtn = e.target.closest('.remove-option-btn');
@@ -1218,14 +1437,12 @@
                     }
                 });
             }
-
             if (typeSelect) {
                 typeSelect.addEventListener('change', toggleContainers);
                 toggleContainers();
             }
 
-            // If validation errors, trigger again
-            @if($errors->any())
+            @if ($errors->any())
                 toggleContainers();
             @endif
         });

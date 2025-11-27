@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\JenjangController;
 use App\Http\Controllers\Admin\OptionController;
 use App\Http\Controllers\Admin\PesertaController;
 use App\Http\Controllers\Admin\QuestionController;
+use App\Http\Controllers\Admin\PapiQuestionController;
+use App\Http\Controllers\Admin\RmibQuestionController;
 use App\Http\Controllers\Admin\TestCategoryController;
 use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\AlatTesController;
@@ -47,16 +49,9 @@ Route::get('/csrf-token', function() {
 | ALUR PESERTA BARU (LOGIN DENGAN KODE AKTIVASI PESERTA)
 |--------------------------------------------------------------------------
 */
-
-// Rute Tampil Form (GET /)
 Route::get('/', [TestAccessController::class, 'showLoginForm'])->name('login');
-
-// Rute Proses Login (POST /)
 Route::post('/', [TestAccessController::class, 'login'])->name('login.process');
-
-// Rute Logout Peserta
 Route::post('/logout', [TestAccessController::class, 'logout'])->name('logout');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -64,7 +59,6 @@ Route::post('/logout', [TestAccessController::class, 'logout'])->name('logout');
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    // ✅ Data Diri (boleh diakses meskipun profile belum lengkap)
     Route::get('/profile/edit', [UserDataController::class, 'edit'])->name('user.data.edit');
     Route::post('/profile/update', [UserDataController::class, 'update'])->name('user.data.update');
 });
@@ -75,27 +69,15 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    // ✅ TODO: Tambahkan middleware 'check.profile' setelah dibuat
-    
-    // 2. Start Test
     Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
-
-    // 3. Sistem 1 Soal per Halaman
-    Route::get('/tests/{test}/question/{number}', [UserTestController::class, 'showQuestion'])
-        ->name('tests.question');
-    Route::post('/tests/{test}/question/{number}', [UserTestController::class, 'saveAnswer'])
-        ->name('tests.answer');
-
-    // 4. Tes Umum
+    Route::get('/tests/{test}/question/{number}', [UserTestController::class, 'showQuestion'])->name('tests.question');
+    Route::post('/tests/{test}/question/{number}', [UserTestController::class, 'saveAnswer'])->name('tests.answer');
     Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
     Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
     Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
-
-    // 5. Tes PAPI Kostick
     Route::post('tests/{test}/papi/submit', [PapiTestController::class, 'submitTest'])->name('papi.submit');
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -105,7 +87,6 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])->name('login.admin');
 Route::post('/admin/login', [AuthenticatedSessionController::class, 'store'])->name('login.admin.post');
 Route::post('/admin/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout.admin');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -133,8 +114,7 @@ Route::middleware(['auth', IsAdmin::class])
                 'show' => 'codes.show',
                 'destroy' => 'codes.destroy',
             ]);
-        Route::get('activation-codes/{code}/export', [ActivationCodeController::class, 'exportBatch'])
-            ->name('codes.export');
+        Route::get('activation-codes/{code}/export', [ActivationCodeController::class, 'exportBatch'])->name('codes.export');
 
         // ==========================================================
         // MANAJEMEN TEST & ALAT TES
@@ -153,43 +133,74 @@ Route::middleware(['auth', IsAdmin::class])
         Route::resource('alat-tes', AlatTesController::class)->names('alat-tes');
 
         // ==========================================================
-        // RUTE QUESTIONS (PERBAIKAN LENGKAP)
+        // ✅ QUESTIONS - GENERAL (Pilihan Ganda, Essay, Hafalan)
         // ==========================================================
-
-        // INDEX, CREATE, STORE
         Route::get('alat-tes/{alat_te}/questions', [QuestionController::class, 'index'])
             ->name('alat-tes.questions.index');
+        
         Route::get('alat-tes/{alat_te}/questions/create', [QuestionController::class, 'create'])
             ->name('alat-tes.questions.create');
+        
         Route::post('alat-tes/{alat_te}/questions', [QuestionController::class, 'store'])
             ->name('alat-tes.questions.store');
-
-        // SHOW
-        Route::get('questions/{question}', [QuestionController::class, 'show'])
-            ->name('questions.show');
-
-        // EDIT (sudah benar di view)
+        
         Route::get('alat-tes/{alat_te}/questions/{question}/edit', [QuestionController::class, 'edit'])
             ->name('alat-tes.questions.edit');
-
-        // ✅ UPDATE untuk PAPI
-        Route::put('alat-tes/{alat_te}/questions/{papi_question}/update-papi', [QuestionController::class, 'updatePapi'])
-            ->name('alat-tes.questions.update_papi');
-
-        // ✅ UPDATE untuk Soal Umum (PENTING — Tambahan Baru)
+        
         Route::put('alat-tes/{alat_te}/questions/{question}', [QuestionController::class, 'update'])
             ->name('alat-tes.questions.update');
+        
+        Route::patch('alat-tes/{alat_te}/questions/{question}', [QuestionController::class, 'update'])
+            ->name('alat-tes.questions.patch');
+        
+        Route::delete('alat-tes/{alat_te}/questions/{question}', [QuestionController::class, 'destroy'])
+            ->name('alat-tes.questions.destroy');
 
-        // DELETE (hapus soal)
-        Route::delete('questions/{question}', [QuestionController::class, 'destroy'])
-            ->name('questions.destroy');
+        // ==========================================================
+        // ✅ QUESTIONS - PAPI KOSTICK (90 Soal)
+        // ==========================================================
+        Route::get('alat-tes/{alat_te}/questions/papi/create', [PapiQuestionController::class, 'create'])
+            ->name('alat-tes.questions.papi.create');
+        
+        Route::post('alat-tes/{alat_te}/questions/papi', [PapiQuestionController::class, 'store'])
+            ->name('alat-tes.questions.papi.store');
+        
+        Route::get('alat-tes/{alat_te}/questions/{question}/papi/edit', [PapiQuestionController::class, 'edit'])
+            ->name('alat-tes.questions.papi.edit');
+        
+        Route::put('alat-tes/{alat_te}/questions/{question}/papi', [PapiQuestionController::class, 'update'])
+            ->name('alat-tes.questions.papi.update');
 
-        // Import / Template / Options
-        Route::post('questions/{question}/import', [QuestionController::class, 'import'])->name('questions.import');
-        Route::get('questions/download-template', [QuestionController::class, 'downloadTemplate'])->name('questions.template');
-        Route::post('questions/{question}/options', [OptionController::class, 'store'])->name('questions.options.store');
-        Route::delete('options/{option}', [OptionController::class, 'destroy'])->name('options.destroy');
+        // ==========================================================
+        // ✅ QUESTIONS - RMIB (144 Items)
+        // ==========================================================
+        Route::get('alat-tes/{alat_te}/questions/rmib/create', [RmibQuestionController::class, 'create'])
+            ->name('alat-tes.questions.rmib.create');
+        
+        Route::post('alat-tes/{alat_te}/questions/rmib', [RmibQuestionController::class, 'store'])
+            ->name('alat-tes.questions.rmib.store');
+        
+        Route::get('alat-tes/{alat_te}/questions/{question}/rmib/edit', [RmibQuestionController::class, 'edit'])
+            ->name('alat-tes.questions.rmib.edit');
+        
+        Route::put('alat-tes/{alat_te}/questions/{question}/rmib', [RmibQuestionController::class, 'update'])
+            ->name('alat-tes.questions.rmib.update');
 
+        // ==========================================================
+        // QUESTIONS - SHARED FEATURES
+        // ==========================================================
+        Route::post('alat-tes/{alat_te}/questions/{question}/import', [QuestionController::class, 'import'])
+            ->name('alat-tes.questions.import');
+        Route::get('alat-tes/questions/download-template', [QuestionController::class, 'downloadTemplate'])
+            ->name('alat-tes.questions.template');
+        
+        // Options
+        Route::post('alat-tes/{alat_te}/questions/{question}/options', [OptionController::class, 'store'])
+            ->name('alat-tes.questions.options.store');
+        Route::delete('alat-tes/{alat_te}/options/{option}', [OptionController::class, 'destroy'])
+            ->name('alat-tes.options.destroy');
+
+        // Example Questions
         Route::post('alat-tes/{alat_te}/example-questions', [QuestionController::class, 'storeExample'])
             ->name('alat-tes.example-questions.store');
         Route::delete('alat-tes/{alat_te}/example-questions/{example}', [QuestionController::class, 'destroyExample'])
