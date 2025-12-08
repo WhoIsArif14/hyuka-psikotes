@@ -119,6 +119,15 @@ class QuestionController extends Controller
      */
     public function store(Request $request, $alat_te)
     {
+        // ✅ DEBUGGING - Log semua data yang masuk
+        Log::info('=== STORE QUESTION STARTED ===', [
+            'type' => $request->type,
+            'question_text' => $request->question_text,
+            'options' => $request->options,
+            'is_correct' => $request->is_correct,
+            'all_data' => $request->except(['question_image', 'options.*.image_file'])
+        ]);
+
         $alatTes = AlatTes::findOrFail($alat_te);
         $imagePath = null;
         $optionImagePaths = [];
@@ -137,12 +146,14 @@ class QuestionController extends Controller
         if ($request->type === 'ESSAY') {
             $rules['question_text'] = 'required|string|min:1';
         } elseif ($request->type === 'PILIHAN_GANDA' || $request->type === 'PILIHAN_GANDA_KOMPLEKS') {
+            // ✅ PERBAIKAN: Question text bisa null jika ada gambar
             $rules['question_text'] = 'nullable|string|min:1';
             $rules['options'] = 'required|array|min:2';
             $rules['options.*.text'] = 'nullable|string|max:500';
             $rules['options.*.image_file'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120';
 
             if ($request->type === 'PILIHAN_GANDA') {
+                // ✅ PERBAIKAN: Validasi is_correct harus ada dan valid
                 $rules['is_correct'] = 'required|integer|min:0';
             } else {
                 $rules['correct_answers'] = 'required|array|min:1';
@@ -159,19 +170,20 @@ class QuestionController extends Controller
 
         // Custom validation messages
         $messages = [
-            'question_image.max' => '⚠️ Ukuran gambar pertanyaan terlalu besar! Maksimal 5 MB (5120 KB). Silakan kompres gambar terlebih dahulu.',
+            'question_image.max' => '⚠️ Ukuran gambar pertanyaan terlalu besar! Maksimal 5 MB (5120 KB).',
             'question_image.image' => '⚠️ File yang diupload harus berupa gambar (JPG, PNG, GIF).',
             'question_image.mimes' => '⚠️ Format gambar tidak didukung. Hanya JPG, PNG, dan GIF yang diperbolehkan.',
 
             'options.*.image_file.max' => '⚠️ Ukuran gambar opsi terlalu besar! Maksimal 5 MB (5120 KB) per opsi.',
             'options.*.image_file.image' => '⚠️ File opsi yang diupload harus berupa gambar.',
-            'options.*.image_file.mimes' => '⚠️ Format gambar opsi tidak didukung. Hanya JPG, PNG, GIF, dan WEBP yang diperbolehkan.',
+            'options.*.image_file.mimes' => '⚠️ Format gambar opsi tidak didukung.',
 
             'question_text.required' => 'Teks pertanyaan wajib diisi.',
             'question_text.min' => 'Teks pertanyaan minimal 1 karakter.',
             'options.required' => 'Minimal harus ada 2 opsi jawaban.',
             'options.min' => 'Minimal harus ada 2 opsi jawaban.',
-            'is_correct.required' => 'Anda harus menandai satu opsi sebagai jawaban yang benar.',
+            'is_correct.required' => '⚠️ Anda harus menandai satu opsi sebagai jawaban yang benar!',
+            'is_correct.integer' => '⚠️ Jawaban benar harus berupa angka index opsi.',
             'correct_answers.required' => 'Anda harus menandai minimal satu opsi sebagai jawaban yang benar.',
             'correct_answers.min' => 'Minimal ada 1 jawaban yang benar harus dipilih.',
 
@@ -185,7 +197,17 @@ class QuestionController extends Controller
             'ranking_weight.max' => 'Bobot soal maksimal adalah 100.',
         ];
 
-        $request->validate($rules, $messages);
+        // ✅ VALIDASI
+        try {
+            $validated = $request->validate($rules, $messages);
+            Log::info('Validation passed', ['validated' => $validated]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed', [
+                'errors' => $e->errors(),
+                'input' => $request->except(['question_image', 'options.*.image_file'])
+            ]);
+            throw $e;
+        }
 
         try {
             DB::beginTransaction();
@@ -193,6 +215,7 @@ class QuestionController extends Controller
             // Handle question image
             if ($request->hasFile('question_image')) {
                 $imagePath = $request->file('question_image')->store('questions', 'public');
+                Log::info('Question image uploaded', ['path' => $imagePath]);
             }
 
             // Prepare question data
@@ -219,9 +242,15 @@ class QuestionController extends Controller
                 $processedOptions = [];
 
                 foreach ($request->options as $index => $option) {
+                    // ✅ PERBAIKAN: Skip opsi yang kosong textnya
+                    if (empty(trim($option['text'] ?? ''))) {
+                        Log::info("Skipping empty option at index {$index}");
+                        continue;
+                    }
+
                     $optionData = [
-                        'text' => $option['text'] ?? '',
-                        'index' => $option['index'] ?? $index,
+                        'text' => trim($option['text']),
+                        'index' => $index,
                         'image_path' => null,
                     ];
 
@@ -231,35 +260,53 @@ class QuestionController extends Controller
                         $optionImagePath = $file->store('option_images', 'public');
                         $optionData['image_path'] = $optionImagePath;
                         $optionImagePaths[] = $optionImagePath;
+                        Log::info("Option {$index} image uploaded", ['path' => $optionImagePath]);
                     }
 
                     $processedOptions[] = $optionData;
                 }
 
+                // ✅ VALIDASI: Minimal 2 opsi setelah di-filter
+                if (count($processedOptions) < 2) {
+                    throw new \Exception('Minimal harus ada 2 opsi jawaban yang diisi!');
+                }
+
                 $questionData['options'] = json_encode($processedOptions);
+                Log::info('Processed options', ['count' => count($processedOptions), 'options' => $processedOptions]);
 
                 // Set correct answers
                 if ($request->type === 'PILIHAN_GANDA_KOMPLEKS') {
                     $correctAnswers = $request->input('correct_answers', []);
                     $questionData['correct_answers'] = json_encode(array_map('intval', $correctAnswers));
                     $questionData['correct_answer_index'] = null;
+                    Log::info('Multiple correct answers set', ['answers' => $correctAnswers]);
                 } else {
-                    $questionData['correct_answer_index'] = $request->is_correct;
+                    // ✅ PERBAIKAN: Pastikan is_correct ada dan valid
+                    if (!isset($request->is_correct) && $request->is_correct !== 0) {
+                        throw new \Exception('Anda harus memilih satu jawaban yang benar!');
+                    }
+                    $questionData['correct_answer_index'] = (int)$request->is_correct;
                     $questionData['correct_answers'] = null;
+                    Log::info('Single correct answer set', ['index' => $request->is_correct]);
                 }
             }
+
+            // ✅ LOG DATA SEBELUM DISIMPAN
+            Log::info('Question data to be saved', [
+                'data' => array_merge($questionData, ['options' => json_decode($questionData['options'] ?? '[]', true)])
+            ]);
 
             // Create question
             $question = Question::create($questionData);
 
-            DB::commit();
-
-            Log::info('Question created successfully', [
+            Log::info('✅ Question created successfully', [
                 'alat_tes_id' => $alat_te,
                 'type' => $request->type,
                 'id' => $question->id,
                 'ranking_category' => $request->ranking_category,
             ]);
+
+            DB::commit();
 
             return redirect()
                 ->route('admin.alat-tes.questions.index', $alat_te)
@@ -275,11 +322,12 @@ class QuestionController extends Controller
                 Storage::disk('public')->delete($path);
             }
 
-            Log::error('Failed to create question', [
+            Log::error('❌ Failed to create question', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'type' => $request->type,
                 'alat_tes_id' => $alat_te,
+                'input' => $request->except(['question_image', 'options.*.image_file'])
             ]);
 
             return back()
