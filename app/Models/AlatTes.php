@@ -16,6 +16,7 @@ class AlatTes extends Model
         'duration_minutes',
         'slug',
         'description',
+        'instructions', // ✅ TAMBAHAN: Field untuk instruksi tes
     ];
 
     protected $casts = [

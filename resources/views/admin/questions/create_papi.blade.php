@@ -8,7 +8,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            @include('admin.alat-tes.questions.partials.form-header')
+            @include('admin.questions.partials.form-header')
 
             {{-- Form Tambah PAPI --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
@@ -18,7 +18,7 @@
                         <p class="text-sm text-gray-600 mt-1">
                             Total soal PAPI yang ada: <strong>{{ $existingPapiCount }}</strong> dari 90
                         </p>
-                        @if($papiItems->count() == 0)
+                        @if ($papiItems->count() == 0)
                             <p class="text-sm text-red-600 mt-1">
                                 ⚠️ Data PAPI Kostick belum ada di database. Silakan jalankan seeder terlebih dahulu.
                             </p>
@@ -30,15 +30,14 @@
                     </a>
                 </div>
 
-                <form method="POST" action="{{ route('admin.alat-tes.questions.papi.store', $AlatTes->id) }}" 
-                      id="papiForm">
+                <form method="POST" action="{{ route('admin.alat-tes.questions.papi.store', $AlatTes->id) }}"
+                    id="papiForm">
                     @csrf
 
                     {{-- ✅ CHECKBOX AUTO-GENERATE --}}
                     <div class="mb-6 bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-lg p-4">
                         <label class="flex items-start space-x-3 cursor-pointer">
-                            <input type="checkbox" id="auto_generate_papi" name="auto_generate_papi"
-                                value="1" {{ old('auto_generate_papi') ? 'checked' : '' }}
+                            <input type="checkbox" id="auto_generate_papi" name="auto_generate_papi" value="1"
                                 {{ $papiItems->count() == 0 ? 'disabled' : '' }}
                                 class="mt-1 h-5 w-5 text-purple-600 rounded focus:ring-purple-500">
                             <div class="flex-1">
@@ -63,8 +62,7 @@
                     </div>
 
                     {{-- ✅ PERINGATAN JIKA TIDAK CENTANG --}}
-                    <div id="papi-manual-warning"
-                        class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-3 {{ old('auto_generate_papi') ? 'hidden' : '' }}">
+                    <div id="papi-manual-warning" class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-3">
                         <div class="flex gap-2">
                             <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
@@ -74,26 +72,27 @@
                             <div>
                                 <p class="text-sm font-semibold text-yellow-800">⚠️ Mode Input Manual</p>
                                 <p class="text-xs text-yellow-700 mt-1">
-                                    Anda akan memilih soal PAPI satu per satu dari daftar. Disarankan centang checkbox di atas untuk auto-generate.
+                                    Anda akan memilih soal PAPI satu per satu dari daftar. Disarankan centang checkbox
+                                    di atas untuk auto-generate.
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     {{-- ✅ INPUT MANUAL (Hanya muncul jika checkbox tidak dicentang) --}}
-                    <div id="papi-manual-input" class="{{ old('auto_generate_papi') ? 'hidden' : '' }}">
+                    <div id="papi-manual-input">
                         <div class="mb-4">
                             <label for="papi_item_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                Pilih Soal PAPI <span class="text-red-500">*</span>
+                                Pilih Soal PAPI <span id="required-mark" class="text-red-500">*</span>
                             </label>
                             <select id="papi_item_id" name="papi_item_id"
-                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                                {{ old('auto_generate_papi') ? '' : 'required' }}>
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500">
                                 <option value="">-- Pilih Item PAPI --</option>
-                                @foreach($papiItems as $item)
-                                    <option value="{{ $item->id }}" {{ old('papi_item_id') == $item->id ? 'selected' : '' }}>
-                                        Item {{ $item->item_number }}: 
-                                        {{ Str::limit($item->statement_a, 50) }} VS 
+                                @foreach ($papiItems as $item)
+                                    <option value="{{ $item->id }}"
+                                        {{ old('papi_item_id') == $item->id ? 'selected' : '' }}>
+                                        Item {{ $item->item_number }}:
+                                        {{ Str::limit($item->statement_a, 50) }} VS
                                         {{ Str::limit($item->statement_b, 50) }}
                                     </option>
                                 @endforeach
@@ -110,26 +109,28 @@
                                 <div class="bg-blue-50 p-3 rounded">
                                     <p class="text-xs font-semibold text-blue-700 mb-1">Statement A:</p>
                                     <p id="preview-statement-a" class="text-sm text-gray-800"></p>
-                                    <p class="text-xs text-blue-600 mt-1">Aspect: <span id="preview-aspect-a" class="font-semibold"></span></p>
+                                    <p class="text-xs text-blue-600 mt-1">Role: <span id="preview-aspect-a"
+                                            class="font-semibold"></span></p>
                                 </div>
                                 <div class="bg-green-50 p-3 rounded">
                                     <p class="text-xs font-semibold text-green-700 mb-1">Statement B:</p>
                                     <p id="preview-statement-b" class="text-sm text-gray-800"></p>
-                                    <p class="text-xs text-green-600 mt-1">Aspect: <span id="preview-aspect-b" class="font-semibold"></span></p>
+                                    <p class="text-xs text-green-600 mt-1">Role: <span id="preview-aspect-b"
+                                            class="font-semibold"></span></p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    @include('admin.alat-tes.questions.partials.tab-navigation')
+                    @include('admin.questions.partials.tab-navigation')
 
                     {{-- TAB CONTENT --}}
                     <div class="tab-contents">
                         {{-- TAB SOAL UTAMA --}}
                         <div class="tab-content" id="tab-soal">
                             <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                <p class="text-sm text-purple-700">
-                                    {{ old('auto_generate_papi') ? '✅ Mode Auto-Generate: 90 soal akan ditambahkan otomatis dari database PAPI Kostick.' : 'ℹ️ Mode Manual: Pilih soal PAPI dari dropdown di atas.' }}
+                                <p id="mode-info" class="text-sm text-purple-700">
+                                    ℹ️ Mode Manual: Pilih soal PAPI dari dropdown di atas.
                                 </p>
                             </div>
                         </div>
@@ -177,96 +178,139 @@
     </div>
 
     @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const autoGenCheckbox = document.getElementById('auto_generate_papi');
-            const manualInput = document.getElementById('papi-manual-input');
-            const manualWarning = document.getElementById('papi-manual-warning');
-            const submitBtn = document.getElementById('submitBtn');
-            const submitText = document.getElementById('submitText');
-            const papiItemSelect = document.getElementById('papi_item_id');
-            const itemPreview = document.getElementById('item-preview');
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const autoGenCheckbox = document.getElementById('auto_generate_papi');
+                const manualInput = document.getElementById('papi-manual-input');
+                const manualWarning = document.getElementById('papi-manual-warning');
+                const submitBtn = document.getElementById('submitBtn');
+                const submitText = document.getElementById('submitText');
+                const papiItemSelect = document.getElementById('papi_item_id');
+                const itemPreview = document.getElementById('item-preview');
+                const papiForm = document.getElementById('papiForm');
+                const modeInfo = document.getElementById('mode-info');
+                const requiredMark = document.getElementById('required-mark');
 
-            // PAPI Items data from backend
-            const papiItemsData = @json($papiItems);
+                // PAPI Items data from backend
+                const papiItemsData = @json($papiItems);
 
-            function toggleMode() {
-                if (autoGenCheckbox.checked) {
-                    manualInput.classList.add('hidden');
-                    manualWarning.classList.add('hidden');
-                    submitText.textContent = '✨ Generate 90 Soal PAPI';
-                    
-                    if (papiItemSelect) papiItemSelect.required = false;
-                } else {
-                    manualInput.classList.remove('hidden');
-                    manualWarning.classList.remove('hidden');
-                    submitText.textContent = 'Simpan Soal PAPI';
-                    
-                    if (papiItemSelect) papiItemSelect.required = true;
-                }
-            }
+                function toggleMode() {
+                    if (autoGenCheckbox.checked) {
+                        // Mode Auto-Generate
+                        manualInput.classList.add('hidden');
+                        manualWarning.classList.add('hidden');
+                        submitText.textContent = '✨ Generate 90 Soal PAPI';
+                        
+                        if (modeInfo) {
+                            modeInfo.textContent = '✅ Mode Auto-Generate: 90 soal akan ditambahkan otomatis dari database PAPI Kostick.';
+                        }
 
-            if (autoGenCheckbox) {
-                autoGenCheckbox.addEventListener('change', toggleMode);
-                toggleMode(); // Initial state
-            }
-
-            // Preview selected PAPI item
-            if (papiItemSelect) {
-                papiItemSelect.addEventListener('change', function() {
-                    const selectedId = this.value;
-                    if (selectedId) {
-                        const selectedItem = papiItemsData.find(item => item.id == selectedId);
-                        if (selectedItem) {
-                            document.getElementById('preview-statement-a').textContent = selectedItem.statement_a;
-                            document.getElementById('preview-statement-b').textContent = selectedItem.statement_b;
-                            document.getElementById('preview-aspect-a').textContent = selectedItem.aspect_a;
-                            document.getElementById('preview-aspect-b').textContent = selectedItem.aspect_b;
-                            itemPreview.classList.remove('hidden');
+                        if (papiItemSelect) {
+                            papiItemSelect.removeAttribute('required');
+                            papiItemSelect.value = '';
+                        }
+                        
+                        if (itemPreview) {
+                            itemPreview.classList.add('hidden');
                         }
                     } else {
-                        itemPreview.classList.add('hidden');
+                        // Mode Manual
+                        manualInput.classList.remove('hidden');
+                        manualWarning.classList.remove('hidden');
+                        submitText.textContent = 'Simpan Soal PAPI';
+                        
+                        if (modeInfo) {
+                            modeInfo.textContent = 'ℹ️ Mode Manual: Pilih soal PAPI dari dropdown di atas.';
+                        }
+
+                        if (papiItemSelect) {
+                            papiItemSelect.setAttribute('required', 'required');
+                        }
                     }
-                });
-            }
+                }
 
-            // Tab navigation
-            const tabButtons = document.querySelectorAll('.tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const targetTab = this.getAttribute('data-tab');
-                    
-                    tabButtons.forEach(btn => {
-                        btn.classList.remove('active', 'border-blue-600', 'text-blue-600');
-                        btn.classList.add('border-transparent', 'text-gray-500');
+                // Validasi form sebelum submit
+                if (papiForm) {
+                    papiForm.addEventListener('submit', function(e) {
+                        // Hanya validasi jika TIDAK auto-generate
+                        if (!autoGenCheckbox.checked) {
+                            if (!papiItemSelect.value || papiItemSelect.value === '') {
+                                e.preventDefault();
+                                alert('⚠️ Silakan pilih soal PAPI dari dropdown!');
+                                papiItemSelect.focus();
+                                papiItemSelect.classList.add('border-red-500');
+                                setTimeout(() => {
+                                    papiItemSelect.classList.remove('border-red-500');
+                                }, 3000);
+                                return false;
+                            }
+                        }
                     });
-                    
-                    this.classList.add('active', 'border-blue-600', 'text-blue-600');
-                    this.classList.remove('border-transparent', 'text-gray-500');
-                    
-                    tabContents.forEach(content => content.classList.add('hidden'));
-                    
-                    const targetContent = document.getElementById('tab-' + targetTab);
-                    if (targetContent) targetContent.classList.remove('hidden');
-                });
-            });
+                }
 
-            if (tabButtons.length > 0) {
-                tabButtons[0].click();
-            }
-        });
-    </script>
+                if (autoGenCheckbox) {
+                    autoGenCheckbox.addEventListener('change', toggleMode);
+                    toggleMode(); // Initial state
+                }
+
+                // Preview selected PAPI item
+                if (papiItemSelect) {
+                    papiItemSelect.addEventListener('change', function() {
+                        const selectedId = this.value;
+                        if (selectedId) {
+                            const selectedItem = papiItemsData.find(item => item.id == selectedId);
+                            if (selectedItem) {
+                                document.getElementById('preview-statement-a').textContent = selectedItem.statement_a;
+                                document.getElementById('preview-statement-b').textContent = selectedItem.statement_b;
+                                document.getElementById('preview-aspect-a').textContent = selectedItem.role_a || 'N/A';
+                                document.getElementById('preview-aspect-b').textContent = selectedItem.role_b || 'N/A';
+                                itemPreview.classList.remove('hidden');
+                            }
+                        } else {
+                            itemPreview.classList.add('hidden');
+                        }
+                    });
+                }
+
+                // Tab navigation
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                const tabContents = document.querySelectorAll('.tab-content');
+
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const targetTab = this.getAttribute('data-tab');
+
+                        tabButtons.forEach(btn => {
+                            btn.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                            btn.classList.add('border-transparent', 'text-gray-500');
+                        });
+
+                        this.classList.add('active', 'border-blue-600', 'text-blue-600');
+                        this.classList.remove('border-transparent', 'text-gray-500');
+
+                        tabContents.forEach(content => content.classList.add('hidden'));
+
+                        const targetContent = document.getElementById('tab-' + targetTab);
+                        if (targetContent) targetContent.classList.remove('hidden');
+                    });
+                });
+
+                if (tabButtons.length > 0) {
+                    tabButtons[0].click();
+                }
+            });
+        </script>
     @endpush
 
     <style>
         .tab-btn {
             transition: all 0.3s ease;
         }
+
         .tab-btn:hover {
             border-bottom-color: #9CA3AF;
         }
+
         .tab-btn.active {
             border-bottom-color: #2563EB !important;
             color: #2563EB !important;

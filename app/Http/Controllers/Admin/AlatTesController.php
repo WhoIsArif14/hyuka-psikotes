@@ -4,67 +4,23 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlatTes;
-use App\Models\PapiQuestion;
+use App\Models\PapiQuestion; // Diasumsikan untuk tipe tes PAPI
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str; // PENTING: Untuk helper Str::slug()
 
 class AlatTesController extends Controller
 {
     /**
-     * Menampilkan daftar semua Alat Tes.
-     * PERBAIKAN: Menggunakan ID alat tes untuk menghitung soal PAPI.
-     */
-    public function index()
-    {
-        $AlatTes = AlatTes::latest()->get()->map(function ($alatTes) {
-
-            if ($this->isPapiKostick($alatTes)) {
-                // ✅ Hitung soal PAPI berdasarkan alat_tes_id
-                $alatTes->questions_count = PapiQuestion::where('alat_tes_id', $alatTes->id)->count();
-
-                // ✅ Debug log
-                \Log::info('PAPI Count', [
-                    'alat_tes_id' => $alatTes->id,
-                    'name' => $alatTes->name,
-                    'count' => $alatTes->questions_count
-                ]);
-            } else {
-                // ✅ Hitung soal umum
-                $alatTes->questions_count = $alatTes->questions()->count();
-
-                // ✅ Debug log
-                \Log::info('Regular Questions Count', [
-                    'alat_tes_id' => $alatTes->id,
-                    'name' => $alatTes->name,
-                    'count' => $alatTes->questions_count
-                ]);
-            }
-
-            return $alatTes;
-        });
-
-        $perPage = 10;
-        $currentPage = request()->get('page', 1);
-        $pagedData = $AlatTes->slice(($currentPage - 1) * $perPage, $perPage)->all();
-
-        $AlatTes = new \Illuminate\Pagination\LengthAwarePaginator(
-            $pagedData,
-            $AlatTes->count(),
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
-
-        return view('admin.alat-tes.index', compact('AlatTes'));
-    }
-
-    /**
      * Helper method untuk mengecek apakah Alat Tes adalah PAPI Kostick
+     * Metode ini digunakan di index dan destroy.
+     * @param AlatTes $alatTes
+     * @return bool
      */
     private function isPapiKostick($alatTes)
     {
-        // Cek slug
+        // Cek berdasarkan slug atau nama (sesuai logika yang Anda berikan di Model)
         if (isset($alatTes->slug) && !empty($alatTes->slug)) {
             $slug = strtolower(trim($alatTes->slug));
             if (in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick'])) {
@@ -72,7 +28,6 @@ class AlatTesController extends Controller
             }
         }
 
-        // Cek name jika slug tidak ada
         if (isset($alatTes->name) && !empty($alatTes->name)) {
             $name = strtolower(trim($alatTes->name));
             if (str_contains($name, 'papi') || str_contains($name, 'kostick') || str_contains($name, 'mami')) {
@@ -84,6 +39,41 @@ class AlatTesController extends Controller
     }
 
     /**
+     * Menampilkan daftar semua Alat Tes (READ).
+     */
+    public function index(Request $request)
+    {
+        // Mengambil semua Alat Tes dan menghitung soal terkait
+        $AlatTes = AlatTes::latest()->get()->map(function ($alatTes) {
+
+            if ($this->isPapiKostick($alatTes)) {
+                // Hitung soal PAPI
+                $alatTes->questions_count = PapiQuestion::where('alat_tes_id', $alatTes->id)->count();
+            } else {
+                // Hitung soal umum
+                $alatTes->questions_count = $alatTes->questions()->count();
+            }
+
+            return $alatTes;
+        });
+
+        // Implementasi Pagination manual dari Collection
+        $perPage = 10;
+        $currentPage = $request->get('page', 1);
+        $pagedData = $AlatTes->slice(($currentPage - 1) * $perPage, $perPage)->all();
+
+        $AlatTes = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData,
+            $AlatTes->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('admin.alat-tes.index', compact('AlatTes'));
+    }
+
+    /**
      * Menampilkan form untuk membuat Alat Tes baru.
      */
     public function create()
@@ -92,26 +82,44 @@ class AlatTesController extends Controller
     }
 
     /**
-     * Menyimpan Alat Tes baru ke database.
+     * Menyimpan Alat Tes baru ke database. (CREATE)
+     * FIX: Membuat slug otomatis dan menangani kolom 'description'.
      */
     public function store(Request $request)
     {
+        // 1. Validasi Input. Tambahkan 'unique' untuk name agar tidak ada duplikasi.
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:alat_tes,name',
             'duration_minutes' => 'required|integer|min:1',
+            'instructions' => 'nullable|string',
         ]);
 
         try {
-            $alatTes = AlatTes::create($validated);
+            // 2. Persiapan Data
+            $dataToCreate = $validated;
 
-            Log::info('Alat Tes created', ['id' => $alatTes->id, 'name' => $alatTes->name]);
+            // Membuat slug otomatis dari name
+            $dataToCreate['slug'] = Str::slug($validated['name']);
+
+            // Mengisi 'description' (jika tidak dikirim dari form, set null/default)
+            // Asumsi 'description' di database BISA NULL.
+            if (in_array('description', (new AlatTes())->getFillable()) && !isset($dataToCreate['description'])) {
+                 $dataToCreate['description'] = null;
+            }
+
+            // 3. Simpan Data ke Database
+            $alatTes = AlatTes::create($dataToCreate);
+
+            Log::info('Alat Tes created successfully', ['id' => $alatTes->id, 'name' => $alatTes->name]);
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes baru berhasil dibuat.');
         } catch (\Exception $e) {
+            // Log Error
             Log::error('Failed to create Alat Tes', ['error' => $e->getMessage()]);
 
-            return back()->withInput()->withErrors(['error' => 'Gagal menyimpan: ' . $e->getMessage()]);
+            // Kembali ke form dengan input lama dan error spesifik
+            return back()->withInput()->withErrors(['error' => 'Gagal menyimpan Alat Tes. Pesan database: ' . $e->getMessage()]);
         }
     }
 
@@ -124,17 +132,24 @@ class AlatTesController extends Controller
     }
 
     /**
-     * Mengupdate Alat Tes di database.
+     * Mengupdate Alat Tes di database. (UPDATE)
      */
     public function update(Request $request, AlatTes $alat_te)
     {
+        // Validasi Input. Abaikan ID saat ini untuk aturan 'unique'.
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:alat_tes,name,' . $alat_te->id,
             'duration_minutes' => 'required|integer|min:1',
+            'instructions' => 'nullable|string',
         ]);
 
         try {
-            $alat_te->update($validated);
+            // Persiapan Data (Update slug otomatis)
+            $dataToUpdate = $validated;
+            $dataToUpdate['slug'] = Str::slug($validated['name']);
+
+            // Update Data
+            $alat_te->update($dataToUpdate);
 
             Log::info('Alat Tes updated', ['id' => $alat_te->id, 'name' => $alat_te->name]);
 
@@ -148,8 +163,7 @@ class AlatTesController extends Controller
     }
 
     /**
-     * Menghapus Alat Tes dari database.
-     * PERBAIKAN: Cascade delete - hapus semua soal terkait sebelum menghapus alat tes
+     * Menghapus Alat Tes dari database. (DELETE)
      */
     public function destroy(AlatTes $alat_te)
     {
@@ -159,38 +173,19 @@ class AlatTesController extends Controller
             $name = $alat_te->name;
             $deletedQuestionsCount = 0;
 
-            // Hapus semua soal terkait terlebih dahulu
+            // Hapus semua soal terkait terlebih dahulu (Cascade Delete Logic)
             if ($this->isPapiKostick($alat_te)) {
-                // Hapus soal PAPI
                 $deletedQuestionsCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
                 PapiQuestion::where('alat_tes_id', $alat_te->id)->delete();
-
-                Log::info('Deleted PAPI questions for Alat Tes', [
-                    'alat_tes_id' => $alat_te->id,
-                    'alat_tes_name' => $name,
-                    'deleted_questions' => $deletedQuestionsCount
-                ]);
             } else {
-                // Hapus soal umum
                 $deletedQuestionsCount = $alat_te->questions()->count();
                 $alat_te->questions()->delete();
-
-                Log::info('Deleted regular questions for Alat Tes', [
-                    'alat_tes_id' => $alat_te->id,
-                    'alat_tes_name' => $name,
-                    'deleted_questions' => $deletedQuestionsCount
-                ]);
             }
 
-            // Hapus alat tes
+            // Hapus alat tes utama
             $alat_te->delete();
 
             DB::commit();
-
-            Log::info('Alat Tes deleted successfully', [
-                'name' => $name,
-                'total_questions_deleted' => $deletedQuestionsCount
-            ]);
 
             $message = $deletedQuestionsCount > 0
                 ? "Alat Tes '{$name}' dan {$deletedQuestionsCount} soal berhasil dihapus."
@@ -204,7 +199,6 @@ class AlatTesController extends Controller
             Log::error('Failed to delete Alat Tes', [
                 'alat_tes_id' => $alat_te->id ?? 'unknown',
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
 
             return redirect()->route('admin.alat-tes.index')

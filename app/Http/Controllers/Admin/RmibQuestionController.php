@@ -5,55 +5,171 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AlatTes;
 use App\Models\Question;
-use App\Models\QuestionOption;
+use App\Models\RmibItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class RmibQuestionController extends Controller
 {
     /**
-     * Show form for creating RMIB questions
+     * Show create form for RMIB questions
      */
     public function create($alatTesId)
     {
         $AlatTes = AlatTes::findOrFail($alatTesId);
 
         // Get existing RMIB questions count
-        $existingRmibCount = Question::where('alat_tes_id', $alatTesId)
+        $existingRmibCount = Question::where('alat_tes_id', $AlatTes->id)
             ->where('type', 'RMIB')
             ->count();
 
-        // Get interest areas
-        $interestAreas = $this->getRmibInterestAreas();
+        // Get all RMIB items from master data
+        $rmibItems = RmibItem::orderBy('item_number')->get();
 
-        return view('admin.alat-tes.questions.create_rmib', compact('AlatTes', 'existingRmibCount', 'interestAreas'));
+        // Get interest areas
+        $interestAreas = RmibItem::getInterestAreas();
+
+        return view('admin.questions.create_rmib', compact('AlatTes', 'existingRmibCount', 'rmibItems', 'interestAreas'));
     }
 
     /**
-     * Store RMIB question
+     * Store RMIB questions (auto-generate 144 or manual single)
      */
     public function store(Request $request, $alatTesId)
     {
         $AlatTes = AlatTes::findOrFail($alatTesId);
 
+        // Check if auto-generate mode
+        if ($request->has('auto_generate_rmib') && $request->auto_generate_rmib == '1') {
+            return $this->autoGenerateRmib($request, $AlatTes);
+        }
+
+        // Manual single question creation
+        return $this->storeManualRmib($request, $AlatTes);
+    }
+
+    /**
+     * Auto-generate 144 RMIB questions from master data
+     */
+    private function autoGenerateRmib(Request $request, $AlatTes)
+    {
         $request->validate([
-            'rmib_item_number' => 'required|integer|min:1|max:144',
-            'rmib_interest_area' => 'required|string|in:OUTDOOR,MECHANICAL,COMPUTATIONAL,SCIENTIFIC,PERSONAL_CONTACT,AESTHETIC,LITERARY,MUSICAL,SOCIAL_SERVICE,CLERICAL,PRACTICAL,MEDICAL',
-            'question_text' => 'required|string|max:1000',
             'example_question' => 'nullable|string|max:5000',
             'instructions' => 'nullable|string|max:5000',
-            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB
-        ], [
-            'rmib_item_number.required' => 'Nomor item RMIB wajib diisi',
-            'rmib_interest_area.required' => 'Bidang minat wajib dipilih',
-            'question_text.required' => 'Deskripsi aktivitas wajib diisi',
         ]);
 
         DB::beginTransaction();
 
         try {
-            // Handle image upload
+            // Get all RMIB items from master data
+            $rmibItems = RmibItem::orderBy('item_number')->get();
+
+            if ($rmibItems->isEmpty()) {
+                return back()->with('error', '❌ Data RMIB belum ada di database. Jalankan seeder terlebih dahulu: php artisan db:seed --class=RmibItemSeeder');
+            }
+
+            $createdCount = 0;
+            $skippedCount = 0;
+
+            foreach ($rmibItems as $item) {
+                // Check if item already exists for this Alat Tes
+                $exists = Question::where('alat_tes_id', $AlatTes->id)
+                    ->where('rmib_item_id', $item->id)
+                    ->exists();
+
+                if ($exists) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                // Create Question linked to RMIB item
+                Question::create([
+                    'alat_tes_id' => $AlatTes->id,
+                    'rmib_item_id' => $item->id,
+                    'type' => 'RMIB',
+                    'question_text' => $item->description,
+                    'example_question' => $request->example_question,
+                    'instructions' => $request->instructions,
+                    'ranking_category' => $item->interest_area, // Store interest area
+                    'ranking_weight' => $item->item_number, // Store item number
+                    'options' => null, // RMIB uses ranking, not multiple choice
+                    'correct_answer_index' => null,
+                    'correct_answers' => null,
+                    'image_path' => null,
+                ]);
+
+                $createdCount++;
+            }
+
+            DB::commit();
+
+            $message = "✅ Berhasil membuat {$createdCount} item RMIB!";
+            if ($skippedCount > 0) {
+                $message .= " ({$skippedCount} item sudah ada dan dilewati)";
+            }
+
+            Log::info('RMIB Auto-Generate Success', [
+                'alat_tes_id' => $AlatTes->id,
+                'created' => $createdCount,
+                'skipped' => $skippedCount,
+            ]);
+
+            return redirect()
+                ->route('admin.alat-tes.questions.index', $AlatTes->id)
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('RMIB Auto-Generate Error: ' . $e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', '❌ Gagal membuat item RMIB: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Store manual single RMIB item
+     */
+    /**
+     * Store manual single RMIB item
+     */
+    private function storeManualRmib(Request $request, $AlatTes)
+    {
+        // ✅ PERBAIKAN: Validasi fleksibel
+        $rules = [
+            'example_question' => 'nullable|string|max:5000',
+            'instructions' => 'nullable|string|max:5000',
+            'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+        ];
+
+        // Hanya require rmib_item_id di mode manual
+        if (!$request->has('auto_generate_rmib') || $request->auto_generate_rmib != '1') {
+            $rules['rmib_item_id'] = 'required|exists:rmib_items,id';
+        }
+
+        $request->validate($rules, [
+            'rmib_item_id.required' => 'Silakan pilih item RMIB dari daftar',
+            'rmib_item_id.exists' => 'Item RMIB tidak ditemukan',
+            'question_image.max' => '⚠️ Ukuran gambar terlalu besar! Maksimal 5 MB.',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $rmibItem = RmibItem::findOrFail($request->rmib_item_id);
+
+            // Check if already exists
+            $exists = Question::where('alat_tes_id', $AlatTes->id)
+                ->where('rmib_item_id', $rmibItem->id)
+                ->exists();
+
+            if ($exists) {
+                return back()->with('error', '❌ Item RMIB #' . $rmibItem->item_number . ' sudah ada di Alat Tes ini.');
+            }
+
+            // Handle image upload (optional)
             $imagePath = null;
             if ($request->hasFile('question_image')) {
                 $imagePath = $request->file('question_image')->store('questions/rmib', 'public');
@@ -62,46 +178,42 @@ class RmibQuestionController extends Controller
             // Create Question
             $question = Question::create([
                 'alat_tes_id' => $AlatTes->id,
+                'rmib_item_id' => $rmibItem->id,
                 'type' => 'RMIB',
-                'question_text' => $request->question_text,
-                'question_image' => $imagePath,
+                'question_text' => $rmibItem->description,
+                'image_path' => $imagePath,
                 'example_question' => $request->example_question,
                 'instructions' => $request->instructions,
-                'ranking_category' => $request->rmib_interest_area, // Store interest area in ranking_category
-                'ranking_weight' => 1,
+                'ranking_category' => $rmibItem->interest_area,
+                'ranking_weight' => $rmibItem->item_number,
+                'options' => null,
+                'correct_answer_index' => null,
+                'correct_answers' => null,
             ]);
-
-            // Create 5 rating options (Sangat Tidak Suka to Sangat Suka)
-            $ratingOptions = [
-                'Sangat Tidak Suka',
-                'Tidak Suka',
-                'Netral',
-                'Suka',
-                'Sangat Suka',
-            ];
-
-            foreach ($ratingOptions as $index => $optionText) {
-                QuestionOption::create([
-                    'question_id' => $question->id,
-                    'option_text' => $optionText,
-                    'option_index' => $index,
-                    'is_correct' => false, // RMIB has no correct answer
-                    'score_value' => $index + 1, // 1-5 scoring
-                ]);
-            }
 
             DB::commit();
 
+            Log::info('RMIB Manual Create Success', [
+                'alat_tes_id' => $AlatTes->id,
+                'rmib_item_id' => $rmibItem->id,
+                'item_number' => $rmibItem->item_number,
+            ]);
+
             return redirect()
                 ->route('admin.alat-tes.questions.index', $AlatTes->id)
-                ->with('success', '✅ Soal RMIB berhasil ditambahkan!');
+                ->with('success', '✅ Item RMIB #' . $rmibItem->item_number . ' (' . $rmibItem->interest_area_name . ') berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('RMIB Store Error: ' . $e->getMessage());
+
+            if (isset($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+            }
+
+            Log::error('RMIB Manual Store Error: ' . $e->getMessage());
 
             return back()
                 ->withInput()
-                ->with('error', '❌ Gagal menyimpan soal RMIB: ' . $e->getMessage());
+                ->with('error', '❌ Gagal menyimpan item RMIB: ' . $e->getMessage());
         }
     }
 
@@ -111,17 +223,25 @@ class RmibQuestionController extends Controller
     public function edit($alatTesId, $questionId)
     {
         $AlatTes = AlatTes::findOrFail($alatTesId);
-        $question = Question::with('options')->findOrFail($questionId);
+        $question = Question::with('rmibItem')->findOrFail($questionId);
 
+        // Verify it's RMIB type
         if ($question->type !== 'RMIB') {
             return redirect()
                 ->route('admin.alat-tes.questions.index', $alatTesId)
                 ->with('error', '❌ Soal ini bukan tipe RMIB');
         }
 
-        $interestAreas = $this->getRmibInterestAreas();
+        // Verify ownership
+        if ($question->alat_tes_id != $AlatTes->id) {
+            return redirect()
+                ->route('admin.alat-tes.questions.index', $alatTesId)
+                ->with('error', '❌ Item ini bukan milik Alat Tes ini');
+        }
 
-        return view('admin.alat-tes.questions.edit_rmib', compact('AlatTes', 'question', 'interestAreas'));
+        $interestAreas = RmibItem::getInterestAreas();
+
+        return view('admin.questions.edit_rmib', compact('AlatTes', 'question', 'interestAreas'));
     }
 
     /**
@@ -129,71 +249,103 @@ class RmibQuestionController extends Controller
      */
     public function update(Request $request, $alatTesId, $questionId)
     {
+        $AlatTes = AlatTes::findOrFail($alatTesId);
+        $question = Question::findOrFail($questionId);
+
+        // Verify ownership and type
+        if ($question->type !== 'RMIB' || $question->alat_tes_id != $AlatTes->id) {
+            return back()->with('error', '❌ Item RMIB tidak valid');
+        }
+
         $request->validate([
-            'rmib_item_number' => 'required|integer|min:1|max:144',
-            'rmib_interest_area' => 'required|string|in:OUTDOOR,MECHANICAL,COMPUTATIONAL,SCIENTIFIC,PERSONAL_CONTACT,AESTHETIC,LITERARY,MUSICAL,SOCIAL_SERVICE,CLERICAL,PRACTICAL,MEDICAL',
-            'question_text' => 'required|string|max:1000',
+            'question_text' => 'nullable|string|max:1000',
             'example_question' => 'nullable|string|max:5000',
             'instructions' => 'nullable|string|max:5000',
             'question_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+        ], [
+            'question_image.max' => '⚠️ Ukuran gambar terlalu besar! Maksimal 5 MB.',
         ]);
 
         DB::beginTransaction();
 
         try {
-            $question = Question::findOrFail($questionId);
-
-            // Handle image upload
+            // Handle image
+            $imagePath = $question->image_path;
             if ($request->hasFile('question_image')) {
-                // Delete old image if exists
-                if ($question->question_image) {
-                    \Storage::disk('public')->delete($question->question_image);
+                if ($imagePath) {
+                    Storage::disk('public')->delete($imagePath);
                 }
-                $question->question_image = $request->file('question_image')->store('questions/rmib', 'public');
+                $imagePath = $request->file('question_image')->store('questions/rmib', 'public');
             }
 
-            // Update Question
+            // Update question
             $question->update([
-                'question_text' => $request->question_text,
+                'question_text' => $request->question_text ?? ($question->rmibItem ? $question->rmibItem->description : $question->question_text),
+                'image_path' => $imagePath,
                 'example_question' => $request->example_question,
                 'instructions' => $request->instructions,
-                'ranking_category' => $request->rmib_interest_area,
             ]);
 
             DB::commit();
 
+            Log::info('RMIB Update Success', [
+                'alat_tes_id' => $AlatTes->id,
+                'question_id' => $question->id,
+            ]);
+
             return redirect()
-                ->route('admin.alat-tes.questions.index', $alatTesId)
-                ->with('success', '✅ Soal RMIB berhasil diperbarui!');
+                ->route('admin.alat-tes.questions.index', $AlatTes->id)
+                ->with('success', '✅ Item RMIB berhasil diperbarui!');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RMIB Update Error: ' . $e->getMessage());
 
             return back()
                 ->withInput()
-                ->with('error', '❌ Gagal memperbarui soal RMIB: ' . $e->getMessage());
+                ->with('error', '❌ Gagal memperbarui item RMIB: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get RMIB interest areas
+     * Delete RMIB question
      */
-    private function getRmibInterestAreas()
+    public function destroy($alatTesId, $questionId)
     {
-        return [
-            'OUTDOOR' => '1. Outdoor (Alam Terbuka)',
-            'MECHANICAL' => '2. Mechanical (Mekanik)',
-            'COMPUTATIONAL' => '3. Computational (Komputasi)',
-            'SCIENTIFIC' => '4. Scientific (Ilmiah)',
-            'PERSONAL_CONTACT' => '5. Personal Contact (Kontak Personal)',
-            'AESTHETIC' => '6. Aesthetic (Estetika
-            )',
-            'LITERARY' => '7. Literary (Sastra)',
-            'MUSICAL' => '8. Musical (Musik)',
-            'SOCIAL_SERVICE' => '9. Social Service (Layanan Sosial)',
-            'CLERICAL' => '10. Clerical (Administrasi)',
-            'PRACTICAL' => '11. Practical (Praktis)',
-            'MEDICAL' => '12. Medical (Medis)',
-        ];
+        try {
+            DB::beginTransaction();
+
+            $question = Question::findOrFail($questionId);
+
+            // Verify ownership and type
+            if ($question->type !== 'RMIB' || $question->alat_tes_id != $alatTesId) {
+                return back()->with('error', '❌ Item RMIB tidak valid');
+            }
+
+            $itemNumber = $question->ranking_weight;
+
+            // Delete image if exists
+            if ($question->image_path) {
+                Storage::disk('public')->delete($question->image_path);
+            }
+
+            $question->delete();
+
+            DB::commit();
+
+            Log::info('RMIB Delete Success', [
+                'alat_tes_id' => $alatTesId,
+                'question_id' => $questionId,
+                'item_number' => $itemNumber,
+            ]);
+
+            return redirect()
+                ->route('admin.alat-tes.questions.index', $alatTesId)
+                ->with('success', '✅ Item RMIB #' . $itemNumber . ' berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('RMIB Delete Error: ' . $e->getMessage());
+
+            return back()->with('error', '❌ Gagal menghapus item RMIB: ' . $e->getMessage());
+        }
     }
 }

@@ -46,30 +46,44 @@ class UserTestController extends Controller
 
         $test->load('alatTes');
         
-        // 1. Cari Alat Tes PAPI Kostick di antara semua Alat Tes yang dipilih Tes ini.
+        // 1. Cek PAPI Kostick
         $papiAlatTes = $test->alatTes->firstWhere(function ($alat) {
              $slug = strtolower($alat->slug ?? $alat->name ?? '');
              return in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick']);
         });
 
-        $isPapi = !is_null($papiAlatTes);
-
-        if ($isPapi) {
+        if ($papiAlatTes) {
             if (PapiResult::where('user_id', auth()->id())->exists()) {
                 return redirect()->route('tests.result.status')
                     ->with('error', 'Anda sudah menyelesaikan Tes PAPI Kostick.');
             }
-
-            // Jika PAPI ditemukan, arahkan ke PapiTestController
+            
             $papiController = new \App\Http\Controllers\PapiTestController();
             return $papiController->showTestForm($test); 
         }
         
-        // 2. Jika bukan PAPI, cari Alat Tes Umum yang memiliki soal (menggunakan relasi 'questions' model AlatTes)
+        // 2. Cek RMIB (BARU!)
+        $rmibAlatTes = $test->alatTes->firstWhere(function ($alat) {
+            $slug = strtolower($alat->slug ?? $alat->name ?? '');
+            return str_contains($slug, 'rmib');
+        });
+
+        if ($rmibAlatTes) {
+            // Cek apakah user sudah menyelesaikan RMIB
+            if (\App\Models\RmibResult::where('user_id', auth()->id())
+                ->where('alat_tes_id', $rmibAlatTes->id)->exists()) {
+                return redirect()->route('tests.result.status')
+                    ->with('error', 'Anda sudah menyelesaikan Tes RMIB.');
+            }
+            
+            $rmibController = new \App\Http\Controllers\RmibTestController();
+            return $rmibController->showTestForm($test);
+        }
+        
+        // 3. Jika bukan PAPI dan bukan RMIB, cari Alat Tes Umum
         $alatTes = $test->alatTes->firstWhere(fn($alat) => $alat->questions->isNotEmpty());
 
         if (!$alatTes) {
-            // Jika bukan PAPI, dan tidak ada soal umum, tampilkan error
             return redirect()->route('login')
                 ->with('error', 'Alat tes tidak ditemukan atau belum memiliki soal. Hubungi administrator.');
         }
@@ -82,7 +96,6 @@ class UserTestController extends Controller
         // Redirect ke soal pertama
         return redirect()->route('tests.question', ['test' => $test->id, 'number' => 1]);
     }
-
     /**
      * Menampilkan soal berdasarkan nomor urut (Hanya untuk soal umum)
      */

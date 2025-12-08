@@ -2,7 +2,7 @@
     <div class="bg-white rounded-2xl shadow p-6">
         <h2 class="text-lg font-semibold mb-4">Tambah Soal Baru</h2>
 
-        <form action="{{ route('admin.questions.store', $alatTes->id) }}" method="POST" enctype="multipart/form-data" id="form-soal">
+        <form action="{{ route('admin.alat-tes.questions.store', $AlatTes->id) }}" method="POST" enctype="multipart/form-data" id="form-soal">
             @csrf
 
             <!-- Tipe Pertanyaan -->
@@ -54,7 +54,7 @@
             <button type="button" id="add-option" class="bg-green-500 text-white px-3 py-1 rounded-lg mb-4">+ Tambah Opsi</button>
 
             <div class="flex justify-end">
-                <a href="{{ route('admin.alat-tes.questions.index', $alatTes->id) }}" class="px-4 py-2 bg-gray-300 rounded-lg mr-2">Bata</a>
+                <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}" class="px-4 py-2 bg-gray-300 rounded-lg mr-2">Bata</a>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Simpan Pertanyaan</button>
             </div>
         </form>

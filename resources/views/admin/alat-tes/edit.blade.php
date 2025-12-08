@@ -32,6 +32,13 @@
                                 value="{{ old('duration_minutes', $AlatTes->duration_minutes) }}" required />
                         </div>
 
+                        <!-- Instruksi Tes -->
+                        <div class="mt-4">
+                            <label for="instructions" class="block font-medium text-sm text-gray-700">Instruksi Tes</label>
+                            <textarea id="instructions" name="instructions" rows="6" class="block mt-1 w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Masukkan instruksi pengerjaan tes...">{{ old('instructions', $AlatTes->instructions) }}</textarea>
+                            <p class="mt-1 text-sm text-gray-500">Instruksi ini akan ditampilkan kepada peserta sebelum memulai tes.</p>
+                        </div>
+
                         <div class="flex items-center justify-end mt-6">
                             <a href="{{ route('admin.alat-tes.index') }}"
                                 class="text-gray-600 hover:text-gray-900 mr-4">Batal</a>

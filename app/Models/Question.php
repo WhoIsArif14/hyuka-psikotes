@@ -84,6 +84,13 @@ class Question extends Model
     }
 
     /**
+ * Relationship to RMIB Item
+ */
+public function rmibItem()
+{
+    return $this->belongsTo(RmibItem::class);
+}
+    /**
      * Get options as array
      */
     public function getOptionsArray()

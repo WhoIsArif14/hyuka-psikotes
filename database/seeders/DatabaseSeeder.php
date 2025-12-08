@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminUserSeeder::class,
             PapiQuestionSeeder::class, // <<< Tambahkan baris ini
+            RmibItemSeeder::class, // <<< Tambahkan baris ini
         ]);
     }
 }

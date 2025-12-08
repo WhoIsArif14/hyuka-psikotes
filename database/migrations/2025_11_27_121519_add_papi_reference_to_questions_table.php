@@ -7,12 +7,16 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
-        Schema::table('questions', function (Blueprint $table) {
+{
+    Schema::table('questions', function (Blueprint $table) {
+        // Hanya tambahkan 'papi_kostick_item_id' jika belum ada
+        if (!Schema::hasColumn('questions', 'papi_kostick_item_id')) {
             $table->foreignId('papi_kostick_item_id')->nullable()->after('alat_tes_id')->constrained('papi_kostick_items')->onDelete('set null');
-            $table->json('metadata')->nullable()->after('ranking_weight');
-        });
-    }
+        }
+        // Kolom 'metadata' diasumsikan belum ada
+        $table->json('metadata')->nullable()->after('ranking_weight');
+    });
+}
 
     public function down(): void
     {
