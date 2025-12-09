@@ -10,6 +10,12 @@ class Option extends Model
 {
     use HasFactory;
 
+    // --- TAMBAHKAN BARIS INI ---
+    protected $table = 'options'; 
+    // Ini memastikan Model ini selalu merujuk ke tabel 'options', 
+    // mengabaikan asumsi nama tabel lain di bagian kode mana pun.
+    // ---------------------------
+
     // Properti Fillable
     protected $fillable = [
         'question_id',

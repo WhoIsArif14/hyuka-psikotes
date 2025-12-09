@@ -47,9 +47,15 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Alat Tes</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Soal</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi (Menit)</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Nama Alat Tes</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Jumlah Soal</th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Durasi (Menit)</th>
                                 <th class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
                             </tr>
                         </thead>
@@ -57,17 +63,22 @@
                             @forelse ($AlatTes as $item)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap font-medium">{{ $item->name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $item->questions_count }}</td>
+                                    <td>
+                                        {{ \App\Models\Question::where('alat_tes_id', $item->id)->count() }}
+                                    </td>
+
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $item->duration_minutes }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex justify-end items-center space-x-4">
                                             <a href="{{ route('admin.alat-tes.questions.index', $item) }}"
-                                                class="text-green-600 hover:text-green-900 font-semibold">Kelola Soal</a>
+                                                class="text-green-600 hover:text-green-900 font-semibold">Kelola
+                                                Soal</a>
                                             <a href="{{ route('admin.alat-tes.edit', $item) }}"
                                                 class="text-indigo-600 hover:text-indigo-900">Edit</a>
 
                                             {{-- Tombol Hapus --}}
-                                            <form method="POST" action="{{ route('admin.alat-tes.destroy', $item) }}" class="inline delete-form">
+                                            <form method="POST" action="{{ route('admin.alat-tes.destroy', $item) }}"
+                                                class="inline delete-form">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="button"
@@ -98,18 +109,18 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Konfirmasi hapus
             const deleteButtons = document.querySelectorAll('.delete-btn');
             deleteButtons.forEach(button => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function() {
                     const form = this.closest('.delete-form');
                     const name = this.getAttribute('data-name');
                     const questionCount = parseInt(this.getAttribute('data-count'));
 
-                    let warningText = questionCount > 0 
-                        ? `Alat Tes "${name}" memiliki ${questionCount} soal. Semua soal akan ikut terhapus permanen!`
-                        : `Alat Tes "${name}" akan dihapus permanen!`;
+                    let warningText = questionCount > 0 ?
+                        `Alat Tes "${name}" memiliki ${questionCount} soal. Semua soal akan ikut terhapus permanen!` :
+                        `Alat Tes "${name}" akan dihapus permanen!`;
 
                     Swal.fire({
                         title: 'Yakin ingin menghapus?',
@@ -133,7 +144,7 @@
                                     Swal.showLoading();
                                 }
                             });
-                            
+
                             form.submit();
                         }
                     });

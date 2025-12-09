@@ -30,29 +30,33 @@
             @endif
 
             {{-- ✅ INSTRUKSI TES (JIKA ADA) --}}
-            @if($AlatTes->instructions)
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-md">
+            @if ($AlatTes->instructions)
+                <div
+                    class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-md">
                     <div class="flex items-start gap-4">
                         <div class="flex-shrink-0">
                             <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                         <div class="flex-1">
                             <h3 class="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
                                 📋 Instruksi Tes
-                                <a href="{{ route('admin.alat-tes.edit', $AlatTes->id) }}" 
-                                   class="text-xs font-normal text-blue-600 hover:text-blue-800 hover:underline ml-auto">
+                                <a href="{{ route('admin.alat-tes.edit', $AlatTes->id) }}"
+                                    class="text-xs font-normal text-blue-600 hover:text-blue-800 hover:underline ml-auto">
                                     ✏️ Edit Instruksi
                                 </a>
                             </h3>
-                            <div class="text-sm text-blue-900 leading-relaxed whitespace-pre-line bg-white p-4 rounded border border-blue-200">
+                            <div
+                                class="text-sm text-blue-900 leading-relaxed whitespace-pre-line bg-white p-4 rounded border border-blue-200">
                                 {{ $AlatTes->instructions }}
                             </div>
                             <p class="text-xs text-blue-700 mt-3 flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    <path fill-rule="evenodd"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                        clip-rule="evenodd"></path>
                                 </svg>
                                 Instruksi ini akan ditampilkan kepada peserta sebelum memulai tes
                             </p>
@@ -64,14 +68,16 @@
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
                     <div class="flex items-start gap-3">
                         <svg class="w-6 h-6 text-yellow-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            <path fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clip-rule="evenodd"></path>
                         </svg>
                         <div class="flex-1">
                             <h3 class="text-sm font-semibold text-yellow-900">Instruksi Tes Belum Diisi</h3>
                             <p class="text-xs text-yellow-800 mt-1">
-                                Instruksi akan membantu peserta memahami cara mengerjakan tes ini. 
-                                <a href="{{ route('admin.alat-tes.edit', $AlatTes->id) }}" 
-                                   class="font-semibold underline hover:text-yellow-900">
+                                Instruksi akan membantu peserta memahami cara mengerjakan tes ini.
+                                <a href="{{ route('admin.alat-tes.edit', $AlatTes->id) }}"
+                                    class="font-semibold underline hover:text-yellow-900">
                                     Klik di sini untuk menambahkan instruksi
                                 </a>
                             </p>
@@ -325,22 +331,19 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($papiQuestions as $papi)
                                     @php
-                                        $options = json_decode($papi->options, true);
-                                        $statementA = $options[0]['text'] ?? 'N/A';
-                                        $statementB = $options[1]['text'] ?? 'N/A';
+                                        // ✅ Ambil metadata LANGSUNG (Laravel sudah cast JSON)
+                                        $meta = $papi->metadata ?? [];
 
-                                        // Parse scoring keys from ranking_category (format: "A:G/N|B:L/O")
-                                        $scoringData = [];
-                                        if ($papi->ranking_category) {
-                                            $parts = explode('|', $papi->ranking_category);
-                                            foreach ($parts as $part) {
-                                                if (strpos($part, ':') !== false) {
-                                                    [$option, $keys] = explode(':', $part);
-                                                    $scoringData[$option] = $keys;
-                                                }
-                                            }
-                                        }
+                                        $statementA = $meta['statement_a'] ?? 'N/A';
+                                        $statementB = $meta['statement_b'] ?? 'N/A';
+
+                                        $roleA = $meta['role_a'] ?? null;
+                                        $needA = $meta['need_a'] ?? null;
+
+                                        $roleB = $meta['role_b'] ?? null;
+                                        $needB = $meta['need_b'] ?? null;
                                     @endphp
+
                                     <tr class="hover:bg-gray-50 transition">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-purple-700">
                                             #{{ $papi->ranking_weight ?? 'N/A' }}

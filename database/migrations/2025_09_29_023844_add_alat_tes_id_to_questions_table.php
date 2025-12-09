@@ -12,8 +12,17 @@ return new class extends Migration
     public function up()
     {
         Schema::table('questions', function (Blueprint $table) {
+            // Hapus foreign key yang ada terlebih dahulu jika migration dijalankan ulang tanpa rollback
+            // $table->dropForeign(['alat_tes_id']); 
+
             $table->unsignedBigInteger('alat_tes_id')->nullable();
-            $table->foreign('alat_tes_id')->references('id')->on('alat_tes');
+
+            // --- BARIS PENTING YANG DIUBAH ---
+            $table->foreign('alat_tes_id')
+                ->references('id')
+                ->on('alat_tes')
+                ->onDelete('cascade'); // <-- Tambahkan ini!
+            // ---------------------------------
         });
     }
 
