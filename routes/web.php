@@ -79,6 +79,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
     Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
     Route::post('tests/{test}/papi/submit', [PapiTestController::class, 'submitTest'])->name('papi.submit');
+    Route::post('tests/{test}/pauli/submit', [UserPauliController::class, 'submitTest'])->name('pauli.submit');
+    
 });
 
 /*
