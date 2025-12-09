@@ -25,11 +25,13 @@ class Question extends Model
         'correct_answers',       // ✅ NEW - untuk multiple answers
         'ranking_category',
         'ranking_weight',
+        'metadata',
     ];
 
     protected $casts = [
         'options' => 'json',
         'correct_answers' => 'json', // ✅ NEW - cast JSON array
+        'metadata' => 'json',
     ];
 
     // ✅ ACCESSOR - Mendapatkan correct answers (baik single atau multiple)

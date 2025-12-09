@@ -7,6 +7,7 @@ use App\Http\Controllers\TestAccessController;
 use App\Http\Controllers\UserDataController;
 use App\Http\Controllers\UserTestController;
 use App\Http\Controllers\PapiTestController;
+use App\Http\Controllers\UserPauliController;
 use App\Http\Controllers\ViolationController;
 
 // Admin-side Controllers

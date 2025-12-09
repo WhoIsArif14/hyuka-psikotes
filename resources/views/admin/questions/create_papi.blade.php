@@ -62,7 +62,7 @@
                     </div>
 
                     {{-- ✅ PERINGATAN JIKA TIDAK CENTANG --}}
-                    <div id="papi-manual-warning" class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-3">
+                    <div id="papi-manual-warning" class="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-3 hidden">
                         <div class="flex gap-2">
                             <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
@@ -90,6 +90,10 @@
                                 <option value="">-- Pilih Item PAPI --</option>
                                 @foreach ($papiItems as $item)
                                     <option value="{{ $item->id }}"
+                                        data-statement-a="{{ $item->statement_a }}"
+                                        data-statement-b="{{ $item->statement_b }}"
+                                        data-role-a="{{ $item->role_a }}"
+                                        data-role-b="{{ $item->role_b }}"
                                         {{ old('papi_item_id') == $item->id ? 'selected' : '' }}>
                                         Item {{ $item->item_number }}:
                                         {{ Str::limit($item->statement_a, 50) }} VS
@@ -109,13 +113,13 @@
                                 <div class="bg-blue-50 p-3 rounded">
                                     <p class="text-xs font-semibold text-blue-700 mb-1">Statement A:</p>
                                     <p id="preview-statement-a" class="text-sm text-gray-800"></p>
-                                    <p class="text-xs text-blue-600 mt-1">Role: <span id="preview-aspect-a"
+                                    <p class="text-xs text-blue-600 mt-1">Kebutuhan/Sifat: <span id="preview-aspect-a"
                                             class="font-semibold"></span></p>
                                 </div>
                                 <div class="bg-green-50 p-3 rounded">
                                     <p class="text-xs font-semibold text-green-700 mb-1">Statement B:</p>
                                     <p id="preview-statement-b" class="text-sm text-gray-800"></p>
-                                    <p class="text-xs text-green-600 mt-1">Role: <span id="preview-aspect-b"
+                                    <p class="text-xs text-green-600 mt-1">Kebutuhan/Sifat: <span id="preview-aspect-b"
                                             class="font-semibold"></span></p>
                                 </div>
                             </div>
@@ -189,11 +193,10 @@
                 const itemPreview = document.getElementById('item-preview');
                 const papiForm = document.getElementById('papiForm');
                 const modeInfo = document.getElementById('mode-info');
-                const requiredMark = document.getElementById('required-mark');
 
-                // PAPI Items data from backend
-                const papiItemsData = @json($papiItems);
-
+                // Data tidak lagi diambil melalui @json($papiItems),
+                // tetapi melalui data-* attribute di <option> agar lebih efisien.
+                
                 function toggleMode() {
                     if (autoGenCheckbox.checked) {
                         // Mode Auto-Generate
@@ -207,10 +210,8 @@
 
                         if (papiItemSelect) {
                             papiItemSelect.removeAttribute('required');
-                            papiItemSelect.value = '';
-                        }
-                        
-                        if (itemPreview) {
+                            // Reset nilai select jika beralih ke auto-generate
+                            papiItemSelect.value = ''; 
                             itemPreview.classList.add('hidden');
                         }
                     } else {
@@ -225,7 +226,30 @@
 
                         if (papiItemSelect) {
                             papiItemSelect.setAttribute('required', 'required');
+                            // Panggil fungsi preview jika ada nilai lama yang dipilih
+                            updatePreview(); 
                         }
+                    }
+                }
+
+                function updatePreview() {
+                    const selectedOption = papiItemSelect.options[papiItemSelect.selectedIndex];
+                    const selectedId = selectedOption ? selectedOption.value : null;
+
+                    if (selectedId) {
+                        // Ambil data dari data-* attributes
+                        const statementA = selectedOption.getAttribute('data-statement-a');
+                        const statementB = selectedOption.getAttribute('data-statement-b');
+                        const roleA = selectedOption.getAttribute('data-role-a');
+                        const roleB = selectedOption.getAttribute('data-role-b');
+
+                        document.getElementById('preview-statement-a').textContent = statementA;
+                        document.getElementById('preview-statement-b').textContent = statementB;
+                        document.getElementById('preview-aspect-a').textContent = roleA || 'N/A';
+                        document.getElementById('preview-aspect-b').textContent = roleB || 'N/A';
+                        itemPreview.classList.remove('hidden');
+                    } else {
+                        itemPreview.classList.add('hidden');
                     }
                 }
 
@@ -255,21 +279,12 @@
 
                 // Preview selected PAPI item
                 if (papiItemSelect) {
-                    papiItemSelect.addEventListener('change', function() {
-                        const selectedId = this.value;
-                        if (selectedId) {
-                            const selectedItem = papiItemsData.find(item => item.id == selectedId);
-                            if (selectedItem) {
-                                document.getElementById('preview-statement-a').textContent = selectedItem.statement_a;
-                                document.getElementById('preview-statement-b').textContent = selectedItem.statement_b;
-                                document.getElementById('preview-aspect-a').textContent = selectedItem.role_a || 'N/A';
-                                document.getElementById('preview-aspect-b').textContent = selectedItem.role_b || 'N/A';
-                                itemPreview.classList.remove('hidden');
-                            }
-                        } else {
-                            itemPreview.classList.add('hidden');
-                        }
-                    });
+                    papiItemSelect.addEventListener('change', updatePreview);
+                    
+                    // Panggil updatePreview untuk menampilkan preview jika ada nilai 'old'
+                    if (papiItemSelect.value) {
+                         updatePreview(); 
+                    }
                 }
 
                 // Tab navigation

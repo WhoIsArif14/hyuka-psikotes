@@ -166,43 +166,79 @@ class AlatTesController extends Controller
      * Menghapus Alat Tes dari database. (DELETE)
      */
     public function destroy(AlatTes $alat_te)
-    {
+{
+    try {
+        DB::beginTransaction();
+
+        $name = $alat_te->name;
+        $deletedQuestionsCount = 0;
+
+        // ✅ DISABLE FOREIGN KEY CHECK SEMENTARA
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
         try {
-            DB::beginTransaction();
-
-            $name = $alat_te->name;
-            $deletedQuestionsCount = 0;
-
-            // Hapus semua soal terkait terlebih dahulu (Cascade Delete Logic)
+            // Hapus soal PAPI jika ada
             if ($this->isPapiKostick($alat_te)) {
                 $deletedQuestionsCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
                 PapiQuestion::where('alat_tes_id', $alat_te->id)->delete();
-            } else {
-                $deletedQuestionsCount = $alat_te->questions()->count();
-                $alat_te->questions()->delete();
             }
+            
+            // Hapus SEMUA soal dari tabel questions (termasuk RMIB, dll)
+            $questionsCount = DB::table('questions')
+                ->where('alat_tes_id', $alat_te->id)
+                ->count();
+            
+            DB::table('questions')
+                ->where('alat_tes_id', $alat_te->id)
+                ->delete();
+            
+            $deletedQuestionsCount += $questionsCount;
 
-            // Hapus alat tes utama
+            // Hapus dari tabel lain yang mungkin terkait
+            // (sesuaikan dengan struktur database Anda)
+            DB::table('question_options')->whereIn('question_id', function($query) use ($alat_te) {
+                $query->select('id')
+                      ->from('questions')
+                      ->where('alat_tes_id', $alat_te->id);
+            })->delete();
+
+            // Hapus alat tes
             $alat_te->delete();
 
-            DB::commit();
-
-            $message = $deletedQuestionsCount > 0
-                ? "Alat Tes '{$name}' dan {$deletedQuestionsCount} soal berhasil dihapus."
-                : "Alat Tes '{$name}' berhasil dihapus.";
-
-            return redirect()->route('admin.alat-tes.index')
-                ->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('Failed to delete Alat Tes', [
-                'alat_tes_id' => $alat_te->id ?? 'unknown',
-                'error' => $e->getMessage(),
+            Log::info('Alat Tes deleted successfully', [
+                'id' => $alat_te->id,
+                'name' => $name,
+                'questions_deleted' => $deletedQuestionsCount
             ]);
 
-            return redirect()->route('admin.alat-tes.index')
-                ->with('error', 'Gagal menghapus Alat Tes: ' . $e->getMessage());
+        } finally {
+            // ✅ ENABLE KEMBALI FOREIGN KEY CHECK
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
+
+        DB::commit();
+
+        $message = $deletedQuestionsCount > 0
+            ? "Alat Tes '{$name}' dan {$deletedQuestionsCount} soal berhasil dihapus."
+            : "Alat Tes '{$name}' berhasil dihapus.";
+
+        return redirect()->route('admin.alat-tes.index')
+            ->with('success', $message);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        // ✅ PASTIKAN FOREIGN KEY CHECK KEMBALI AKTIF
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        Log::error('Failed to delete Alat Tes', [
+            'alat_tes_id' => $alat_te->id ?? 'unknown',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return redirect()->route('admin.alat-tes.index')
+            ->with('error', 'Gagal menghapus Alat Tes: ' . $e->getMessage());
     }
+}
 }

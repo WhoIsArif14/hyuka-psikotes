@@ -44,6 +44,7 @@ class QuestionController extends Controller
         // ✅ Soal PAPI Kostick
         $papiQuestions = Question::where('alat_tes_id', $AlatTes->id)
             ->where('type', 'PAPIKOSTICK')
+            
             ->orderBy('ranking_weight', 'asc')
             ->paginate(10, ['*'], 'papi_page');
 

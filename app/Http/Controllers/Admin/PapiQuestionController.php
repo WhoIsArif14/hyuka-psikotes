@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-
 class PapiQuestionController extends Controller
 {
     /**
@@ -26,7 +25,7 @@ class PapiQuestionController extends Controller
             ->count();
 
         // Get all PAPI items from the standard library
-        $papiItems = PapiKostickItem::orderBy('id')->get();
+        $papiItems = PapiKostickItem::orderBy('item_number')->get();
 
         return view('admin.questions.create_papi', compact('AlatTes', 'existingPapiCount', 'papiItems'));
     }
@@ -69,19 +68,22 @@ class PapiQuestionController extends Controller
             }
 
             $createdCount = 0;
+            $skippedCount = 0;
 
             foreach ($papiItems as $papiItem) {
-                // Check if this item already exists for this Alat Tes
+                // ✅ Check menggunakan ranking_weight untuk lebih akurat
                 $existingQuestion = Question::where('alat_tes_id', $AlatTes->id)
                     ->where('type', 'PAPIKOSTICK')
-                    ->where('question_text', 'LIKE', "Item {$papiItem->item_number}%")
+                    ->where('ranking_weight', $papiItem->item_number)
                     ->first();
 
                 if ($existingQuestion) {
-                    continue; // Skip if already exists
+                    $skippedCount++;
+                    Log::info("Skipping PAPI item {$papiItem->item_number} - already exists");
+                    continue;
                 }
 
-                // Create Question record
+                // ✅ Create Question - metadata LANGSUNG array (tidak perlu json_encode)
                 $question = Question::create([
                     'alat_tes_id' => $AlatTes->id,
                     'type' => 'PAPIKOSTICK',
@@ -89,22 +91,26 @@ class PapiQuestionController extends Controller
                     'example_question' => $request->example_question,
                     'instructions' => $request->instructions,
                     'ranking_category' => null,
-                    'ranking_weight' => 0,
+                    'ranking_weight' => $papiItem->item_number, // ✅ Simpan nomor item
+                    'metadata' => [ // ✅ LANGSUNG ARRAY - Laravel auto-cast ke JSON
+                        'papi_item_number' => $papiItem->item_number,
+                        'statement_a' => $papiItem->statement_a,
+                        'statement_b' => $papiItem->statement_b,
+                        'role_a' => $papiItem->role_a,
+                        'need_a' => $papiItem->need_a,
+                        'role_b' => $papiItem->role_b,
+                        'need_b' => $papiItem->need_b,
+                    ],
                 ]);
-
-                // Store as JSON metadata
-                $question->metadata = json_encode([
-                    'papi_item_number' => $papiItem->item_number,
-                    'statement_a' => $papiItem->statement_a,
-                    'statement_b' => $papiItem->statement_b,
-                    'role_a' => $papiItem->role_a,
-                    'need_a' => $papiItem->need_a,
-                    'role_b' => $papiItem->role_b,
-                    'need_b' => $papiItem->need_b,
-                ]);
-                $question->save();
 
                 $createdCount++;
+
+                Log::info('PAPI Question Created', [
+                    'id' => $question->id,
+                    'item_number' => $papiItem->item_number,
+                    'ranking_weight' => $question->ranking_weight,
+                    'metadata_count' => count($question->metadata ?? []),
+                ]);
             }
 
             DB::commit();
@@ -112,15 +118,24 @@ class PapiQuestionController extends Controller
             if ($createdCount == 0) {
                 return redirect()
                     ->route('admin.alat-tes.questions.index', $AlatTes->id)
-                    ->with('warning', '⚠️ Semua soal PAPI sudah ada di Alat Tes ini.');
+                    ->with('warning', "⚠️ Semua soal PAPI sudah ada di Alat Tes ini. ({$skippedCount} soal dilewati)");
+            }
+
+            $message = "✅ Berhasil membuat {$createdCount} soal PAPI Kostick!";
+            if ($skippedCount > 0) {
+                $message .= " ({$skippedCount} soal sudah ada sebelumnya)";
             }
 
             return redirect()
                 ->route('admin.alat-tes.questions.index', $AlatTes->id)
-                ->with('success', "✅ Berhasil membuat {$createdCount} soal PAPI Kostick secara otomatis!");
+                ->with('success', $message);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('PAPI Auto-Generate Error: ' . $e->getMessage());
+            Log::error('PAPI Auto-Generate Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return back()
                 ->withInput()
@@ -135,7 +150,7 @@ class PapiQuestionController extends Controller
     {
         // ✅ Validasi hanya jika bukan auto-generate
         $request->validate([
-            'papi_item_id' => 'required|exists:papi_questions,id',
+            'papi_item_id' => 'required|exists:papi_kostick_items,id',
             'example_question' => 'nullable|string|max:5000',
             'instructions' => 'nullable|string|max:5000',
         ], [
@@ -148,17 +163,17 @@ class PapiQuestionController extends Controller
         try {
             $papiItem = PapiKostickItem::findOrFail($request->papi_item_id);
 
-            // Check if already exists
+            // ✅ Check menggunakan ranking_weight
             $existingQuestion = Question::where('alat_tes_id', $AlatTes->id)
                 ->where('type', 'PAPIKOSTICK')
-                ->where('question_text', 'LIKE', "Item {$papiItem->item_number}%")
+                ->where('ranking_weight', $papiItem->item_number)
                 ->first();
 
             if ($existingQuestion) {
                 return back()->with('error', '❌ Soal PAPI nomor ' . $papiItem->item_number . ' sudah ada di Alat Tes ini.');
             }
 
-            // Create Question record
+            // ✅ Create Question - metadata langsung array
             $question = Question::create([
                 'alat_tes_id' => $AlatTes->id,
                 'type' => 'PAPIKOSTICK',
@@ -166,29 +181,35 @@ class PapiQuestionController extends Controller
                 'example_question' => $request->example_question,
                 'instructions' => $request->instructions,
                 'ranking_category' => null,
-                'ranking_weight' => 0,
+                'ranking_weight' => $papiItem->item_number,
+                'metadata' => [ // ✅ LANGSUNG ARRAY
+                    'papi_item_number' => $papiItem->item_number,
+                    'statement_a' => $papiItem->statement_a,
+                    'statement_b' => $papiItem->statement_b,
+                    'role_a' => $papiItem->role_a,
+                    'need_a' => $papiItem->need_a,
+                    'role_b' => $papiItem->role_b,
+                    'need_b' => $papiItem->need_b,
+                ],
             ]);
-
-            // Store as metadata
-            $question->metadata = json_encode([
-                'papi_item_number' => $papiItem->item_number,
-                'statement_a' => $papiItem->statement_a,
-                'statement_b' => $papiItem->statement_b,
-                'role_a' => $papiItem->role_a,
-                'need_a' => $papiItem->need_a,
-                'role_b' => $papiItem->role_b,
-                'need_b' => $papiItem->need_b,
-            ]);
-            $question->save();
 
             DB::commit();
+
+            Log::info('PAPI Question Created (Manual)', [
+                'id' => $question->id,
+                'item_number' => $papiItem->item_number,
+            ]);
 
             return redirect()
                 ->route('admin.alat-tes.questions.index', $AlatTes->id)
                 ->with('success', '✅ Soal PAPI berhasil ditambahkan!');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('PAPI Manual Store Error: ' . $e->getMessage());
+            Log::error('PAPI Manual Store Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return back()
                 ->withInput()
@@ -210,13 +231,7 @@ class PapiQuestionController extends Controller
                 ->with('error', '❌ Soal ini bukan tipe PAPI Kostick');
         }
 
-        // Get PAPI item reference
-        $papiItem = null;
-        if ($question->papi_kostick_item_id) {
-            $papiItem = PapiKostickItem::find($question->papi_kostick_item_id);
-        }
-
-        return view('admin.alat-tes.questions.edit_papi', compact('AlatTes', 'question', 'papiItem'));
+        return view('admin.questions.edit_papi', compact('AlatTes', 'question'));
     }
 
     /**
@@ -240,14 +255,12 @@ class PapiQuestionController extends Controller
                 'instructions' => $request->instructions,
             ]);
 
-            // Note: Statement A/B tidak bisa diubah karena mengacu ke PapiKostickItem
-            // Jika ingin mengubah, harus edit di PapiKostickItemController
-
             DB::commit();
 
             return redirect()
                 ->route('admin.alat-tes.questions.index', $alatTesId)
                 ->with('success', '✅ Soal PAPI berhasil diperbarui!');
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('PAPI Update Error: ' . $e->getMessage());
@@ -255,6 +268,30 @@ class PapiQuestionController extends Controller
             return back()
                 ->withInput()
                 ->with('error', '❌ Gagal memperbarui soal PAPI: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete PAPI question
+     */
+    public function destroy($alatTesId, $questionId)
+    {
+        try {
+            $question = Question::findOrFail($questionId);
+
+            if ($question->type !== 'PAPIKOSTICK') {
+                return back()->with('error', '❌ Soal ini bukan tipe PAPI Kostick');
+            }
+
+            $question->delete();
+
+            return redirect()
+                ->route('admin.alat-tes.questions.index', $alatTesId)
+                ->with('success', '✅ Soal PAPI berhasil dihapus!');
+
+        } catch (\Exception $e) {
+            Log::error('PAPI Delete Error: ' . $e->getMessage());
+            return back()->with('error', '❌ Gagal menghapus soal PAPI: ' . $e->getMessage());
         }
     }
 }
