@@ -54,9 +54,8 @@
 
         <div class="flex items-center justify-end mt-6">
             <x-primary-button>
-                {{ __('Mulai Tes') }}
+                {{ __('Kirim') }}
             </x-primary-button>
         </div>
     </form>
 </x-guest-layout>
-

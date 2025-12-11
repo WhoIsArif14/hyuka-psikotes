@@ -65,6 +65,11 @@
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.codes.*') ? 'bg-gray-700' : '' }}">
                     Kode Aktivasi
                 </a>
+
+                <a href="{{ route('admin.reports.index') }}"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.reports.*') ? 'bg-gray-700' : '' }}">
+                    Laporan
+                </a>
             </nav>
         </aside>
 

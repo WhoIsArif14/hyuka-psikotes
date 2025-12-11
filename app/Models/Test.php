@@ -30,6 +30,7 @@ class Test extends Model
         'is_template',
         'available_from',
         'available_to',
+        'test_order',
     ];
 
     /**

@@ -52,8 +52,8 @@
                         class="border-gray-300 rounded-lg w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500 @error('type') border-red-500 @enderror"
                         required>
                     <option value="">-- Pilih Tipe --</option>
-                    <option value="PILIHAN_GANDA" {{ old('type') == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan Ganda</option>
-                    <option value="PILIHAN_GANDA_KOMPLEKS" {{ old('type') == 'PILIHAN_GANDA_KOMPLEKS' ? 'selected' : '' }}>Pilihan Ganda Kompleks</option>
+                    <option value="PILIHAN_GANDA" {{ old('type') == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan Ganda (1 Jawaban)</option>
+                    <option value="PILIHAN_GANDA_KOMPLEKS" {{ old('type') == 'PILIHAN_GANDA_KOMPLEKS' ? 'selected' : '' }}>Pilihan Ganda Kompleks (Bisa Lebih dari 1 Jawaban)</option>
                     <option value="ESSAY" {{ old('type') == 'ESSAY' ? 'selected' : '' }}>Essay</option>
                     <option value="HAFALAN" {{ old('type') == 'HAFALAN' ? 'selected' : '' }}>Hafalan</option>
                 </select>
@@ -105,7 +105,7 @@
                 <label class="block font-semibold mb-3 text-gray-700">
                     Opsi Jawaban <span class="text-red-500">*</span>
                 </label>
-                <p class="text-sm text-gray-600 mb-4">
+                <p class="text-sm text-gray-600 mb-4" id="option-instruction">
                     ⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang radio button.
                 </p>
 
@@ -117,7 +117,7 @@
                                    name="is_correct" 
                                    value="0" 
                                    id="correct_0"
-                                   class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
                                    {{ old('is_correct') == '0' ? 'checked' : '' }}>
                             <label for="correct_0" class="font-semibold text-gray-700 flex-1">
                                 Opsi A - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
@@ -143,7 +143,7 @@
                                    name="is_correct" 
                                    value="1" 
                                    id="correct_1"
-                                   class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
                                    {{ old('is_correct') == '1' ? 'checked' : '' }}>
                             <label for="correct_1" class="font-semibold text-gray-700 flex-1">
                                 Opsi B - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
@@ -169,7 +169,7 @@
                                    name="is_correct" 
                                    value="2" 
                                    id="correct_2"
-                                   class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
                                    {{ old('is_correct') == '2' ? 'checked' : '' }}>
                             <label for="correct_2" class="font-semibold text-gray-700 flex-1">
                                 Opsi C - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
@@ -195,7 +195,7 @@
                                    name="is_correct" 
                                    value="3" 
                                    id="correct_3"
-                                   class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
                                    {{ old('is_correct') == '3' ? 'checked' : '' }}>
                             <label for="correct_3" class="font-semibold text-gray-700 flex-1">
                                 Opsi D - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
@@ -273,7 +273,43 @@
             const submitBtn = document.getElementById('submitBtn');
             const addOptionBtn = document.getElementById('add-option');
             const optionsWrapper = document.getElementById('options-wrapper');
-            let optionCount = 4; // Sudah ada 4 opsi default
+            const optionInstruction = document.getElementById('option-instruction');
+            let optionCount = 4;
+
+            // Function to convert radio to checkbox and vice versa
+            function updateInputType(type) {
+                const inputs = document.querySelectorAll('.input-correct');
+                const isKompleks = type === 'PILIHAN_GANDA_KOMPLEKS';
+                
+                inputs.forEach((input, index) => {
+                    const parent = input.parentElement;
+                    const newInput = document.createElement('input');
+                    
+                    // Set attributes
+                    newInput.type = isKompleks ? 'checkbox' : 'radio';
+                    newInput.className = 'input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3';
+                    newInput.id = input.id;
+                    newInput.value = input.value;
+                    
+                    if (isKompleks) {
+                        // ✅ PERBAIKAN: Kirim sebagai array correct_answers[]
+                        newInput.name = 'correct_answers[]';
+                        if (input.checked) newInput.checked = true;
+                    } else {
+                        newInput.name = 'is_correct';
+                        if (input.checked) newInput.checked = true;
+                    }
+                    
+                    parent.replaceChild(newInput, input);
+                });
+
+                // Update instruction text
+                if (isKompleks) {
+                    optionInstruction.innerHTML = '⚠️ Minimal 2 opsi harus diisi. <strong>Centang satu atau lebih checkbox</strong> untuk jawaban yang benar (bisa lebih dari 1).';
+                } else {
+                    optionInstruction.innerHTML = '⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang radio button.';
+                }
+            }
 
             // Handle type change
             typeSelect.addEventListener('change', function() {
@@ -283,6 +319,7 @@
                 if (type === 'PILIHAN_GANDA' || type === 'PILIHAN_GANDA_KOMPLEKS') {
                     opsiContainer.classList.remove('hidden');
                     requiredStar.classList.add('hidden');
+                    updateInputType(type);
                 } else {
                     opsiContainer.classList.add('hidden');
                     if (type === 'ESSAY') {
@@ -293,23 +330,28 @@
                 }
             });
 
-            // Trigger on page load if there's old input
+            // Trigger on page load
             if (typeSelect.value) {
                 typeSelect.dispatchEvent(new Event('change'));
             }
 
             // Add new option
             addOptionBtn.addEventListener('click', function() {
-                const label = String.fromCharCode(65 + optionCount); // E, F, G...
+                const label = String.fromCharCode(65 + optionCount);
+                const type = typeSelect.value;
+                const isKompleks = type === 'PILIHAN_GANDA_KOMPLEKS';
+                const inputType = isKompleks ? 'checkbox' : 'radio';
+                const inputName = isKompleks ? 'correct_answers[]' : 'is_correct';
+                
                 const newOption = document.createElement('div');
                 newOption.className = 'opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition';
                 newOption.innerHTML = `
                     <div class="flex items-center mb-3">
-                        <input type="radio" 
-                               name="is_correct" 
+                        <input type="${inputType}" 
+                               name="${inputName}" 
                                value="${optionCount}" 
                                id="correct_${optionCount}"
-                               class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3">
+                               class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3">
                         <label for="correct_${optionCount}" class="font-semibold text-gray-700 flex-1">
                             Opsi ${label} - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
                         </label>
@@ -332,7 +374,6 @@
                 optionsWrapper.appendChild(newOption);
                 optionCount++;
 
-                // Add remove handler
                 newOption.querySelector('.remove-option').addEventListener('click', function() {
                     if (confirm('Hapus opsi ini?')) {
                         newOption.remove();
@@ -341,7 +382,6 @@
                 });
             });
 
-            // Update labels after removal
             function updateOptionLabels() {
                 const items = document.querySelectorAll('.opsi-item');
                 items.forEach((item, idx) => {
@@ -354,7 +394,7 @@
                 });
             }
 
-            // Image preview for question image
+            // Image preview
             document.getElementById('question_image').addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 const preview = document.getElementById('imagePreview');
@@ -371,11 +411,10 @@
                 }
             });
 
-            // Form validation before submit
+            // Form validation
             formSoal.addEventListener('submit', function(e) {
                 const type = typeSelect.value;
                 
-                // Check if type is selected
                 if (!type) {
                     e.preventDefault();
                     alert('⚠️ Pilih tipe pertanyaan terlebih dahulu!');
@@ -383,18 +422,39 @@
                     return false;
                 }
 
-                // Validation for multiple choice
                 if (type === 'PILIHAN_GANDA' || type === 'PILIHAN_GANDA_KOMPLEKS') {
-                    // Check if correct answer is selected
-                    const isCorrectChecked = document.querySelector('input[name="is_correct"]:checked');
+                    const isKompleks = type === 'PILIHAN_GANDA_KOMPLEKS';
+                    let hasCorrectAnswer = false;
                     
-                    if (!isCorrectChecked) {
+                    if (isKompleks) {
+                        // Check for checked checkboxes
+                        const checkedBoxes = document.querySelectorAll('.input-correct:checked');
+                        hasCorrectAnswer = checkedBoxes.length > 0;
+                        
+                        console.log('PG Kompleks - Checked answers:', checkedBoxes.length);
+                        console.log('Checked values:', Array.from(checkedBoxes).map(cb => cb.value));
+                        
+                        // Debug: Log all checkbox names and states
+                        document.querySelectorAll('.input-correct').forEach(cb => {
+                            console.log(`Checkbox ${cb.id}: name="${cb.name}", value="${cb.value}", checked=${cb.checked}`);
+                        });
+                    } else {
+                        // Check for checked radio button
+                        hasCorrectAnswer = document.querySelector('input[name="is_correct"]:checked') !== null;
+                        
+                        console.log('PG Biasa - Has checked:', hasCorrectAnswer);
+                    }
+                    
+                    if (!hasCorrectAnswer) {
                         e.preventDefault();
-                        alert('⚠️ Anda harus memilih satu jawaban yang benar!\n\nCentang salah satu radio button di sebelah kiri opsi.');
+                        const msg = isKompleks 
+                            ? '⚠️ Anda harus memilih minimal satu jawaban yang benar!\n\nCentang satu atau lebih checkbox.'
+                            : '⚠️ Anda harus memilih satu jawaban yang benar!\n\nCentang salah satu radio button.';
+                        alert(msg);
                         return false;
                     }
 
-                    // Check if at least 2 options have text
+                    // Check if at least 2 options are filled
                     const optionTexts = document.querySelectorAll('input[name^="options"][name$="[text]"]');
                     let filledOptions = 0;
                     optionTexts.forEach(input => {
@@ -405,22 +465,23 @@
 
                     if (filledOptions < 2) {
                         e.preventDefault();
-                        alert('⚠️ Minimal harus ada 2 opsi jawaban yang diisi!\n\nIsi minimal Opsi A dan Opsi B.');
+                        alert('⚠️ Minimal harus ada 2 opsi jawaban yang diisi!');
                         return false;
                     }
-
-                    console.log('Validation passed! Submitting form...');
-                    console.log('Selected correct answer:', isCorrectChecked.value);
-                    console.log('Filled options:', filledOptions);
+                    
+                    console.log('✅ Validation passed! Submitting form...');
+                    console.log('Form data about to be sent:');
+                    const formData = new FormData(formSoal);
+                    for (let [key, value] of formData.entries()) {
+                        console.log(`${key}: ${value}`);
+                    }
                 }
 
-                // Disable submit button to prevent double submit
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '⏳ Menyimpan...';
                 submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
             });
 
-            // Handle remove option for dynamically added options
             document.addEventListener('click', function(e) {
                 if (e.target.classList.contains('remove-option')) {
                     if (confirm('Hapus opsi ini?')) {
@@ -429,8 +490,6 @@
                     }
                 }
             });
-
-            console.log('Form script loaded successfully');
         });
     </script>
 </x-admin-layout>

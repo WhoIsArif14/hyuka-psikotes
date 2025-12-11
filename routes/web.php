@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\TestController;
 use App\Http\Controllers\Admin\AlatTesController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ActivationCodeController;
+use App\Http\Controllers\Admin\ReportController;
 
 // Auth & Profile Controllers
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -39,7 +40,8 @@ use App\Http\Middleware\IsAdmin;
 | ✅ CSRF TOKEN REFRESH ROUTE
 |--------------------------------------------------------------------------
 */
-Route::get('/csrf-token', function() {
+
+Route::get('/csrf-token', function () {
     return response()->json([
         'token' => csrf_token(),
         'timestamp' => now()->timestamp
@@ -67,20 +69,31 @@ Route::middleware(['auth'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| ALUR TES
+| ✅ ALUR TES (MODIFIED FOR MULTI-ALAT TES AND ORDER)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
     Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
-    Route::get('/tests/{test}/question/{number}', [UserTestController::class, 'showQuestion'])->name('tests.question');
-    Route::post('/tests/{test}/question/{number}', [UserTestController::class, 'saveAnswer'])->name('tests.answer');
+    
+    // Rute untuk menampilkan soal umum. DITAMBAH parameter {alat_tes}
+    Route::get('/tests/{test}/{alat_tes}/question/{number}', [UserTestController::class, 'showQuestion'])->name('tests.question');
+    // Rute untuk menyimpan jawaban umum. DITAMBAH parameter {alat_tes}
+    Route::post('/tests/{test}/{alat_tes}/answer/{number}', [UserTestController::class, 'saveAnswer'])->name('tests.answer');
+
+    // Rute penyelesaian modul (Dipanggil setelah semua alat tes selesai)
+    Route::get('/tests/module-finish/{test}', [UserTestController::class, 'finishModule'])->name('tests.module.finish');
+
+    // Rute LEGACY/UNIFIED (Bisa dihapus jika logic di UserTestController sudah terpisah)
     Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
     Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
+    
+    // Rute hasil tes
     Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
+
+    // Rute Tes Khusus
     Route::post('tests/{test}/papi/submit', [PapiTestController::class, 'submitTest'])->name('papi.submit');
     Route::post('tests/{test}/pauli/submit', [UserPauliController::class, 'submitTest'])->name('pauli.submit');
-    
 });
 
 /*
@@ -92,11 +105,11 @@ Route::middleware(['auth'])->group(function () {
     // Log violation dari user saat mengerjakan test
     Route::post('/api/log-violation', [ViolationController::class, 'logViolation'])
         ->name('api.log-violation');
-    
+
     // Heartbeat untuk tracking user masih aktif
     Route::post('/api/test-heartbeat', [ViolationController::class, 'testHeartbeat'])
         ->name('api.test-heartbeat');
-    
+
     // Halaman test terminated
     Route::get('/test/terminated', [ViolationController::class, 'terminated'])
         ->name('test.terminated');
@@ -113,7 +126,7 @@ Route::post('/admin/logout', [AuthenticatedSessionController::class, 'destroy'])
 
 /*
 |--------------------------------------------------------------------------
-| PANEL ADMIN
+| PANEL ADMIN (MODIFIED FOR TEST ORDER)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', IsAdmin::class])
@@ -150,9 +163,29 @@ Route::middleware(['auth', IsAdmin::class])
         Route::resource('jenjangs', JenjangController::class)->except(['show']);
 
         // ==========================================================
-        // MANAJEMEN TES
+        // ✅ MANAJEMEN TES (FINAL FIX: Urutan Route Diubah)
         // ==========================================================
-        Route::resource('tests', TestController::class)->names('tests');
+
+        // TAHAP 1: Menampilkan form create (HARUS DITARUH PALING ATAS untuk menghindari 404)
+        Route::get('tests/create', [TestController::class, 'create'])->name('tests.create');
+
+        // TAHAP 1.5: Menyimpan data step 1 ke session (Memperbaiki RouteNotFoundException)
+        Route::post('tests/store/step-one', [TestController::class, 'storeStepOne'])->name('tests.store.step.one');
+
+        // TAHAP 2: Menampilkan form order alat tes
+        Route::get('tests/create/order', [TestController::class, 'createOrder'])->name('tests.create.order');
+
+        // TAHAP 2.5: Menyimpan data final dari session ke DB
+        Route::post('tests/store/final', [TestController::class, 'storeFinal'])->name('tests.store.final');
+        
+        // Resource routes standar (index, show, edit, update, destroy)
+        // Mengecualikan 'create' dan 'store' karena sudah dibuat secara eksplisit di atas
+        Route::resource('tests', TestController::class)->except(['create', 'store'])->names('tests');
+
+        // Rute untuk mengelola urutan alat tes pada tes yang sudah ada (editOrder/updateOrder)
+        Route::get('tests/{test}/order', [TestController::class, 'editOrder'])->name('tests.order.edit');
+        Route::put('tests/{test}/order', [TestController::class, 'updateOrder'])->name('tests.order.update');
+
         Route::get('tests/{test}/results', [TestController::class, 'results'])->name('tests.results');
         Route::get('tests/{test}/export', [TestController::class, 'export'])->name('tests.export');
         Route::resource('tests.rules', InterpretationRuleController::class)->except(['show'])->names('tests.rules');
@@ -165,7 +198,7 @@ Route::middleware(['auth', IsAdmin::class])
         // ==========================================================
         // ✅ QUESTIONS MANAGEMENT
         // ==========================================================
-        
+
         // Main Questions Index (Shows all types)
         Route::get('alat-tes/{alat_te}/questions', [QuestionController::class, 'index'])
             ->name('alat-tes.questions.index');
@@ -173,51 +206,51 @@ Route::middleware(['auth', IsAdmin::class])
         // -------------------- GENERAL QUESTIONS --------------------
         Route::get('alat-tes/{alat_te}/questions/create', [QuestionController::class, 'create'])
             ->name('alat-tes.questions.create');
-        
+
         Route::post('alat-tes/{alat_te}/questions', [QuestionController::class, 'store'])
             ->name('alat-tes.questions.store');
-        
+
         Route::get('alat-tes/{alat_te}/questions/{question}/edit', [QuestionController::class, 'edit'])
             ->name('alat-tes.questions.edit');
-        
+
         Route::put('alat-tes/{alat_te}/questions/{question}', [QuestionController::class, 'update'])
             ->name('alat-tes.questions.update');
-        
+
         Route::patch('alat-tes/{alat_te}/questions/{question}', [QuestionController::class, 'update'])
             ->name('alat-tes.questions.patch');
-        
+
         Route::delete('alat-tes/{alat_te}/questions/{question}', [QuestionController::class, 'destroy'])
             ->name('alat-tes.questions.destroy');
 
         // -------------------- PAPI KOSTICK QUESTIONS --------------------
         Route::get('alat-tes/{alat_te}/questions/papi/create', [PapiQuestionController::class, 'create'])
             ->name('alat-tes.questions.papi.create');
-        
+
         Route::post('alat-tes/{alat_te}/questions/papi', [PapiQuestionController::class, 'store'])
             ->name('alat-tes.questions.papi.store');
-        
+
         Route::get('alat-tes/{alat_te}/questions/papi/{question}/edit', [PapiQuestionController::class, 'edit'])
             ->name('alat-tes.questions.papi.edit');
-        
+
         Route::put('alat-tes/{alat_te}/questions/papi/{question}', [PapiQuestionController::class, 'update'])
             ->name('alat-tes.questions.papi.update');
-        
+
         Route::delete('alat-tes/{alat_te}/questions/papi/{question}', [PapiQuestionController::class, 'destroy'])
             ->name('alat-tes.questions.papi.destroy');
 
         // -------------------- ✅ RMIB QUESTIONS (FIXED) --------------------
         Route::get('alat-tes/{alatTesId}/questions/rmib/create', [RmibQuestionController::class, 'create'])
             ->name('alat-tes.questions.rmib.create');
-        
+
         Route::post('alat-tes/{alatTesId}/questions/rmib', [RmibQuestionController::class, 'store'])
             ->name('alat-tes.questions.rmib.store');
-        
+
         Route::get('alat-tes/{alatTesId}/questions/rmib/{questionId}/edit', [RmibQuestionController::class, 'edit'])
             ->name('alat-tes.questions.rmib.edit');
-        
+
         Route::put('alat-tes/{alatTesId}/questions/rmib/{questionId}', [RmibQuestionController::class, 'update'])
             ->name('alat-tes.questions.rmib.update');
-        
+
         Route::delete('alat-tes/{alatTesId}/questions/rmib/{questionId}', [RmibQuestionController::class, 'destroy'])
             ->name('alat-tes.questions.rmib.destroy');
 
@@ -226,7 +259,7 @@ Route::middleware(['auth', IsAdmin::class])
             ->name('alat-tes.questions.import');
         Route::get('alat-tes/questions/download-template', [QuestionController::class, 'downloadTemplate'])
             ->name('alat-tes.questions.template');
-        
+
         Route::post('alat-tes/{alat_te}/questions/{question}/options', [OptionController::class, 'store'])
             ->name('alat-tes.questions.options.store');
         Route::delete('alat-tes/{alat_te}/options/{option}', [OptionController::class, 'destroy'])
@@ -241,7 +274,7 @@ Route::middleware(['auth', IsAdmin::class])
         // USER & PESERTA MANAGEMENT
         // ==========================================================
         Route::resource('users', UserController::class)->except(['create', 'store']);
-        
+
         Route::get('peserta', [PesertaController::class, 'index'])->name('peserta.index');
         Route::get('peserta/{user}', [PesertaController::class, 'show'])->name('peserta.show');
         Route::delete('peserta/{user}', [PesertaController::class, 'destroy'])->name('peserta.destroy');
@@ -249,23 +282,32 @@ Route::middleware(['auth', IsAdmin::class])
         // ==========================================================
         // ✅ VIOLATIONS MONITORING (ADMIN)
         // ==========================================================
-        
+
         // Dashboard violations - Lihat semua pelanggaran
         Route::get('violations', [ViolationController::class, 'adminIndex'])
             ->name('violations.index');
-        
+
         // Detail violations per user
         Route::get('violations/user/{userId}', [ViolationController::class, 'adminUserViolations'])
             ->name('violations.user');
-        
+
         // Delete violation (jika false positive)
         Route::delete('violations/{id}', [ViolationController::class, 'adminDelete'])
             ->name('violations.delete');
-        
+
         // Export violations report
         Route::get('violations/export', [ViolationController::class, 'export'])
             ->name('violations.export');
 
+        // ==========================================================
+        // ✅ LAPORAN (REPORTS)
+        // ==========================================================
+        Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+        // Rute Show (menampilkan daftar peserta di dalam Batch)
+        Route::get('reports/{code}', [ReportController::class, 'show'])->name('reports.show');
+        // Rute PDF (mengunduh hasil tes berdasarkan ID TestResult)
+        Route::get('reports/pdf/{testResult}', [ReportController::class, 'generatePdfReport'])->name('reports.pdf');
+        
         // ==========================================================
         // API CHEATING DETECTION (LEGACY - Untuk backward compatibility)
         // ==========================================================

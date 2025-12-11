@@ -1,10 +1,8 @@
 <x-admin-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Create Modul') }}
+            {{ __('1. Buat Modul Tes: Informasi Dasar & Alat Tes') }}
         </h2>
-        {{-- CDN SortableJS untuk fungsionalitas drag and drop --}}
-        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     </x-slot>
 
     <div class="py-12">
@@ -35,12 +33,10 @@
                         </ul>
                     </div>
                 @endif
-
-                <form method="POST" action="{{ route('admin.tests.store') }}">
+                
+                {{-- DIUBAH: action mengarah ke rute step one --}}
+                <form method="POST" action="{{ route('admin.tests.store.step.one') }}">
                     @csrf
-
-                    {{-- HIDDEN INPUT UNTUK URUTAN ALAT TES --}}
-                    <input type="hidden" name="test_order" id="test_order_input" value="{{ old('test_order', '[]') }}">
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -138,34 +134,25 @@
                             <p class="mt-1 text-xs text-gray-500">Kosongkan untuk membuat kode otomatis.</p>
                         </div>
 
-                        {{-- MODIFIKASI: CONTAINER ALAT TES UNTUK DRAG AND DROP --}}
                         <div class="md:col-span-2 border border-gray-300 p-4 rounded-lg">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Alat Tes (Pilih 1 atau
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Alat Tes (Pilih 1 atau
                                 Lebih):</label>
-                            <p class="text-xs text-gray-500 mb-3">Tarik dan lepaskan untuk mengatur urutan pengerjaan.</p>
-
-                            {{-- DIUBAH MENJADI DIV UNTUK SORTABLEJS --}}
-                            <div class="space-y-2 max-h-60 overflow-y-auto p-2 border rounded-md"
+                            {{-- DIHAPUS: FUNGSI DRAG AND DROP --}}
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-2 max-h-60 overflow-y-auto p-2 border rounded-md"
                                 id="alat_tes_list_container">
-                                @foreach ($AlatTes as $AlatTes)
+                                @foreach ($AlatTes as $alatTes)
                                     @php
-                                        $isChecked = in_array($AlatTes->id, old('alat_tes_ids', []));
+                                        $isChecked = in_array($alatTes->id, old('alat_tes_ids', []));
                                     @endphp
-                                    {{-- ITEM ALAT TES DENGAN DATA-ID DAN CLASS SORTABLE --}}
-                                    <div class="flex items-center p-2 bg-white border border-gray-200 rounded-md shadow-sm cursor-move sortable-item"
-                                        data-id="{{ $AlatTes->id }}">
-                                        <svg class="w-4 h-4 mr-2 text-gray-400 handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                                        </svg>
-                                        <input id="alat_tes_{{ $AlatTes->id }}" name="alat_tes_ids[]" type="checkbox"
-                                            value="{{ $AlatTes->id }}"
-                                            data-duration="{{ $AlatTes->duration_minutes }}"
-                                            class="alat-tes-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2"
+                                    <div class="flex items-center">
+                                        <input id="alat_tes_{{ $alatTes->id }}" name="alat_tes_ids[]" type="checkbox"
+                                            value="{{ $alatTes->id }}"
+                                            data-duration="{{ $alatTes->duration_minutes }}"
+                                            class="alat-tes-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                             {{ $isChecked ? 'checked' : '' }}>
-                                        <label for="alat_tes_{{ $AlatTes->id }}"
-                                            class="block text-sm text-gray-900 flex-grow">
-                                            {{ $AlatTes->name }} ({{ $AlatTes->duration_minutes }} menit)
+                                        <label for="alat_tes_{{ $alatTes->id }}"
+                                            class="ml-2 block text-sm text-gray-900">
+                                            {{ $alatTes->name }} ({{ $alatTes->duration_minutes }} menit)
                                         </label>
                                     </div>
                                 @endforeach
@@ -176,7 +163,6 @@
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
-                        {{-- END MODIFIKASI --}}
 
                         <div class="md:col-span-2">
                             <label for="description"
@@ -227,7 +213,7 @@
                         </button>
                         <button type="submit"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                            Simpan Modul
+                            Lanjut ke Pengaturan Urutan &raquo;
                         </button>
                     </div>
                 </form>
@@ -236,19 +222,15 @@
         </div>
     </div>
 
+    {{-- Script untuk Durasi Tetap Dibutuhkan --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkboxes = document.querySelectorAll('.alat-tes-checkbox');
             const durationInput = document.getElementById('duration_minutes');
             const durationDisplay = document.getElementById('total_duration_display');
-            const orderInput = document.getElementById('test_order_input');
-            const listContainer = document.getElementById('alat_tes_list_container');
 
-            function updateDurationAndOrder() {
+            function updateDuration() {
                 let totalDuration = 0;
-                let orderedIds = [];
-
-                // 1. Hitung Durasi
                 checkboxes.forEach(checkbox => {
                     if (checkbox.checked) {
                         const duration = parseInt(checkbox.getAttribute('data-duration'));
@@ -258,44 +240,16 @@
                     }
                 });
 
-                // Perbarui nilai input tersembunyi (untuk POST)
                 durationInput.value = totalDuration;
                 durationDisplay.textContent = totalDuration;
-
-                // 2. Kumpulkan Urutan ID dari item yang DICHECK
-                const checkedItems = Array.from(listContainer.querySelectorAll('.sortable-item')).filter(item => {
-                    // Cari checkbox di dalam item ini
-                    const checkbox = item.querySelector('.alat-tes-checkbox');
-                    return checkbox && checkbox.checked;
-                });
-                
-                // Ambil data-id dari item yang dicek, sesuai urutan di DOM
-                orderedIds = checkedItems.map(item => item.getAttribute('data-id'));
-
-                // Perbarui nilai hidden input 'test_order'
-                orderInput.value = JSON.stringify(orderedIds);
             }
 
-            // Inisialisasi SortableJS
-            new Sortable(listContainer, {
-                animation: 150,
-                // Handle: Hanya boleh di drag pada area handle (icon garis tiga)
-                handle: '.handle', 
-                // Event saat urutan selesai diubah
-                onEnd: function(evt) {
-                    // Panggil fungsi updateDurationAndOrder setelah drag selesai
-                    // Ini penting agar urutan di hidden input terupdate.
-                    updateDurationAndOrder(); 
-                },
-            });
-
-            // Pasang event listener ke setiap checkbox
             checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', updateDurationAndOrder);
+                checkbox.addEventListener('change', updateDuration);
             });
 
             // Jalankan sekali saat halaman dimuat
-            updateDurationAndOrder();
+            updateDuration();
         });
     </script>
 </x-admin-layout>
