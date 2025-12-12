@@ -17,9 +17,11 @@ class AlatTes extends Model
         'slug',
         'description',
         'instructions', // ✅ TAMBAHAN: Field untuk instruksi tes
+        'example_questions',
     ];
 
     protected $casts = [
+        'example_questions' => 'array',
         'duration_minutes' => 'integer',
     ];
 

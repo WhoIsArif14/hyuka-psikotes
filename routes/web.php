@@ -69,31 +69,71 @@ Route::middleware(['auth'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| ✅ ALUR TES (MODIFIED FOR MULTI-ALAT TES AND ORDER)
+| ✅ ALUR TES (FIXED - Menambahkan Route Constraints)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    Route::get('/tests/start', [UserTestController::class, 'start'])->name('tests.start');
-    Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])->name('tests.start.with');
+    // PENTING: Route spesifik harus di atas route dengan parameter dinamis
     
-    // Rute untuk menampilkan soal umum. DITAMBAH parameter {alat_tes}
-    Route::get('/tests/{test}/{alat_tes}/question/{number}', [UserTestController::class, 'showQuestion'])->name('tests.question');
-    // Rute untuk menyimpan jawaban umum. DITAMBAH parameter {alat_tes}
-    Route::post('/tests/{test}/{alat_tes}/answer/{number}', [UserTestController::class, 'saveAnswer'])->name('tests.answer');
+    // 1. Halaman daftar test yang tersedia
+    Route::get('/tests/start', [UserTestController::class, 'start'])
+        ->name('tests.start');
+    
+    // 2. Halaman untuk memilih test tertentu (harus sebelum route dinamis)
+    Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])
+        ->name('tests.start.with')
+        ->where('test', '[0-9]+'); // Tambahkan constraint: hanya angka
+    
+    // 3. Module finish (harus sebelum route dinamis)
+    Route::get('/tests/module-finish/{test}', [UserTestController::class, 'finishModule'])
+        ->name('tests.module.finish')
+        ->where('test', '[0-9]+');
+    
+    // ✅ HALAMAN PERSIAPAN & PETUNJUK
+    Route::get('/tests/{test}/{alat_tes}/preparation', [UserTestController::class, 'showPreparation'])
+        ->name('tests.preparation')
+        ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
+    
+    Route::get('/tests/{test}/{alat_tes}/instructions', [UserTestController::class, 'showInstructions'])
+        ->name('tests.instructions')
+        ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
+    
+    Route::post('/tests/{test}/{alat_tes}/start-test', [UserTestController::class, 'startAlatTes'])
+        ->name('tests.alat.start')
+        ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
+    
+    // Rute untuk menampilkan soal umum
+    Route::get('/tests/{test}/{alat_tes}/question/{number}', [UserTestController::class, 'showQuestion'])
+        ->name('tests.question')
+        ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+', 'number' => '[0-9]+']);
+    
+    // Rute untuk menyimpan jawaban umum
+    Route::post('/tests/{test}/{alat_tes}/answer/{number}', [UserTestController::class, 'saveAnswer'])
+        ->name('tests.answer')
+        ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+', 'number' => '[0-9]+']);
 
-    // Rute penyelesaian modul (Dipanggil setelah semua alat tes selesai)
-    Route::get('/tests/module-finish/{test}', [UserTestController::class, 'finishModule'])->name('tests.module.finish');
-
-    // Rute LEGACY/UNIFIED (Bisa dihapus jika logic di UserTestController sudah terpisah)
-    Route::get('tests/{test}', [UserTestController::class, 'show'])->name('tests.show');
-    Route::post('tests/{test}/submit', [UserTestController::class, 'store'])->name('tests.store');
+    // Rute Tes Khusus (submit endpoints)
+    Route::post('/tests/{test}/alat/{alat_tes}/papi/submit', [PapiTestController::class, 'submitTest'])
+    ->middleware('auth')
+    ->name('papi.submit');
+    
+    Route::post('/tests/{test}/pauli/submit', [UserPauliController::class, 'submitTest'])
+        ->name('pauli.submit')
+        ->where('test', '[0-9]+');
+    
+    // Route LEGACY - Taruh di paling bawah
+    Route::get('/tests/{test}', [UserTestController::class, 'show'])
+        ->name('tests.show')
+        ->where('test', '[0-9]+');
+    
+    Route::post('/tests/{test}/submit', [UserTestController::class, 'store'])
+        ->name('tests.store')
+        ->where('test', '[0-9]+');
     
     // Rute hasil tes
-    Route::get('results/{testResult}', [UserTestController::class, 'result'])->name('tests.result');
-
-    // Rute Tes Khusus
-    Route::post('tests/{test}/papi/submit', [PapiTestController::class, 'submitTest'])->name('papi.submit');
-    Route::post('tests/{test}/pauli/submit', [UserPauliController::class, 'submitTest'])->name('pauli.submit');
+    Route::get('/results/{testResult}', [UserTestController::class, 'result'])
+        ->name('tests.result')
+        ->where('testResult', '[0-9]+');
 });
 
 /*

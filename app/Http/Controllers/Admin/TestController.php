@@ -126,7 +126,7 @@ class TestController extends Controller
             return redirect()->route('admin.tests.create')->with('error', 'Data modul tidak ditemukan. Harap ulangi langkah 1.');
         }
 
-        return view('admin.tests.create-step-two-order', [
+        return view('admin.tests.create-step-two', [
             'tempData' => $tempData,
             'alatTesList' => $alatTesList,
         ]);

@@ -50,7 +50,7 @@
 
                     {{-- FORM SOAL --}}
                     <form id="test-form" method="POST" 
-                          action="{{ route('tests.answer', ['test' => $test->id, 'number' => $currentNumber]) }}">
+                          action="{{ route('tests.answer', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $currentNumber]) }}">
                         @csrf
                         
                         <input type="hidden" name="violation_count" id="hidden-violation-count" value="0">

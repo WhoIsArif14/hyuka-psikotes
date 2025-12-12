@@ -81,7 +81,7 @@
 
             <div class="flex items-center justify-end mt-6">
                 <x-primary-button class="w-full justify-center">
-                    {{ __('SIMPAN DAN MULAI TES') }}
+                    {{ __('KIRIM') }}
                 </x-primary-button>
             </div>
         </form>

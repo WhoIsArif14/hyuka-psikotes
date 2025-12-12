@@ -4,23 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AlatTes;
-use App\Models\PapiQuestion; // Diasumsikan untuk tipe tes PAPI
+use App\Models\PapiQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str; // PENTING: Untuk helper Str::slug()
+use Illuminate\Support\Str;
 
 class AlatTesController extends Controller
 {
     /**
      * Helper method untuk mengecek apakah Alat Tes adalah PAPI Kostick
-     * Metode ini digunakan di index dan destroy.
-     * @param AlatTes $alatTes
-     * @return bool
      */
     private function isPapiKostick($alatTes)
     {
-        // Cek berdasarkan slug atau nama (sesuai logika yang Anda berikan di Model)
         if (isset($alatTes->slug) && !empty($alatTes->slug)) {
             $slug = strtolower(trim($alatTes->slug));
             if (in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick'])) {
@@ -43,21 +39,15 @@ class AlatTesController extends Controller
      */
     public function index(Request $request)
     {
-        // Mengambil semua Alat Tes dan menghitung soal terkait
         $AlatTes = AlatTes::latest()->get()->map(function ($alatTes) {
-
             if ($this->isPapiKostick($alatTes)) {
-                // Hitung soal PAPI
                 $alatTes->questions_count = PapiQuestion::where('alat_tes_id', $alatTes->id)->count();
             } else {
-                // Hitung soal umum
                 $alatTes->questions_count = $alatTes->questions()->count();
             }
-
             return $alatTes;
         });
 
-        // Implementasi Pagination manual dari Collection
         $perPage = 10;
         $currentPage = $request->get('page', 1);
         $pagedData = $AlatTes->slice(($currentPage - 1) * $perPage, $perPage)->all();
@@ -78,48 +68,67 @@ class AlatTesController extends Controller
      */
     public function create()
     {
-        return view('admin.alat-tes.create');
+        // ✅ Kirim array kosong untuk contoh soal
+        $examples = [];
+        return view('admin.alat-tes.create', compact('examples'));
     }
 
     /**
      * Menyimpan Alat Tes baru ke database. (CREATE)
-     * FIX: Membuat slug otomatis dan menangani kolom 'description'.
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input. Tambahkan 'unique' untuk name agar tidak ada duplikasi.
+        // 1. Validasi Input
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:alat_tes,name',
             'duration_minutes' => 'required|integer|min:1',
             'instructions' => 'nullable|string',
+            // ✅ Validasi untuk contoh soal
+            'example_1_question' => 'nullable|string|max:1000',
+            'example_1_options' => 'nullable|string',
+            'example_1_correct' => 'nullable|integer|min:0|max:4',
+            'example_1_explanation' => 'nullable|string|max:500',
+            'example_2_question' => 'nullable|string|max:1000',
+            'example_2_options' => 'nullable|string',
+            'example_2_correct' => 'nullable|integer|min:0|max:4',
+            'example_2_explanation' => 'nullable|string|max:500',
         ]);
 
         try {
             // 2. Persiapan Data
-            $dataToCreate = $validated;
+            $dataToCreate = [
+                'name' => $validated['name'],
+                'duration_minutes' => $validated['duration_minutes'],
+                'instructions' => $validated['instructions'] ?? null,
+                'slug' => Str::slug($validated['name']),
+                'description' => null,
+            ];
 
-            // Membuat slug otomatis dari name
-            $dataToCreate['slug'] = Str::slug($validated['name']);
+            // ✅ 3. Parse Example Questions
+            $exampleQuestions = $this->parseExampleQuestions($request);
+            $dataToCreate['example_questions'] = $exampleQuestions;
 
-            // Mengisi 'description' (jika tidak dikirim dari form, set null/default)
-            // Asumsi 'description' di database BISA NULL.
-            if (in_array('description', (new AlatTes())->getFillable()) && !isset($dataToCreate['description'])) {
-                 $dataToCreate['description'] = null;
-            }
-
-            // 3. Simpan Data ke Database
+            // 4. Simpan Data ke Database
             $alatTes = AlatTes::create($dataToCreate);
 
-            Log::info('Alat Tes created successfully', ['id' => $alatTes->id, 'name' => $alatTes->name]);
+            Log::info('Alat Tes created successfully', [
+                'id' => $alatTes->id,
+                'name' => $alatTes->name,
+                'examples_count' => count($exampleQuestions)
+            ]);
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes baru berhasil dibuat.');
+                
         } catch (\Exception $e) {
-            // Log Error
-            Log::error('Failed to create Alat Tes', ['error' => $e->getMessage()]);
+            Log::error('Failed to create Alat Tes', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
-            // Kembali ke form dengan input lama dan error spesifik
-            return back()->withInput()->withErrors(['error' => 'Gagal menyimpan Alat Tes. Pesan database: ' . $e->getMessage()]);
+            return back()->withInput()->withErrors([
+                'error' => 'Gagal menyimpan Alat Tes. Pesan: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -128,7 +137,22 @@ class AlatTesController extends Controller
      */
     public function edit(AlatTes $alat_te)
     {
-        return view('admin.alat-tes.edit', ['AlatTes' => $alat_te]);
+        // ✅ Parse example questions untuk form edit
+        $examples = [];
+        
+        if (!empty($alat_te->example_questions)) {
+            if (is_string($alat_te->example_questions)) {
+                $decoded = json_decode($alat_te->example_questions, true);
+                $examples = $decoded ?? [];
+            } else {
+                $examples = $alat_te->example_questions;
+            }
+        }
+
+        return view('admin.alat-tes.edit', [
+            'AlatTes' => $alat_te,
+            'examples' => $examples
+        ]);
     }
 
     /**
@@ -136,29 +160,56 @@ class AlatTesController extends Controller
      */
     public function update(Request $request, AlatTes $alat_te)
     {
-        // Validasi Input. Abaikan ID saat ini untuk aturan 'unique'.
+        // Validasi Input
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:alat_tes,name,' . $alat_te->id,
             'duration_minutes' => 'required|integer|min:1',
             'instructions' => 'nullable|string',
+            // ✅ Validasi untuk contoh soal
+            'example_1_question' => 'nullable|string|max:1000',
+            'example_1_options' => 'nullable|string',
+            'example_1_correct' => 'nullable|integer|min:0|max:4',
+            'example_1_explanation' => 'nullable|string|max:500',
+            'example_2_question' => 'nullable|string|max:1000',
+            'example_2_options' => 'nullable|string',
+            'example_2_correct' => 'nullable|integer|min:0|max:4',
+            'example_2_explanation' => 'nullable|string|max:500',
         ]);
 
         try {
-            // Persiapan Data (Update slug otomatis)
-            $dataToUpdate = $validated;
-            $dataToUpdate['slug'] = Str::slug($validated['name']);
+            // Persiapan Data
+            $dataToUpdate = [
+                'name' => $validated['name'],
+                'duration_minutes' => $validated['duration_minutes'],
+                'instructions' => $validated['instructions'] ?? null,
+                'slug' => Str::slug($validated['name']),
+            ];
+
+            // ✅ Parse Example Questions
+            $exampleQuestions = $this->parseExampleQuestions($request);
+            $dataToUpdate['example_questions'] = $exampleQuestions;
 
             // Update Data
             $alat_te->update($dataToUpdate);
 
-            Log::info('Alat Tes updated', ['id' => $alat_te->id, 'name' => $alat_te->name]);
+            Log::info('Alat Tes updated', [
+                'id' => $alat_te->id,
+                'name' => $alat_te->name,
+                'examples_count' => count($exampleQuestions)
+            ]);
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes berhasil diperbarui.');
+                
         } catch (\Exception $e) {
-            Log::error('Failed to update Alat Tes', ['error' => $e->getMessage()]);
+            Log::error('Failed to update Alat Tes', [
+                'error' => $e->getMessage(),
+                'alat_tes_id' => $alat_te->id
+            ]);
 
-            return back()->withInput()->withErrors(['error' => 'Gagal memperbarui: ' . $e->getMessage()]);
+            return back()->withInput()->withErrors([
+                'error' => 'Gagal memperbarui: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -166,79 +217,112 @@ class AlatTesController extends Controller
      * Menghapus Alat Tes dari database. (DELETE)
      */
     public function destroy(AlatTes $alat_te)
-{
-    try {
-        DB::beginTransaction();
-
-        $name = $alat_te->name;
-        $deletedQuestionsCount = 0;
-
-        // ✅ DISABLE FOREIGN KEY CHECK SEMENTARA
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
+    {
         try {
-            // Hapus soal PAPI jika ada
-            if ($this->isPapiKostick($alat_te)) {
-                $deletedQuestionsCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
-                PapiQuestion::where('alat_tes_id', $alat_te->id)->delete();
+            DB::beginTransaction();
+
+            $name = $alat_te->name;
+            $deletedQuestionsCount = 0;
+
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+            try {
+                if ($this->isPapiKostick($alat_te)) {
+                    $deletedQuestionsCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
+                    PapiQuestion::where('alat_tes_id', $alat_te->id)->delete();
+                }
+                
+                $questionsCount = DB::table('questions')
+                    ->where('alat_tes_id', $alat_te->id)
+                    ->count();
+                
+                DB::table('questions')
+                    ->where('alat_tes_id', $alat_te->id)
+                    ->delete();
+                
+                $deletedQuestionsCount += $questionsCount;
+
+                DB::table('question_options')->whereIn('question_id', function($query) use ($alat_te) {
+                    $query->select('id')
+                          ->from('questions')
+                          ->where('alat_tes_id', $alat_te->id);
+                })->delete();
+
+                $alat_te->delete();
+
+                Log::info('Alat Tes deleted successfully', [
+                    'id' => $alat_te->id,
+                    'name' => $name,
+                    'questions_deleted' => $deletedQuestionsCount
+                ]);
+
+            } finally {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             }
-            
-            // Hapus SEMUA soal dari tabel questions (termasuk RMIB, dll)
-            $questionsCount = DB::table('questions')
-                ->where('alat_tes_id', $alat_te->id)
-                ->count();
-            
-            DB::table('questions')
-                ->where('alat_tes_id', $alat_te->id)
-                ->delete();
-            
-            $deletedQuestionsCount += $questionsCount;
 
-            // Hapus dari tabel lain yang mungkin terkait
-            // (sesuaikan dengan struktur database Anda)
-            DB::table('question_options')->whereIn('question_id', function($query) use ($alat_te) {
-                $query->select('id')
-                      ->from('questions')
-                      ->where('alat_tes_id', $alat_te->id);
-            })->delete();
+            DB::commit();
 
-            // Hapus alat tes
-            $alat_te->delete();
+            $message = $deletedQuestionsCount > 0
+                ? "Alat Tes '{$name}' dan {$deletedQuestionsCount} soal berhasil dihapus."
+                : "Alat Tes '{$name}' berhasil dihapus.";
 
-            Log::info('Alat Tes deleted successfully', [
-                'id' => $alat_te->id,
-                'name' => $name,
-                'questions_deleted' => $deletedQuestionsCount
+            return redirect()->route('admin.alat-tes.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            Log::error('Failed to delete Alat Tes', [
+                'alat_tes_id' => $alat_te->id ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-        } finally {
-            // ✅ ENABLE KEMBALI FOREIGN KEY CHECK
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            return redirect()->route('admin.alat-tes.index')
+                ->with('error', 'Gagal menghapus Alat Tes: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ Helper method untuk parsing contoh soal dari form
+     */
+    private function parseExampleQuestions(Request $request)
+    {
+        $examples = [];
+
+        // Contoh 1
+        if ($request->filled('example_1_question')) {
+            $options1 = array_filter(
+                array_map('trim', explode("\n", $request->example_1_options ?? ''))
+            );
+
+            if (!empty($options1)) {
+                $examples[] = [
+                    'question' => $request->example_1_question,
+                    'options' => array_values($options1),
+                    'correct_answer' => (int) ($request->example_1_correct ?? 0),
+                    'explanation' => $request->example_1_explanation ?? '',
+                ];
+            }
         }
 
-        DB::commit();
+        // Contoh 2
+        if ($request->filled('example_2_question')) {
+            $options2 = array_filter(
+                array_map('trim', explode("\n", $request->example_2_options ?? ''))
+            );
 
-        $message = $deletedQuestionsCount > 0
-            ? "Alat Tes '{$name}' dan {$deletedQuestionsCount} soal berhasil dihapus."
-            : "Alat Tes '{$name}' berhasil dihapus.";
+            if (!empty($options2)) {
+                $examples[] = [
+                    'question' => $request->example_2_question,
+                    'options' => array_values($options2),
+                    'correct_answer' => (int) ($request->example_2_correct ?? 0),
+                    'explanation' => $request->example_2_explanation ?? '',
+                ];
+            }
+        }
 
-        return redirect()->route('admin.alat-tes.index')
-            ->with('success', $message);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        
-        // ✅ PASTIKAN FOREIGN KEY CHECK KEMBALI AKTIF
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        Log::error('Failed to delete Alat Tes', [
-            'alat_tes_id' => $alat_te->id ?? 'unknown',
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-
-        return redirect()->route('admin.alat-tes.index')
-            ->with('error', 'Gagal menghapus Alat Tes: ' . $e->getMessage());
+        return $examples;
     }
-}
 }
