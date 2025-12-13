@@ -11,10 +11,7 @@ use Illuminate\Support\Facades\Session;
 
 class PapiTestController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
+    
 
     /**
      * Menampilkan form 90 soal PAPI.

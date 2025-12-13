@@ -292,7 +292,7 @@ class UserTestController extends Controller
 
     public function finishModule(Test $test)
     {
-        return view('test-module-finish', compact('test'));
+        return view('test-completion', compact('test'));
     }
 
     public function show(Test $test)

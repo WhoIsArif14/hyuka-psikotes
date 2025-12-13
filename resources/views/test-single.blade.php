@@ -20,11 +20,12 @@
                                     Soal {{ $currentNumber }} dari {{ $totalQuestions }}
                                 </p>
                             </div>
-                            <div id="timer-display" class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow">
+                            <div id="timer-display"
+                                class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow">
                                 Sisa Waktu: <span x-text="formatTime()"></span>
                             </div>
                         </div>
-                        
+
                         {{-- Violation Counter --}}
                         <div class="mt-3 flex justify-between items-center text-sm">
                             <span class="text-gray-600">
@@ -43,75 +44,129 @@
                             <span>{{ round(($currentNumber / $totalQuestions) * 100) }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                                 style="width: {{ ($currentNumber / $totalQuestions) * 100 }}%"></div>
+                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style="width: {{ ($currentNumber / $totalQuestions) * 100 }}%"></div>
                         </div>
                     </div>
 
                     {{-- FORM SOAL --}}
-                    <form id="test-form" method="POST" 
-                          action="{{ route('tests.answer', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $currentNumber]) }}">
+                    <form id="test-form" method="POST"
+                        action="{{ route('tests.answer', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $currentNumber]) }}">
                         @csrf
-                        
+
                         <input type="hidden" name="violation_count" id="hidden-violation-count" value="0">
                         <input type="hidden" name="tab_switches" id="hidden-tab-switches" value="0">
-                        
+
                         <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6">
-                            {{-- Nomor dan Pertanyaan --}}
-                            <div class="font-semibold text-lg mb-4">
-                                <p class="text-gray-700">{{ $currentNumber }}. {{ $question->question_text }}</p>
-                                @if ($question->image_path)
-                                    <img src="{{ asset('storage/' . $question->image_path) }}" 
-                                         alt="Gambar Soal"
-                                         class="mt-4 rounded-md max-w-full md:max-w-lg select-none pointer-events-none">
-                                @endif
-                            </div>
 
-                            {{-- Opsi Jawaban --}}
-                            @php
-                                $options = is_string($question->options)
-                                    ? json_decode($question->options, true)
-                                    : $question->options ?? [];
-                            @endphp
+                            {{-- START LOGIKA KONDISIONAL SOAL --}}
 
-                            @if (is_array($options) && count($options) > 0)
-                                <div class="space-y-3">
-                                    @foreach ($options as $index => $option)
-                                        <label
-                                            class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
-                                                   {{ $savedAnswer == $index ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
-                                            <input type="radio" 
-                                                   name="answer" 
-                                                   value="{{ $index }}"
-                                                   {{ $savedAnswer == $index ? 'checked' : '' }}
-                                                   class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+                            {{-- Deteksi PAPI KOSTICK: Cek apakah nama alat tes adalah 'PAPI Kostick' ATAU apakah soal memiliki properti PAPI (pernyataan_a) --}}
+                            @if ((isset($alatTes->name) && $alatTes->name == 'PAPI Kostick') || isset($question->pernyataan_a))
 
-                                            <div class="ml-3 text-gray-700 flex-1">
-                                                <span class="font-medium">{{ chr(65 + $index) }}.</span>
-                                                <span class="ml-2">{{ $option['text'] ?? '' }}</span>
+                                {{-- TAMPILAN PAPI KOSTICK (A vs B) --}}
 
-                                                @if (!empty($option['image_path']))
-                                                    <img src="{{ asset('storage/' . $option['image_path']) }}"
-                                                         alt="Gambar Opsi" 
-                                                         class="mt-3 rounded-md max-w-xs select-none pointer-events-none">
-                                                @endif
-                                            </div>
-                                        </label>
-                                    @endforeach
+                                <div class="font-semibold text-lg mb-4 text-center text-gray-800 border-b pb-3">
+                                    <p>Soal {{ $currentNumber }} dari {{ $totalQuestions }}</p>
+                                    <p class="mt-2 text-base font-normal">Pilih salah satu pernyataan yang **paling
+                                        menggambarkan** diri Anda.</p>
                                 </div>
+
+                                <div class="space-y-4 pt-4">
+
+                                    {{-- Pilihan A --}}
+                                    <label
+                                        class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors 
+                       {{ $savedAnswer == 'A' ? 'bg-blue-100 border-blue-600 shadow-md' : 'border-gray-200' }}">
+                                        <input type="radio" name="answer" value="A"
+                                            {{ $savedAnswer == 'A' ? 'checked' : '' }}
+                                            class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+
+                                        <div class="ml-4 text-gray-700 flex-1">
+                                            <span class="font-bold">A.</span>
+                                            {{-- MENGAMBIL DATA DARI KOLOM PAPI --}}
+                                            <span
+                                                class="ml-2">{{ $question->pernyataan_a ?? 'Pernyataan A tidak tersedia' }}</span>
+                                        </div>
+                                    </label>
+
+                                    {{-- Pilihan B --}}
+                                    <label
+                                        class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors 
+                       {{ $savedAnswer == 'B' ? 'bg-blue-100 border-blue-600 shadow-md' : 'border-gray-200' }}">
+                                        <input type="radio" name="answer" value="B"
+                                            {{ $savedAnswer == 'B' ? 'checked' : '' }}
+                                            class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+
+                                        <div class="ml-4 text-gray-700 flex-1">
+                                            <span class="font-bold">B.</span>
+                                            {{-- MENGAMBIL DATA DARI KOLOM PAPI --}}
+                                            <span
+                                                class="ml-2">{{ $question->pernyataan_b ?? 'Pernyataan B tidak tersedia' }}</span>
+                                        </div>
+                                    </label>
+                                </div>
+
+
+                                {{-- 2. LOGIKA PILIHAN GANDA UMUM (FALLBACK JIKA BUKAN PAPI KOSTICK) --}}
                             @else
-                                <p class="text-red-500 text-sm">Tidak ada opsi jawaban untuk soal ini.</p>
+                                {{-- Nomor dan Pertanyaan PG --}}
+                                <div class="font-semibold text-lg mb-4">
+                                    <p class="text-gray-700">{{ $currentNumber }}. {{ $question->question_text }}</p>
+                                    @if ($question->image_path)
+                                        <img src="{{ asset('storage/' . $question->image_path) }}" alt="Gambar Soal"
+                                            class="mt-4 rounded-md max-w-full md:max-w-lg select-none pointer-events-none">
+                                    @endif
+                                </div>
+
+                                {{-- Opsi Jawaban PG --}}
+                                @php
+                                    $options = is_string($question->options)
+                                        ? json_decode($question->options, true)
+                                        : $question->options ?? [];
+                                @endphp
+
+                                @if (is_array($options) && count($options) > 0)
+                                    <div class="space-y-3">
+                                        @foreach ($options as $index => $option)
+                                            <label
+                                                class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
+                                   {{ $savedAnswer == $index ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
+                                                <input type="radio" name="answer" value="{{ $index }}"
+                                                    {{ $savedAnswer == $index ? 'checked' : '' }}
+                                                    class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+
+                                                <div class="ml-3 text-gray-700 flex-1">
+                                                    <span class="font-medium">{{ chr(65 + $index) }}.</span>
+                                                    <span class="ml-2">{{ $option['text'] ?? '' }}</span>
+
+                                                    @if (!empty($option['image_path']))
+                                                        <img src="{{ asset('storage/' . $option['image_path']) }}"
+                                                            alt="Gambar Opsi"
+                                                            class="mt-3 rounded-md max-w-xs select-none pointer-events-none">
+                                                    @endif
+                                                </div>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    {{-- Pesan error yang lebih spesifik jika PG tidak memiliki opsi --}}
+                                    <p class="text-red-500 text-sm">Tidak ada opsi jawaban untuk soal ini. (Soal
+                                        non-PAPI Kostick bermasalah)</p>
+                                @endif
+
                             @endif
+
+                            {{-- END LOGIKA KONDISIONAL SOAL --}}
+
                         </div>
 
-                        {{-- NAVIGATION BUTTONS --}}
+                        {{-- NAVIGATION BUTTONS (Tetap di bawah form) --}}
                         <div class="flex justify-between items-center">
                             {{-- Previous Button --}}
                             @if ($currentNumber > 1)
-                                <button type="submit" 
-                                        name="action" 
-                                        value="previous"
-                                        class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 transition">
+                                <button type="submit" name="action" value="previous"
+                                    class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 transition">
                                     ← Sebelumnya
                                 </button>
                             @else
@@ -121,18 +176,14 @@
                             {{-- Next or Submit Button --}}
                             <div class="flex gap-3">
                                 @if ($currentNumber < $totalQuestions)
-                                    <button type="submit" 
-                                            name="action" 
-                                            value="next"
-                                            class="inline-flex items-center px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition">
+                                    <button type="submit" name="action" value="next"
+                                        class="inline-flex items-center px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition">
                                         Selanjutnya →
                                     </button>
                                 @else
-                                    <button type="submit" 
-                                            name="action" 
-                                            value="submit"
-                                            onclick="return confirm('Apakah Anda yakin ingin menyelesaikan tes? Pastikan semua jawaban sudah benar.')"
-                                            class="inline-flex items-center px-6 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 transition">
+                                    <button type="submit" name="action" value="submit"
+                                        onclick="return confirm('Apakah Anda yakin ingin menyelesaikan tes? Pastikan semua jawaban sudah benar.')"
+                                        class="inline-flex items-center px-6 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 transition">
                                         ✓ Selesai Mengerjakan
                                     </button>
                                 @endif
@@ -158,14 +209,14 @@
             -ms-user-select: none;
             user-select: none;
         }
-        
+
         /* Allow selection hanya untuk radio button */
         input[type="radio"] {
             -webkit-user-select: auto;
             -moz-user-select: auto;
             user-select: auto;
         }
-        
+
         /* Prevent image dragging */
         img {
             -webkit-user-drag: none;
@@ -174,15 +225,22 @@
             -o-user-drag: none;
             user-drag: none;
         }
-        
+
         /* Timer warning animation */
         .timer-warning {
             animation: pulse 1s infinite;
         }
-        
+
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
     </style>
 
@@ -207,7 +265,7 @@
         // ====================================
         // UTILITY FUNCTIONS
         // ====================================
-        
+
         function updateViolationDisplay() {
             document.getElementById('violation-count').textContent = violationCount;
             document.getElementById('hidden-violation-count').value = violationCount;
@@ -234,7 +292,7 @@
             violationCount++;
             updateViolationDisplay();
             logViolation(message.type || 'unknown', message.details || '');
-            
+
             const overlay = document.createElement('div');
             overlay.style.cssText = `
                 position: fixed;
@@ -299,7 +357,7 @@
                     text: '🚫 Screenshot TIDAK DIPERBOLEHKAN!<br><br>Mengambil screenshot dapat mengakibatkan test dihentikan.',
                     details: 'Print Screen key pressed'
                 });
-                
+
                 // Blur effect
                 document.body.style.filter = 'blur(20px)';
                 setTimeout(() => {
@@ -319,7 +377,7 @@
                     details: 'Windows screenshot tool (Win+Shift+S)'
                 });
             }
-            
+
             // Mac: Cmd + Shift + 3/4/5
             if ((e.key === '3' || e.key === '4' || e.key === '5') && e.shiftKey && e.metaKey) {
                 e.preventDefault();
@@ -337,10 +395,11 @@
         document.addEventListener('visibilitychange', function() {
             if (document.hidden && !hasLeftPage) {
                 tabSwitchCount++;
-                
+
                 if (tabSwitchCount >= ANTI_CHEAT_CONFIG.MAX_TAB_SWITCHES) {
                     hasLeftPage = true;
-                    alert('⚠️ Anda telah meninggalkan halaman test ' + tabSwitchCount + ' kali. Test akan otomatis diselesaikan!');
+                    alert('⚠️ Anda telah meninggalkan halaman test ' + tabSwitchCount +
+                        ' kali. Test akan otomatis diselesaikan!');
                     document.getElementById('test-form').submit();
                 } else {
                     setTimeout(() => {
@@ -379,7 +438,7 @@
         // ====================================
         document.addEventListener('keydown', function(e) {
             // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-            if (e.keyCode === 123 || 
+            if (e.keyCode === 123 ||
                 (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
                 (e.ctrlKey && e.keyCode === 85)) {
                 e.preventDefault();
@@ -400,15 +459,17 @@
                 type: 'copy_attempt',
                 text: '🚫 Menyalin Teks Tidak Diperbolehkan!<br><br>Semua konten test tidak boleh disalin.',
                 details: 'Copy text attempted'
-                });
+            });
         });
 
         // ====================================
         // 6. CONSOLE WARNING
         // ====================================
-        console.log('%c🚫 STOP!', 'color: red; font-size: 50px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);');
+        console.log('%c🚫 STOP!',
+            'color: red; font-size: 50px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);');
         console.log('%cJANGAN GUNAKAN CONSOLE INI!', 'color: red; font-size: 30px; font-weight: bold;');
-        console.log('%cMenggunakan developer tools akan dianggap sebagai PELANGGARAN dan test Anda akan dihentikan.', 'color: red; font-size: 16px;');
+        console.log('%cMenggunakan developer tools akan dianggap sebagai PELANGGARAN dan test Anda akan dihentikan.',
+            'color: red; font-size: 16px;');
 
         // ====================================
         // 7. TIMER FUNCTIONALITY (Original + Enhanced)
@@ -419,7 +480,7 @@
                 startTimer() {
                     const interval = setInterval(() => {
                         this.timeLeft--;
-                        
+
                         // Warning saat 5 menit tersisa
                         if (this.timeLeft === 300) {
                             const timerDisplay = document.getElementById('timer-display');
@@ -429,7 +490,7 @@
                             }
                             alert('⚠️ Perhatian! Waktu tersisa 5 menit!');
                         }
-                        
+
                         // Auto submit saat waktu habis
                         if (this.timeLeft <= 0) {
                             clearInterval(interval);
@@ -480,13 +541,14 @@
         // ====================================
         window.addEventListener('load', function() {
             console.log('✅ Anti-cheating system initialized');
-            
+
             // Visual indicator for users
             const indicator = document.createElement('div');
-            indicator.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#28a745;color:white;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:9999;';
+            indicator.style.cssText =
+                'position:fixed;bottom:20px;right:20px;background:#28a745;color:white;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:9999;';
             indicator.textContent = '🔒 Secure Test Mode';
             document.body.appendChild(indicator);
-            
+
             // Remove indicator after 5 seconds
             setTimeout(() => {
                 indicator.style.opacity = '0';
@@ -506,16 +568,22 @@
     {{-- CSS Animations --}}
     <style>
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
-        
+
         @keyframes slideIn {
-            from { 
+            from {
                 transform: scale(0.8);
                 opacity: 0;
             }
-            to { 
+
+            to {
                 transform: scale(1);
                 opacity: 1;
             }
