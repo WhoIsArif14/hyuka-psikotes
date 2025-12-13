@@ -67,10 +67,11 @@ class UserDataController extends Controller
         }
         
         // Fallback jika kode aktivasi tidak ditemukan atau tidak memiliki ID Tes
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('error', 'Gagal menemukan sesi tes yang aktif. Silakan masukkan kode aktivasi lagi.');
+        // Redirect ke '/' bukan 'login' route untuk menghindari potential loop
+        return redirect('/')->with('error', 'Gagal menemukan sesi tes yang aktif. Silakan masukkan kode aktivasi lagi.');
     }
 }

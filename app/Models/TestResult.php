@@ -19,6 +19,7 @@ class TestResult extends Model
     protected $fillable = [
         'user_id',
         'test_id',
+        'alat_tes_id', // Ditambahkan untuk tracking alat tes spesifik
         'participant_name', // Ditambahkan untuk peserta tanpa akun
         'start_time',
         'end_time',
@@ -45,6 +46,14 @@ class TestResult extends Model
     public function test(): BelongsTo
     {
         return $this->belongsTo(Test::class);
+    }
+
+    /**
+     * Relasi ke model AlatTes.
+     */
+    public function alatTes(): BelongsTo
+    {
+        return $this->belongsTo(AlatTes::class);
     }
 
     /**

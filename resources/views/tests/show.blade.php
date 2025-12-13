@@ -356,8 +356,11 @@
                                 <h3 class="text-lg font-bold text-gray-900">{{ $test->title }}</h3>
                                 <p class="mt-1 text-sm text-gray-600">{{ $test->description }}</p>
                             </div>
-                            <div class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow">
-                                Sisa Waktu: <span x-text="formatTime()"></span>
+                            <div class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow flex items-center gap-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span x-text="formatTime()"></span>
                             </div>
                         </div>
                     </div>
@@ -613,9 +616,15 @@
                     }, 1000);
                 },
                 formatTime() {
-                    const minutes = Math.floor(this.timeLeft / 60);
+                    const hours = Math.floor(this.timeLeft / 3600);
+                    const minutes = Math.floor((this.timeLeft % 3600) / 60);
                     const seconds = this.timeLeft % 60;
-                    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                    if (hours > 0) {
+                        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    } else {
+                        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }
                 },
                 submitForm() {
                     hasLeftPage = true;

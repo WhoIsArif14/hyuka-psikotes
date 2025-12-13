@@ -74,16 +74,21 @@ Route::middleware(['auth'])->group(function () {
 */
 Route::middleware(['auth'])->group(function () {
     // PENTING: Route spesifik harus di atas route dengan parameter dinamis
-    
+
     // 1. Halaman daftar test yang tersedia
     Route::get('/tests/start', [UserTestController::class, 'start'])
         ->name('tests.start');
-    
+
     // 2. Halaman untuk memilih test tertentu (harus sebelum route dinamis)
     Route::get('/tests/start/{test}', [UserTestController::class, 'startTest'])
         ->name('tests.start.with')
         ->where('test', '[0-9]+'); // Tambahkan constraint: hanya angka
-    
+
+    // 2.5. ✅ Dashboard Modul - Menampilkan list alat tes
+    Route::get('/tests/{test}/dashboard', [UserTestController::class, 'showDashboard'])
+        ->name('tests.dashboard')
+        ->where('test', '[0-9]+');
+
     // 3. Module finish (harus sebelum route dinamis)
     Route::get('/tests/module-finish/{test}', [UserTestController::class, 'finishModule'])
         ->name('tests.module.finish')
@@ -98,7 +103,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('tests.instructions')
         ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
     
-    Route::post('/tests/{test}/{alat_tes}/start-test', [UserTestController::class, 'startAlatTes'])
+    Route::match(['GET', 'POST'], '/tests/{test}/{alat_tes}/start-test', [UserTestController::class, 'startAlatTes'])
         ->name('tests.alat.start')
         ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
     

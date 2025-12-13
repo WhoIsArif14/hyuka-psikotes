@@ -23,7 +23,7 @@
 
                 {{-- ✅ PERBAIKAN: Gunakan $AlatTes dan route yang benar --}}
                 <form method="POST"
-                    action="{{ route('admin.alat-tes.questions.update_papi', ['alat_te' => $AlatTes->id, 'papi_question' => $papiQuestion->id]) }}"
+                    action="{{ route('admin.alat-tes.questions.papi.update', ['alat_te' => $AlatTes->id, 'question' => $papiQuestion->id]) }}"
                     enctype="multipart/form-data">
                     @csrf
                     @method('PUT')

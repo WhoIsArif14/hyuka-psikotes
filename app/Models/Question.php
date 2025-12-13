@@ -135,4 +135,54 @@ public function rmibItem()
             return chr(65 + $idx);
         }
     }
+
+    // ✅ PAPI Kostick Attribute Accessors - Allow direct property access
+    protected function itemNumber(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['papi_item_number'] ?? $this->ranking_weight ?? null,
+        );
+    }
+
+    protected function statementA(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['statement_a'] ?? null,
+        );
+    }
+
+    protected function statementB(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['statement_b'] ?? null,
+        );
+    }
+
+    protected function roleA(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['role_a'] ?? null,
+        );
+    }
+
+    protected function needA(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['need_a'] ?? null,
+        );
+    }
+
+    protected function roleB(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['role_b'] ?? null,
+        );
+    }
+
+    protected function needB(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => $this->metadata['need_b'] ?? null,
+        );
+    }
 }

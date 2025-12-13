@@ -223,15 +223,15 @@ class PapiQuestionController extends Controller
     public function edit($alatTesId, $questionId)
     {
         $AlatTes = AlatTes::findOrFail($alatTesId);
-        $question = Question::findOrFail($questionId);
+        $papiQuestion = Question::findOrFail($questionId);
 
-        if ($question->type !== 'PAPIKOSTICK') {
+        if ($papiQuestion->type !== 'PAPIKOSTICK') {
             return redirect()
                 ->route('admin.alat-tes.questions.index', $alatTesId)
                 ->with('error', '❌ Soal ini bukan tipe PAPI Kostick');
         }
 
-        return view('admin.questions.edit_papi', compact('AlatTes', 'question'));
+        return view('admin.questions.edit_papi', compact('AlatTes', 'papiQuestion'));
     }
 
     /**
@@ -240,8 +240,29 @@ class PapiQuestionController extends Controller
     public function update(Request $request, $alatTesId, $questionId)
     {
         $request->validate([
+            'item_number' => 'required|integer|min:1|max:90',
+            'statement_a' => 'required|string|max:500',
+            'statement_b' => 'required|string|max:500',
+            'role_a' => 'required|string|size:1|regex:/^[A-Z]$/i',
+            'need_a' => 'required|string|size:1|regex:/^[A-Z]$/i',
+            'role_b' => 'required|string|size:1|regex:/^[A-Z]$/i',
+            'need_b' => 'required|string|size:1|regex:/^[A-Z]$/i',
             'example_question' => 'nullable|string|max:5000',
             'instructions' => 'nullable|string|max:5000',
+        ], [
+            'item_number.required' => 'Nomor item PAPI harus diisi',
+            'item_number.min' => 'Nomor item minimal 1',
+            'item_number.max' => 'Nomor item maksimal 90',
+            'statement_a.required' => 'Pernyataan A harus diisi',
+            'statement_b.required' => 'Pernyataan B harus diisi',
+            'role_a.required' => 'Role A harus diisi',
+            'role_a.regex' => 'Role A harus berupa 1 huruf (A-Z)',
+            'need_a.required' => 'Need A harus diisi',
+            'need_a.regex' => 'Need A harus berupa 1 huruf (A-Z)',
+            'role_b.required' => 'Role B harus diisi',
+            'role_b.regex' => 'Role B harus berupa 1 huruf (A-Z)',
+            'need_b.required' => 'Need B harus diisi',
+            'need_b.regex' => 'Need B harus berupa 1 huruf (A-Z)',
         ]);
 
         DB::beginTransaction();
@@ -249,13 +270,42 @@ class PapiQuestionController extends Controller
         try {
             $question = Question::findOrFail($questionId);
 
+            // Check if another question with same item_number exists (exclude current question)
+            $existingQuestion = Question::where('alat_tes_id', $alatTesId)
+                ->where('type', 'PAPIKOSTICK')
+                ->where('ranking_weight', $request->item_number)
+                ->where('id', '!=', $questionId)
+                ->first();
+
+            if ($existingQuestion) {
+                return back()
+                    ->withInput()
+                    ->with('error', '❌ Nomor item ' . $request->item_number . ' sudah digunakan oleh soal lain.');
+            }
+
             // Update Question
             $question->update([
+                'question_text' => "Item {$request->item_number}",
+                'ranking_weight' => $request->item_number,
                 'example_question' => $request->example_question,
                 'instructions' => $request->instructions,
+                'metadata' => [
+                    'papi_item_number' => $request->item_number,
+                    'statement_a' => $request->statement_a,
+                    'statement_b' => $request->statement_b,
+                    'role_a' => strtoupper($request->role_a),
+                    'need_a' => strtoupper($request->need_a),
+                    'role_b' => strtoupper($request->role_b),
+                    'need_b' => strtoupper($request->need_b),
+                ],
             ]);
 
             DB::commit();
+
+            Log::info('PAPI Question Updated', [
+                'id' => $question->id,
+                'item_number' => $request->item_number,
+            ]);
 
             return redirect()
                 ->route('admin.alat-tes.questions.index', $alatTesId)

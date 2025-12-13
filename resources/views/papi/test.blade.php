@@ -6,9 +6,52 @@
     </x-slot>
 
     <div class="py-12" data-user-id="{{ auth()->user()->email }}" data-test-id="{{ $test->id }}">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row gap-6">
+
+                {{-- QUESTION NAVIGATOR SIDEBAR --}}
+                <div class="w-full lg:w-64 flex-shrink-0">
+                    <div class="bg-white rounded-xl shadow-lg border-2 border-gray-200 lg:sticky lg:top-6">
+                        <div class="p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-t-xl">
+                            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                Navigasi Item
+                            </h3>
+                            <p class="text-xs text-purple-100 mt-1">Klik nomor untuk ke item</p>
+                        </div>
+
+                        <div class="p-4 lg:max-h-[calc(100vh-300px)] lg:overflow-y-auto">
+                            <div class="grid grid-cols-8 sm:grid-cols-10 lg:grid-cols-5 gap-2" id="question-navigator">
+                                @for ($i = 1; $i <= $questions->count(); $i++)
+                                    <button type="button" onclick="scrollToItem({{ $i }})" data-item-nav="{{ $i }}"
+                                        class="aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-200 w-full border-2 shadow-sm hover:shadow-md hover:scale-105 bg-white text-gray-600 border-gray-300 hover:bg-gray-50 hover:border-gray-400">
+                                        {{ $i }}
+                                    </button>
+                                @endfor
+                            </div>
+
+                            {{-- Legend --}}
+                            <div class="mt-4 pt-4 border-t-2 border-gray-200 space-y-2.5 text-xs bg-gray-50 -mx-4 px-4 py-3 rounded-b-xl">
+                                <p class="font-semibold text-gray-700 mb-2">Keterangan:</p>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 bg-green-100 border-2 border-green-300 rounded-lg shadow-sm"></div>
+                                    <span class="text-gray-700 font-medium">Sudah dijawab</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 bg-white border-2 border-gray-300 rounded-lg shadow-sm"></div>
+                                    <span class="text-gray-700 font-medium">Belum dijawab</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- MAIN CONTENT --}}
+                <div class="flex-1">
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6 text-gray-900">
 
                     {{-- INFORMASI TES & TIMER --}}
                     <div x-data="timer({{ $timeRemaining }})" x-init="startTimer()"
@@ -20,8 +63,11 @@
                                     Total: {{ $questions->count() }} pasang pernyataan
                                 </p>
                             </div>
-                            <div id="timer-display" class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow">
-                                Sisa Waktu: <span x-text="formatTime()"></span>
+                            <div id="timer-display" class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow flex items-center gap-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span x-text="formatTime()"></span>
                             </div>
                         </div>
                         
@@ -154,6 +200,8 @@
                         </div>
                     </form>
 
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -198,6 +246,39 @@
     {{-- JavaScript --}}
     <script>
         // ====================================
+        // NAVIGATION & SCROLL
+        // ====================================
+        function scrollToItem(itemNumber) {
+            const item = document.querySelector(`div[data-item="${itemNumber}"]`);
+            if (item) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight briefly
+                item.classList.add('ring-4', 'ring-blue-500');
+                setTimeout(() => {
+                    item.classList.remove('ring-4', 'ring-blue-500');
+                }, 1500);
+            }
+        }
+
+        function updateNavigatorStatus() {
+            const totalItems = {{ $questions->count() }};
+
+            for (let i = 1; i <= totalItems; i++) {
+                const radioButtons = document.querySelectorAll(`input[name="item_${i}"]`);
+                const isAnswered = Array.from(radioButtons).some(radio => radio.checked);
+                const navButton = document.querySelector(`button[data-item-nav="${i}"]`);
+
+                if (navButton) {
+                    if (isAnswered) {
+                        navButton.className = 'aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-200 w-full border-2 shadow-sm hover:shadow-md hover:scale-105 bg-green-100 text-green-700 border-green-300 hover:bg-green-200';
+                    } else {
+                        navButton.className = 'aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-200 w-full border-2 shadow-sm hover:shadow-md hover:scale-105 bg-white text-gray-600 border-gray-300 hover:bg-gray-50 hover:border-gray-400';
+                    }
+                }
+            }
+        }
+
+        // ====================================
         // PROGRESS TRACKER
         // ====================================
         function updateProgress() {
@@ -222,6 +303,9 @@
                 submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 submitButton.disabled = false;
             }
+
+            // Update navigator status
+            updateNavigatorStatus();
         }
 
         function confirmSubmit() {
@@ -283,9 +367,15 @@
                     }, 1000);
                 },
                 formatTime() {
-                    const minutes = Math.floor(this.timeLeft / 60);
+                    const hours = Math.floor(this.timeLeft / 3600);
+                    const minutes = Math.floor((this.timeLeft % 3600) / 60);
                     const seconds = this.timeLeft % 60;
-                    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                    if (hours > 0) {
+                        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    } else {
+                        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }
                 }
             }
         }
@@ -354,6 +444,7 @@
         // Initialize
         window.addEventListener('load', function() {
             updateProgress();
+            updateNavigatorStatus();
             console.log('✅ PAPI Test system initialized');
         });
     </script>

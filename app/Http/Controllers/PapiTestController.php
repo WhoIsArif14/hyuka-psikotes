@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\PapiQuestion;
+use App\Models\Question;
 use App\Models\PapiResult;
 use App\Models\Test;
 use App\Models\AlatTes;
@@ -22,13 +22,14 @@ class PapiTestController extends Controller
             return redirect()->route('login')->with('error', 'Sesi tidak valid.');
         }
 
-        // Query KRITIS: Ambil soal PAPI berdasarkan ID Alat Tes
-        $questions = PapiQuestion::where('alat_tes_id', $alatTes->id)
-            ->orderBy('item_number')
+        // Query KRITIS: Ambil soal PAPI berdasarkan ID Alat Tes dari tabel questions
+        $questions = Question::where('alat_tes_id', $alatTes->id)
+            ->where('type', 'PAPIKOSTICK')
+            ->orderBy('ranking_weight')
             ->get();
 
         if ($questions->isEmpty()) {
-            return redirect()->route('tests.start')
+            return redirect()->route('tests.dashboard', $test->id)
                 ->with('error', 'Soal PAPI Kostick belum diisi atau tidak terhubung dengan alat tes ini.');
         }
 
@@ -40,7 +41,7 @@ class PapiTestController extends Controller
         $startTime = Session::get('test_start_time_' . $alatTes->id);
         $timeLimit = $alatTes->duration_minutes * 60;
         $timeElapsed = now()->diffInSeconds($startTime);
-        $timeRemaining = max(0, $timeLimit - $timeElapsed);
+        $timeRemaining = (int) max(0, $timeLimit - $timeElapsed);
 
         // ✅ Jika waktu habis, langsung submit
         if ($timeRemaining === 0) {
@@ -63,18 +64,23 @@ class PapiTestController extends Controller
     {
         $user = auth()->user();
 
+        // Hitung jumlah item PAPI yang ada
+        $totalItems = Question::where('alat_tes_id', $alatTes->id)
+            ->where('type', 'PAPIKOSTICK')
+            ->count();
+
         // Validasi jawaban
         $rules = [];
-        for ($i = 1; $i <= 90; $i++) {
+        for ($i = 1; $i <= $totalItems; $i++) {
             $rules["item_{$i}"] = 'required|in:A,B';
         }
-        
+
         try {
             $request->validate($rules);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Jika waktu habis dan ada jawaban kosong, isi dengan default
             $answers = $request->all();
-            for ($i = 1; $i <= 90; $i++) {
+            for ($i = 1; $i <= $totalItems; $i++) {
                 if (!isset($answers["item_{$i}"])) {
                     $request->merge(["item_{$i}" => 'A']); // Default A jika kosong
                 }
@@ -88,11 +94,13 @@ class PapiTestController extends Controller
         );
         $rawAnswers = [];
 
-        // Ambil data soal PAPI
-        $itemsData = PapiQuestion::where('alat_tes_id', $alatTes->id)
-            ->select('item_number', 'role_a', 'need_a', 'role_b', 'need_b')
+        // Ambil data soal PAPI dari tabel questions
+        $itemsData = Question::where('alat_tes_id', $alatTes->id)
+            ->where('type', 'PAPIKOSTICK')
             ->get()
-            ->keyBy('item_number');
+            ->keyBy(function($q) {
+                return $q->ranking_weight; // item_number
+            });
 
         // Hitung skor berdasarkan jawaban
         foreach ($request->all() as $key => $value) {
@@ -144,8 +152,8 @@ class PapiTestController extends Controller
         // Hapus session
         Session::forget('test_start_time_' . $alatTes->id);
 
-        // Redirect ke tes berikutnya atau selesai
-        return redirect()->route('tests.start')
-            ->with('success', 'Tes PAPI Kostick selesai. Memuat tes berikutnya...');
+        // ✅ REDIRECT KE DASHBOARD MODUL
+        return redirect()->route('tests.dashboard', $test->id)
+            ->with('success', 'Tes PAPI Kostick berhasil diselesaikan!');
     }
 }

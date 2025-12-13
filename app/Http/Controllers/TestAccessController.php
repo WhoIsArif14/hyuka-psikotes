@@ -16,26 +16,42 @@ class TestAccessController extends Controller
     /**
      * Menampilkan halaman login (form Kode Aktivasi Peserta).
      */
-    public function showLoginForm()
+    public function showLoginForm(Request $request)
     {
         // ✅ TAMBAHAN: Jika sudah login, redirect sesuai status
         if (Auth::check()) {
             $user = Auth::user();
-            
+
             // Jika admin, redirect ke admin dashboard
             if ($user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
             }
-            
-            // Jika user belum isi data diri, redirect ke form
-            if (empty($user->name) || $user->name === 'Peserta ' . $user->kode_aktivasi_peserta) {
+
+            // ✅ KUNCI: Cek apakah ada active_test_id di session
+            if (session('active_test_id')) {
+                // Jika sudah ada test aktif, langsung ke tests.start
+                return redirect()->route('tests.start');
+            }
+
+            // ✅ CRITICAL FIX: Jika user sudah login tapi TIDAK ada active_test_id,
+            // artinya session test sudah habis/tidak valid. Logout dan minta login ulang.
+            // Ini mencegah loop antara showLoginForm -> tests.start -> login
+
+            // Jika user belum isi data diri DAN ada activation session, redirect ke form
+            if ((empty($user->name) || $user->name === 'Peserta ' . $user->kode_aktivasi_peserta)
+                && session('current_activation_id')) {
                 return redirect()->route('user.data.edit');
             }
-            
-            // Jika sudah lengkap, ke halaman tes
-            return redirect()->route('tests.start');
+
+            // ✅ DEFAULT: Jika sudah login tapi tidak ada active_test_id, logout
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            // Kembalikan view login langsung tanpa redirect untuk menghindari loop
+            return view('auth.login')->with('info', 'Sesi tes Anda telah berakhir. Silakan masukkan kode aktivasi untuk memulai tes baru.');
         }
-        
+
         return view('auth.login');
     }
 

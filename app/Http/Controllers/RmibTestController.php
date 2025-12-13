@@ -101,7 +101,7 @@ class RmibTestController extends Controller
         $startTime = Session::get('rmib_start_time_' . $test->id);
         $timeElapsed = now()->diffInSeconds($startTime);
         $timeLimit = $test->duration_minutes * 60;
-        $timeRemaining = max(0, $timeLimit - $timeElapsed);
+        $timeRemaining = (int) max(0, $timeLimit - $timeElapsed);
 
         return view('tests.test-rmib', [
             'test' => $test,
@@ -215,10 +215,9 @@ class RmibTestController extends Controller
             // Clear session
             Session::forget('rmib_answers_' . $test->id);
             Session::forget('rmib_start_time_' . $test->id);
-            Session::forget(['accessed_test_code', 'participant_data', 'active_test_id']);
 
-            // Redirect ke halaman terima kasih, bukan hasil
-            return redirect()->route('tests.completion')
+            // ✅ REDIRECT KE DASHBOARD MODUL (jangan hapus active_test_id, user masih perlu akses modul)
+            return redirect()->route('tests.dashboard', $test->id)
                 ->with('success', 'Tes RMIB berhasil diselesaikan!');
 
         } catch (\Exception $e) {

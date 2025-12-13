@@ -35,30 +35,78 @@ class UserTestController extends Controller
 
     public function startTest(Test $test)
     {
+
         if (Session::get('active_test_id') != $test->id) {
             return redirect()->route('login')->with('error', 'Sesi tidak valid. Silakan masukkan kode tes terlebih dahulu.');
         }
 
+        // ✅ REDIRECT KE DASHBOARD MODUL
+        return redirect()->route('tests.dashboard', $test->id);
+    }
+
+    // ✅ DASHBOARD MODUL - Menampilkan semua alat tes dalam modul
+    public function showDashboard(Test $test)
+    {
+        if (Session::get('active_test_id') != $test->id) {
+            return redirect()->route('login')->with('error', 'Silakan masukkan kode tes terlebih dahulu.');
+        }
+
         $test->load('alatTes');
+
+        // Get ordered alat tes
         $orderedAlatTesIds = is_string($test->test_order)
             ? json_decode($test->test_order, true)
             : ($test->test_order ?? $test->alatTes->pluck('id')->toArray());
+
+        // Get alat tes in correct order
+        $alatTesCollection = $test->alatTes->keyBy('id');
+        $alatTesList = collect($orderedAlatTesIds)
+            ->map(fn($id) => $alatTesCollection->get($id))
+            ->filter();
+
         $userId = auth()->id();
+        $completedAlatTesIds = [];
 
-        // Temukan Alat Tes berikutnya yang harus dikerjakan
-        $nextAlatTes = $this->getNextAlatTes($test, $orderedAlatTesIds, $userId);
+        // Check which alat tes are completed
+        foreach ($alatTesList as $alatTes) {
+            $slug = strtolower($alatTes->slug ?? $alatTes->name ?? '');
+            $isFinished = false;
 
-        if (!$nextAlatTes) {
+            if (in_array($slug, ['papi-kostick', 'papikostick', 'papi_kostick', 'papi kostick'])) {
+                $isFinished = PapiResult::where('user_id', $userId)->exists();
+            } elseif (str_contains($slug, 'rmib')) {
+                $isFinished = RmibResult::where('user_id', $userId)
+                    ->where('alat_tes_id', $alatTes->id)->exists();
+            } else {
+                $isFinished = TestResult::where('user_id', $userId)
+                    ->where('alat_tes_id', $alatTes->id)
+                    ->exists();
+            }
+
+            if ($isFinished) {
+                $completedAlatTesIds[] = $alatTes->id;
+            }
+        }
+
+        $totalAlatTes = $alatTesList->count();
+        $completedCount = count($completedAlatTesIds);
+        $progressPercentage = $totalAlatTes > 0 ? round(($completedCount / $totalAlatTes) * 100) : 0;
+
+        // Check if all completed
+        if ($completedCount === $totalAlatTes && $totalAlatTes > 0) {
             Session::forget(['accessed_test_code', 'participant_data', 'active_test_id']);
             return redirect()->route('tests.module.finish', $test->id)
                 ->with('success', 'Selamat, Anda telah menyelesaikan semua alat tes dalam modul ini!');
         }
 
-        // ✅ REDIRECT KE HALAMAN PERSIAPAN
-        return redirect()->route('tests.preparation', [
-            'test' => $test->id,
-            'alat_tes' => $nextAlatTes->id
-        ]);
+        return view('module-dashboard', compact(
+            'test',
+            'alatTesList',
+            'completedAlatTesIds',
+            'totalAlatTes',
+            'completedCount',
+            'progressPercentage'
+        ));
     }
 
     // ✅ HALAMAN 1: PERSIAPKAN DIRI
@@ -68,9 +116,15 @@ class UserTestController extends Controller
             return redirect()->route('login')->with('error', 'Silakan masukkan kode tes terlebih dahulu.');
         }
 
+        // Load example questions dari database
+        $exampleQuestions = is_string($alatTes->example_questions)
+            ? json_decode($alatTes->example_questions, true)
+            : ($alatTes->example_questions ?? []);
+
         return view('test-preparation', [
             'test' => $test,
-            'alatTes' => $alatTes
+            'alatTes' => $alatTes,
+            'exampleQuestions' => $exampleQuestions
         ]);
     }
 
@@ -113,7 +167,9 @@ class UserTestController extends Controller
             return $rmibController->showTestForm($test, $alatTes);
         }
 
-        // Alat Tes Umum
+        // Alat Tes Umum - Load questions terlebih dahulu
+        $alatTes->load('questions');
+
         if ($alatTes->questions->isNotEmpty()) {
             Session::forget('current_alat_tes_id');
             Session::put('current_alat_tes_id', $alatTes->id);
@@ -129,8 +185,8 @@ class UserTestController extends Controller
             ]);
         }
 
-        return redirect()->route('login')
-            ->with('error', 'Alat tes "' . $alatTes->name . '" tidak dapat diproses. Hubungi administrator.');
+        return redirect()->route('tests.dashboard', $test->id)
+            ->with('error', 'Alat tes "' . $alatTes->name . '" belum memiliki soal. Silakan pilih alat tes lain atau hubungi administrator.');
     }
 
     protected function getNextAlatTes(Test $test, array $orderedAlatTesIds, int $userId)
@@ -189,7 +245,7 @@ class UserTestController extends Controller
         $startTime = Session::get('test_start_time_' . $alatTes->id);
         $timeLimit = $alatTes->duration_minutes * 60;
         $timeElapsed = now()->diffInSeconds($startTime);
-        $timeRemaining = max(0, $timeLimit - $timeElapsed);
+        $timeRemaining = (int) max(0, $timeLimit - $timeElapsed);
 
         if ($timeRemaining === 0) {
             return $this->submitAlatTes($test, $alatTes);
@@ -225,6 +281,14 @@ class UserTestController extends Controller
         Session::put('test_answers_' . $alatTes->id, $answers);
 
         $action = $request->input('action');
+
+        // Handle navigasi ke nomor soal tertentu
+        if ($request->has('navigate_to')) {
+            $navigateTo = $request->input('navigate_to');
+            if ($navigateTo >= 1 && $navigateTo <= $questions->count()) {
+                return redirect()->route('tests.question', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $navigateTo]);
+            }
+        }
 
         if ($action === 'previous' && $number > 1) {
             return redirect()->route('tests.question', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $number - 1]);
@@ -287,7 +351,9 @@ class UserTestController extends Controller
         Session::forget('test_start_time_' . $alatTes->id);
         Session::forget('current_alat_tes_id');
 
-        return redirect()->route('tests.start')->with('success', 'Tes ' . $alatTes->name . ' selesai. Memuat tes berikutnya...');
+        // ✅ REDIRECT KE DASHBOARD MODUL
+        return redirect()->route('tests.dashboard', $test->id)
+            ->with('success', 'Tes ' . $alatTes->name . ' berhasil diselesaikan!');
     }
 
     public function finishModule(Test $test)
