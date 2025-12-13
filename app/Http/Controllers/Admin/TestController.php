@@ -12,7 +12,7 @@ use App\Models\PapiQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Session; // <-- TAMBAHKAN INI
+use Illuminate\Support\Facades\Session;
 
 // Mengganti Maatwebsite dengan PhpSpreadsheet untuk ekspor
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -87,15 +87,15 @@ class TestController extends Controller
             'client_id' => 'nullable|exists:clients,id',
             'test_category_id' => 'required|exists:test_categories,id',
             'jenjang_id' => 'required|exists:jenjangs,id',
-            'duration_minutes' => 'required|integer|min:1', // Min 1 karena ada alat tes yang dipilih
+            'duration_minutes' => 'required|integer|min:1',
             'test_code' => 'nullable|string|max:8|unique:tests,test_code',
             'alat_tes_ids' => 'required|array|min:1',
             'alat_tes_ids.*' => 'exists:alat_tes,id',
             'description' => 'required|string',
             'available_from' => 'nullable|date',
             'available_to' => 'nullable|date|after_or_equal:available_from',
-            'is_published' => 'nullable', // Diterima sebagai checkbox
-            'is_template' => 'nullable', // Diterima sebagai checkbox
+            'is_published' => 'nullable',
+            'is_template' => 'nullable',
         ]);
 
         // Tangani checkbox (karena 'nullable' bisa jadi tidak ada di request)
@@ -146,13 +146,12 @@ class TestController extends Controller
         }
 
         $request->validate([
-            'test_order' => 'required|json', // Data urutan dari drag & drop
+            'test_order' => 'required|json',
         ]);
 
         $testOrder = json_decode($request->input('test_order'), true);
         
         // Siapkan data untuk Mass Assignment ke model Test
-        // HANYA ambil field yang ada di $fillable model Test
         $dataToStore = [
             'title' => $tempData['title'],
             'required_data_type' => $tempData['required_data_type'],
@@ -166,7 +165,7 @@ class TestController extends Controller
             'available_to' => $tempData['available_to'] ?? null,
             'is_published' => $tempData['is_published'] ?? false,
             'is_template' => $tempData['is_template'] ?? false,
-            'test_order' => json_encode($testOrder), // Urutan Alat Tes (JSON string)
+            'test_order' => json_encode($testOrder),
         ];
 
         DB::beginTransaction();
@@ -188,7 +187,6 @@ class TestController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Hapus data session agar user bisa mengulangi dari awal jika ada error fatal
             Session::forget(['temp_test_data', 'temp_alat_tes_list']);
             return redirect()->route('admin.tests.create')->with('error', 'Gagal menyimpan Tes. Harap ulangi proses pembuatan. Error: ' . $e->getMessage());
         }
@@ -201,6 +199,72 @@ class TestController extends Controller
     {
         // Redirect ke alur multi-step jika user mencoba POST ke rute lama
         return redirect()->route('admin.tests.create')->with('error', 'Gunakan alur multi-step untuk membuat tes baru (Langkah 1 & Langkah 2).');
+    }
+
+    /**
+     * ✅ METHOD BARU: Store Single-Step (Untuk form create yang langsung dengan drag & drop)
+     */
+    public function storeSingle(Request $request)
+    {
+        $validatedData = $request->validate([
+            'title' => 'required|string|max:255',
+            'required_data_type' => 'required|string',
+            'client_id' => 'nullable|exists:clients,id',
+            'test_category_id' => 'required|exists:test_categories,id',
+            'jenjang_id' => 'required|exists:jenjangs,id',
+            'duration_minutes' => 'required|integer|min:1',
+            'test_code' => 'nullable|string|max:8|unique:tests,test_code',
+            'alat_tes_ids' => 'required|array|min:1',
+            'alat_tes_ids.*' => 'exists:alat_tes,id',
+            'description' => 'required|string',
+            'available_from' => 'nullable|date',
+            'available_to' => 'nullable|date|after_or_equal:available_from',
+            'is_published' => 'nullable',
+            'is_template' => 'nullable',
+            'test_order' => 'required|json', // Data urutan dari drag & drop
+        ]);
+
+        // Tangani checkbox
+        $validatedData['is_published'] = $request->has('is_published');
+        $validatedData['is_template'] = $request->has('is_template');
+
+        $testOrder = json_decode($validatedData['test_order'], true);
+
+        DB::beginTransaction();
+
+        try {
+            // Siapkan data untuk create
+            $dataToStore = [
+                'title' => $validatedData['title'],
+                'required_data_type' => $validatedData['required_data_type'],
+                'client_id' => $validatedData['client_id'],
+                'test_category_id' => $validatedData['test_category_id'],
+                'jenjang_id' => $validatedData['jenjang_id'],
+                'duration_minutes' => $validatedData['duration_minutes'],
+                'test_code' => $validatedData['test_code'],
+                'description' => $validatedData['description'],
+                'available_from' => $validatedData['available_from'] ?? null,
+                'available_to' => $validatedData['available_to'] ?? null,
+                'is_published' => $validatedData['is_published'],
+                'is_template' => $validatedData['is_template'],
+                'test_order' => json_encode($testOrder),
+            ];
+
+            // Buat Test baru
+            $test = Test::create($dataToStore);
+
+            // Sinkronisasi Alat Tes
+            $test->AlatTes()->sync($validatedData['alat_tes_ids']);
+
+            DB::commit();
+
+            return redirect()->route('admin.tests.index')
+                ->with('success', 'Modul tes "' . $test->title . '" berhasil dibuat.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withInput()->with('error', 'Gagal menyimpan Tes. Error: ' . $e->getMessage());
+        }
     }
 
 // -----------------------------------------------------------------------
@@ -249,21 +313,19 @@ class TestController extends Controller
             'test_code' => 'nullable|string|max:8|unique:tests,test_code,' . $test->id,
             'available_from' => 'nullable|date',
             'available_to' => 'nullable|date|after_or_equal:available_from',
-            'test_order' => 'nullable|json', // Kolom ini bisa dikirim dari form edit jika Anda mengaturnya di form
+            'test_order' => 'nullable|json',
         ]);
 
         $data = $request->except('alat_tes_ids');
         $data['is_published'] = $request->has('is_published');
         $data['is_template'] = $request->has('is_template');
         
-        // Pastikan test_order diupdate jika dikirim, atau pertahankan nilai lama jika tidak di form
+        // Pastikan test_order diupdate jika dikirim
         if($request->filled('test_order')){
             $data['test_order'] = $request->input('test_order');
         } else {
-            // Jika form edit Anda tidak mengelola urutan, gunakan nilai lama (jika ada)
             unset($data['test_order']);
         }
-
 
         $AlatTesIds = $request->input('alat_tes_ids');
 
@@ -272,7 +334,7 @@ class TestController extends Controller
 
         try {
             $test->update($data);
-            $test->AlatTes()->sync($AlatTesIds); // Sinkronisasi Alat Tes
+            $test->AlatTes()->sync($AlatTesIds);
 
             DB::commit();
 
@@ -297,7 +359,7 @@ class TestController extends Controller
         
         // Urutkan Alat Tes berdasarkan kolom 'test_order' jika sudah ada
         if ($test->test_order) {
-            $orderedIds = $test->test_order; // array of IDs
+            $orderedIds = $test->test_order;
             // Urutkan AlatTes menggunakan urutan yang tersimpan
             $alatTesList = $alatTesList->sortBy(function($item) use ($orderedIds) {
                 return array_search($item->id, $orderedIds);
@@ -343,15 +405,79 @@ class TestController extends Controller
     }
 
     /**
-     * Menampilkan hasil tes.
+     * Menampilkan detail lengkap Modul Tes (bukan hasil peserta).
+     * Menampilkan informasi modul, alat tes yang digunakan, dan soal-soal.
      */
     public function show(Test $test)
     {
-        // Asumsi method show() Anda digunakan untuk melihat detail/hasil tes
-        $results = $test->testResults()->latest()->paginate(15);
+        // Load relasi yang dibutuhkan untuk detail modul
+        $test->load([
+            'category', 
+            'jenjang', 
+            'client', 
+            'AlatTes.questions', // Alat tes beserta soal-soalnya
+            'AlatTes.papiQuestions', // Soal PAPI jika ada
+            'AlatTes.exampleQuestions' // Soal contoh jika ada
+        ]);
+
+        // Hitung total soal per alat tes
+        $alatTesWithQuestions = $test->AlatTes->map(function($alatTes) {
+            $totalQuestions = $alatTes->questions->count();
+            
+            // Tambahkan soal PAPI jika ada
+            if ($alatTes->slug === 'papi-kostick') {
+                $totalQuestions += $alatTes->papiQuestions->count();
+            }
+            
+            $alatTes->total_questions = $totalQuestions;
+            return $alatTes;
+        });
+
+        // Urutkan sesuai test_order jika ada
+        if ($test->test_order) {
+            $orderedIds = $test->test_order;
+            $alatTesWithQuestions = $alatTesWithQuestions->sortBy(function($item) use ($orderedIds) {
+                return array_search($item->id, $orderedIds);
+            })->values();
+        }
+
+        // Statistik umum modul
+        $statistics = [
+            'total_alat_tes' => $test->AlatTes->count(),
+            'total_questions' => $alatTesWithQuestions->sum('total_questions'),
+            'total_duration' => $test->duration_minutes,
+            'total_participants' => $test->testResults()->count(),
+        ];
         
-        // Pastikan Anda memiliki view 'admin.tests.show'
-        return view('admin.tests.show', compact('test', 'results')); 
+        return view('admin.tests.show', compact('test', 'alatTesWithQuestions', 'statistics')); 
+    }
+
+    /**
+     * ✅ METHOD BARU: Menampilkan halaman hasil tes peserta
+     * (dipanggil dari route admin/tests/{test}/results)
+     */
+    public function results(Test $test)
+    {
+        // Mengambil semua hasil tes untuk modul ini dengan relasi user
+        $results = $test->testResults()
+            ->with(['user']) // Eager load relasi user jika ada
+            ->latest()
+            ->paginate(15);
+        
+        // Hitung statistik hasil tes peserta
+        // PERBAIKAN: Hapus filter whereNotNull karena kolom mungkin tidak ada
+        $totalResults = $test->testResults()->count();
+        
+        $statistics = [
+            'total_participants' => $totalResults,
+            'completed' => $totalResults, // Sementara anggap semua selesai (bisa disesuaikan nanti)
+            'in_progress' => 0, // Sementara set 0 (bisa disesuaikan nanti)
+            'average_score' => round($test->testResults()->avg('score') ?? 0, 2),
+            'highest_score' => $test->testResults()->max('score') ?? 0,
+            'lowest_score' => $test->testResults()->min('score') ?? 0,
+        ];
+        
+        return view('admin.tests.results', compact('test', 'results', 'statistics'));
     }
 
     /**
@@ -373,7 +499,7 @@ class TestController extends Controller
 
         // Mengambil data hasil tes
         $results = $test->testResults()->get();
-        $rowNumber = 2; // Mulai dari baris kedua
+        $rowNumber = 2;
 
         // Menulis data untuk setiap hasil
         foreach ($results as $result) {

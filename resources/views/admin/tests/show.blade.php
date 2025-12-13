@@ -126,7 +126,7 @@
                                             </span>
                                         </td>
                                         <td class="px-4 py-4 whitespace-nowrap">
-                                            @if($result->finished_at)
+                                            @if($result->completed_at)
                                                 <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                                                     <i class="bi bi-check-circle"></i> Selesai
                                                 </span>
