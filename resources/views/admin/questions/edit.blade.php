@@ -23,7 +23,7 @@
 
                 {{-- ✅ PERBAIKAN: Ganti 'id' menjadi 'question' --}}
                 <form method="POST"
-                    action="{{ route('admin.alat-tes.questions.update', ['alat_te' => $AlatTes->id, 'question' => $question->id]) }}"
+                    action="{{ route('admin.alat-tes.questions.update', ['alat_te' => $alat_te->id, 'question' => $question->id]) }}"
                     enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
@@ -195,7 +195,7 @@
 
                     {{-- Action Buttons --}}
                     <div class="flex justify-end mt-6 space-x-3 border-t pt-4">
-                        <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}"
+                        <a href="{{ route('admin.alat-tes.questions.index', $alat_te->id) }}"
                             class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">
                             Batal
                         </a>
