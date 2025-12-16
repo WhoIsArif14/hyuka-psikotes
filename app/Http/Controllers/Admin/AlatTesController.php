@@ -84,13 +84,28 @@ class AlatTesController extends Controller
             'duration_minutes' => 'required|integer|min:1',
             'instructions' => 'nullable|string',
             // ✅ Validasi untuk contoh soal
+            'example_1_type' => 'nullable|in:PILIHAN_GANDA,PILIHAN_GANDA_KOMPLEKS,HAFALAN,PAPIKOSTICK,PAULI,RMIB,BINARY,CUSTOM',
             'example_1_question' => 'nullable|string|max:1000',
             'example_1_options' => 'nullable|string',
-            'example_1_correct' => 'nullable|integer|min:0|max:4',
+            'example_1_statement_a' => 'nullable|string|max:1000',
+            'example_1_statement_b' => 'nullable|string|max:1000',
+            'example_1_correct' => 'nullable|integer|min:0|max:10',
+            'example_1_correct_multiple' => 'nullable|string',
+            'example_1_memory_content' => 'nullable|string',
+            'example_1_memory_type' => 'nullable|in:TEXT,IMAGE',
+            'example_1_duration_seconds' => 'nullable|integer|min:1',
             'example_1_explanation' => 'nullable|string|max:500',
+
+            'example_2_type' => 'nullable|in:PILIHAN_GANDA,PILIHAN_GANDA_KOMPLEKS,HAFALAN,PAPIKOSTICK,PAULI,RMIB,BINARY,CUSTOM',
             'example_2_question' => 'nullable|string|max:1000',
             'example_2_options' => 'nullable|string',
-            'example_2_correct' => 'nullable|integer|min:0|max:4',
+            'example_2_statement_a' => 'nullable|string|max:1000',
+            'example_2_statement_b' => 'nullable|string|max:1000',
+            'example_2_correct' => 'nullable|integer|min:0|max:10',
+            'example_2_correct_multiple' => 'nullable|string',
+            'example_2_memory_content' => 'nullable|string',
+            'example_2_memory_type' => 'nullable|in:TEXT,IMAGE',
+            'example_2_duration_seconds' => 'nullable|integer|min:1',
             'example_2_explanation' => 'nullable|string|max:500',
         ]);
 
@@ -119,7 +134,6 @@ class AlatTesController extends Controller
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes baru berhasil dibuat.');
-                
         } catch (\Exception $e) {
             Log::error('Failed to create Alat Tes', [
                 'error' => $e->getMessage(),
@@ -139,7 +153,7 @@ class AlatTesController extends Controller
     {
         // ✅ Parse example questions untuk form edit
         $examples = [];
-        
+
         if (!empty($alat_te->example_questions)) {
             if (is_string($alat_te->example_questions)) {
                 $decoded = json_decode($alat_te->example_questions, true);
@@ -166,13 +180,28 @@ class AlatTesController extends Controller
             'duration_minutes' => 'required|integer|min:1',
             'instructions' => 'nullable|string',
             // ✅ Validasi untuk contoh soal
+            'example_1_type' => 'nullable|in:PILIHAN_GANDA,PILIHAN_GANDA_KOMPLEKS,HAFALAN,PAPIKOSTICK,PAULI,RMIB,BINARY,CUSTOM',
             'example_1_question' => 'nullable|string|max:1000',
             'example_1_options' => 'nullable|string',
-            'example_1_correct' => 'nullable|integer|min:0|max:4',
+            'example_1_statement_a' => 'nullable|string|max:1000',
+            'example_1_statement_b' => 'nullable|string|max:1000',
+            'example_1_correct' => 'nullable|integer|min:0|max:10',
+            'example_1_correct_multiple' => 'nullable|string',
+            'example_1_memory_content' => 'nullable|string',
+            'example_1_memory_type' => 'nullable|in:TEXT,IMAGE',
+            'example_1_duration_seconds' => 'nullable|integer|min:1',
             'example_1_explanation' => 'nullable|string|max:500',
+
+            'example_2_type' => 'nullable|in:PILIHAN_GANDA,PILIHAN_GANDA_KOMPLEKS,HAFALAN,PAPIKOSTICK,PAULI,RMIB,BINARY,CUSTOM',
             'example_2_question' => 'nullable|string|max:1000',
             'example_2_options' => 'nullable|string',
-            'example_2_correct' => 'nullable|integer|min:0|max:4',
+            'example_2_statement_a' => 'nullable|string|max:1000',
+            'example_2_statement_b' => 'nullable|string|max:1000',
+            'example_2_correct' => 'nullable|integer|min:0|max:10',
+            'example_2_correct_multiple' => 'nullable|string',
+            'example_2_memory_content' => 'nullable|string',
+            'example_2_memory_type' => 'nullable|in:TEXT,IMAGE',
+            'example_2_duration_seconds' => 'nullable|integer|min:1',
             'example_2_explanation' => 'nullable|string|max:500',
         ]);
 
@@ -200,7 +229,6 @@ class AlatTesController extends Controller
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', 'Alat Tes berhasil diperbarui.');
-                
         } catch (\Exception $e) {
             Log::error('Failed to update Alat Tes', [
                 'error' => $e->getMessage(),
@@ -231,21 +259,21 @@ class AlatTesController extends Controller
                     $deletedQuestionsCount = PapiQuestion::where('alat_tes_id', $alat_te->id)->count();
                     PapiQuestion::where('alat_tes_id', $alat_te->id)->delete();
                 }
-                
+
                 $questionsCount = DB::table('questions')
                     ->where('alat_tes_id', $alat_te->id)
                     ->count();
-                
+
                 DB::table('questions')
                     ->where('alat_tes_id', $alat_te->id)
                     ->delete();
-                
+
                 $deletedQuestionsCount += $questionsCount;
 
-                DB::table('question_options')->whereIn('question_id', function($query) use ($alat_te) {
+                DB::table('question_options')->whereIn('question_id', function ($query) use ($alat_te) {
                     $query->select('id')
-                          ->from('questions')
-                          ->where('alat_tes_id', $alat_te->id);
+                        ->from('questions')
+                        ->where('alat_tes_id', $alat_te->id);
                 })->delete();
 
                 $alat_te->delete();
@@ -255,7 +283,6 @@ class AlatTesController extends Controller
                     'name' => $name,
                     'questions_deleted' => $deletedQuestionsCount
                 ]);
-
             } finally {
                 DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             }
@@ -268,7 +295,6 @@ class AlatTesController extends Controller
 
             return redirect()->route('admin.alat-tes.index')
                 ->with('success', $message);
-
         } catch (\Exception $e) {
             DB::rollBack();
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
@@ -291,36 +317,57 @@ class AlatTesController extends Controller
     {
         $examples = [];
 
-        // Contoh 1
-        if ($request->filled('example_1_question')) {
-            $options1 = array_filter(
-                array_map('trim', explode("\n", $request->example_1_options ?? ''))
-            );
+        // Helper to parse one example block
+        $parseBlock = function ($prefix) use ($request) {
+            $type = $request->input("{$prefix}_type") ?? 'PILIHAN_GANDA';
+            $question = $request->input("{$prefix}_question") ?? '';
 
-            if (!empty($options1)) {
-                $examples[] = [
-                    'question' => $request->example_1_question,
-                    'options' => array_values($options1),
-                    'correct_answer' => (int) ($request->example_1_correct ?? 0),
-                    'explanation' => $request->example_1_explanation ?? '',
+            // PAPI Kostick uses two statements (A and B)
+            if ($type === 'PAPIKOSTICK') {
+                $example = [
+                    'type' => $type,
+                    'question' => $question,
+                    'statement_a' => $request->input("{$prefix}_statement_a") ?? '',
+                    'statement_b' => $request->input("{$prefix}_statement_b") ?? '',
+                    'explanation' => $request->input("{$prefix}_explanation") ?? '',
+                ];
+            } else {
+                $options = array_filter(array_map('trim', explode("\n", $request->input("{$prefix}_options") ?? '')));
+
+                $example = [
+                    'type' => $type,
+                    'question' => $question,
+                    'options' => array_values($options),
+                    'explanation' => $request->input("{$prefix}_explanation") ?? '',
                 ];
             }
+
+            if ($type === 'PILIHAN_GANDA_KOMPLEKS') {
+                $raw = $request->input("{$prefix}_correct_multiple") ?? '';
+                $answers = array_filter(array_map('trim', explode(',', $raw)), function ($v) {
+                    return $v !== '';
+                });
+                $example['correct_answers'] = array_map('intval', $answers);
+            } elseif ($type === 'HAFALAN') {
+                $example['memory_content'] = $request->input("{$prefix}_memory_content") ?? '';
+                $example['memory_type'] = $request->input("{$prefix}_memory_type") ?? 'TEXT';
+                $example['duration_seconds'] = (int) ($request->input("{$prefix}_duration_seconds") ?? 10);
+            } elseif ($type !== 'PAPIKOSTICK') {
+                // Default single answer (only for non-PAPI types)
+                $example['correct_answer'] = is_null($request->input("{$prefix}_correct")) ? null : (int) $request->input("{$prefix}_correct");
+            }
+
+            return $example;
+        };
+
+        // Contoh 1
+        if ($request->filled('example_1_question') || $request->filled('example_1_memory_content')) {
+            $examples[] = $parseBlock('example_1');
         }
 
         // Contoh 2
-        if ($request->filled('example_2_question')) {
-            $options2 = array_filter(
-                array_map('trim', explode("\n", $request->example_2_options ?? ''))
-            );
-
-            if (!empty($options2)) {
-                $examples[] = [
-                    'question' => $request->example_2_question,
-                    'options' => array_values($options2),
-                    'correct_answer' => (int) ($request->example_2_correct ?? 0),
-                    'explanation' => $request->example_2_explanation ?? '',
-                ];
-            }
+        if ($request->filled('example_2_question') || $request->filled('example_2_memory_content')) {
+            $examples[] = $parseBlock('example_2');
         }
 
         return $examples;

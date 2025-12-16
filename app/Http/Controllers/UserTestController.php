@@ -316,17 +316,30 @@ class UserTestController extends Controller
         $selectedOptionIds = [];
 
         foreach ($questions as $question) {
-            if (isset($savedAnswers[$question->id])) {
-                $optionIndex = $savedAnswers[$question->id];
+            if (!isset($savedAnswers[$question->id])) {
+                continue;
+            }
 
-                $options = is_string($question->options)
-                    ? json_decode($question->options, true)
-                    : $question->options ?? [];
+            $userAnswer = $savedAnswers[$question->id];
 
-                if (isset($options[$optionIndex])) {
-                    $point = $options[$optionIndex]['point'] ?? 0;
+            $options = is_string($question->options)
+                ? json_decode($question->options, true)
+                : $question->options ?? [];
+
+            if (is_array($userAnswer)) {
+                foreach ($userAnswer as $optIndex) {
+                    if (isset($options[$optIndex])) {
+                        $point = $options[$optIndex]['point'] ?? 0;
+                        $score += $point;
+                        $selectedOptionIds[$question->id][] = $optIndex;
+                    }
+                }
+            } else {
+                $optIndex = $userAnswer;
+                if (isset($options[$optIndex])) {
+                    $point = $options[$optIndex]['point'] ?? 0;
                     $score += $point;
-                    $selectedOptionIds[$question->id] = $optionIndex;
+                    $selectedOptionIds[$question->id] = $optIndex;
                 }
             }
         }

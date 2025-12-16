@@ -2,8 +2,8 @@
     <div class="bg-white rounded-2xl shadow p-6">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-semibold">Tambah Soal Baru - {{ $AlatTes->name }}</h2>
-            <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}" 
-               class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+            <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}"
+                class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
                 ← Kembali
             </a>
         </div>
@@ -14,7 +14,9 @@
                 <div class="flex">
                     <div class="flex-shrink-0">
                         <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293z"
+                                clip-rule="evenodd" />
                         </svg>
                     </div>
                     <div class="ml-3">
@@ -36,10 +38,8 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.alat-tes.questions.store', $AlatTes->id) }}" 
-              method="POST" 
-              enctype="multipart/form-data" 
-              id="form-soal">
+        <form action="{{ route('admin.alat-tes.questions.store', $AlatTes->id) }}" method="POST"
+            enctype="multipart/form-data" id="form-soal">
             @csrf
 
             <!-- Tipe Pertanyaan -->
@@ -47,13 +47,15 @@
                 <label for="type" class="block font-semibold mb-2 text-gray-700">
                     Tipe Pertanyaan <span class="text-red-500">*</span>
                 </label>
-                <select name="type" 
-                        id="type" 
-                        class="border-gray-300 rounded-lg w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500 @error('type') border-red-500 @enderror"
-                        required>
+                <select name="type" id="type"
+                    class="border-gray-300 rounded-lg w-full p-2.5 focus:ring-indigo-500 focus:border-indigo-500 @error('type') border-red-500 @enderror"
+                    required>
                     <option value="">-- Pilih Tipe --</option>
-                    <option value="PILIHAN_GANDA" {{ old('type') == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan Ganda (1 Jawaban)</option>
-                    <option value="PILIHAN_GANDA_KOMPLEKS" {{ old('type') == 'PILIHAN_GANDA_KOMPLEKS' ? 'selected' : '' }}>Pilihan Ganda Kompleks (Bisa Lebih dari 1 Jawaban)</option>
+                    <option value="PILIHAN_GANDA" {{ old('type') == 'PILIHAN_GANDA' ? 'selected' : '' }}>Pilihan Ganda
+                        (1 Jawaban)</option>
+                    <option value="PILIHAN_GANDA_KOMPLEKS"
+                        {{ old('type') == 'PILIHAN_GANDA_KOMPLEKS' ? 'selected' : '' }}>Pilihan Ganda Kompleks (Bisa
+                        Lebih dari 1 Jawaban)</option>
                     <option value="ESSAY" {{ old('type') == 'ESSAY' ? 'selected' : '' }}>Essay</option>
                     <option value="HAFALAN" {{ old('type') == 'HAFALAN' ? 'selected' : '' }}>Hafalan</option>
                 </select>
@@ -67,16 +69,13 @@
                 <label class="block font-semibold mb-2 text-gray-700">
                     Upload Gambar Pertanyaan (Opsional)
                 </label>
-                <input type="file" 
-                       name="question_image" 
-                       id="question_image"
-                       accept=".jpg,.jpeg,.png,.gif"
-                       class="border border-gray-300 rounded-lg p-2 w-full focus:ring-indigo-500 focus:border-indigo-500 @error('question_image') border-red-500 @enderror">
+                <input type="file" name="question_image" id="question_image" accept=".jpg,.jpeg,.png,.gif"
+                    class="border border-gray-300 rounded-lg p-2 w-full focus:ring-indigo-500 focus:border-indigo-500 @error('question_image') border-red-500 @enderror">
                 <small class="text-gray-500 block mt-1">Format: JPG, PNG, GIF. Maksimal 5MB</small>
                 @error('question_image')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
-                
+
                 <!-- Preview Gambar -->
                 <div id="imagePreview" class="mt-3 hidden">
                     <p class="text-sm text-gray-600 mb-2">Preview:</p>
@@ -89,11 +88,9 @@
                 <label class="block font-semibold mb-2 text-gray-700">
                     Teks Pertanyaan <span id="requiredStar" class="text-red-500 hidden">*</span>
                 </label>
-                <textarea name="question_text" 
-                          id="question_text"
-                          rows="4" 
-                          class="border-gray-300 rounded-lg w-full p-3 focus:ring-indigo-500 focus:border-indigo-500 @error('question_text') border-red-500 @enderror" 
-                          placeholder="Masukkan teks pertanyaan di sini...">{{ old('question_text') }}</textarea>
+                <textarea name="question_text" id="question_text" rows="4"
+                    class="border-gray-300 rounded-lg w-full p-3 focus:ring-indigo-500 focus:border-indigo-500 @error('question_text') border-red-500 @enderror"
+                    placeholder="Masukkan teks pertanyaan di sini...">{{ old('question_text') }}</textarea>
                 <small class="text-gray-500 block mt-1">Opsional jika sudah ada gambar pertanyaan</small>
                 @error('question_text')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -106,118 +103,98 @@
                     Opsi Jawaban <span class="text-red-500">*</span>
                 </label>
                 <p class="text-sm text-gray-600 mb-4" id="option-instruction">
-                    ⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang radio button.
+                    ⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang radio
+                    button.
                 </p>
 
                 <div id="options-wrapper">
                     <!-- Opsi A -->
-                    <div class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
+                    <div
+                        class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
                         <div class="flex items-center mb-3">
-                            <input type="radio" 
-                                   name="is_correct" 
-                                   value="0" 
-                                   id="correct_0"
-                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
-                                   {{ old('is_correct') == '0' ? 'checked' : '' }}>
+                            <input type="radio" name="is_correct" value="0" id="correct_0"
+                                class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                {{ old('is_correct') == '0' ? 'checked' : '' }}>
                             <label for="correct_0" class="font-semibold text-gray-700 flex-1">
-                                Opsi A - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
+                                Opsi A - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban
+                                    benar</span>
                             </label>
                         </div>
-                        <input type="text" 
-                               name="options[0][text]" 
-                               class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
-                               placeholder="Masukkan teks untuk Opsi A"
-                               value="{{ old('options.0.text') }}">
+                        <input type="text" name="options[0][text]"
+                            class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Masukkan teks untuk Opsi A" value="{{ old('options.0.text') }}">
                         <input type="hidden" name="options[0][index]" value="0">
-                        <input type="file" 
-                               name="options[0][image_file]" 
-                               accept=".jpg,.jpeg,.png,.gif,.webp"
-                               class="border-gray-300 rounded-lg w-full p-2">
+                        <input type="file" name="options[0][image_file]" accept=".jpg,.jpeg,.png,.gif,.webp"
+                            class="border-gray-300 rounded-lg w-full p-2">
                         <small class="text-gray-500 block mt-1">Opsional: upload gambar untuk opsi ini</small>
                     </div>
 
                     <!-- Opsi B -->
-                    <div class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
+                    <div
+                        class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
                         <div class="flex items-center mb-3">
-                            <input type="radio" 
-                                   name="is_correct" 
-                                   value="1" 
-                                   id="correct_1"
-                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
-                                   {{ old('is_correct') == '1' ? 'checked' : '' }}>
+                            <input type="radio" name="is_correct" value="1" id="correct_1"
+                                class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                {{ old('is_correct') == '1' ? 'checked' : '' }}>
                             <label for="correct_1" class="font-semibold text-gray-700 flex-1">
-                                Opsi B - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
+                                Opsi B - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban
+                                    benar</span>
                             </label>
                         </div>
-                        <input type="text" 
-                               name="options[1][text]" 
-                               class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
-                               placeholder="Masukkan teks untuk Opsi B"
-                               value="{{ old('options.1.text') }}">
+                        <input type="text" name="options[1][text]"
+                            class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Masukkan teks untuk Opsi B" value="{{ old('options.1.text') }}">
                         <input type="hidden" name="options[1][index]" value="1">
-                        <input type="file" 
-                               name="options[1][image_file]" 
-                               accept=".jpg,.jpeg,.png,.gif,.webp"
-                               class="border-gray-300 rounded-lg w-full p-2">
+                        <input type="file" name="options[1][image_file]" accept=".jpg,.jpeg,.png,.gif,.webp"
+                            class="border-gray-300 rounded-lg w-full p-2">
                         <small class="text-gray-500 block mt-1">Opsional: upload gambar untuk opsi ini</small>
                     </div>
 
                     <!-- Opsi C -->
-                    <div class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
+                    <div
+                        class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
                         <div class="flex items-center mb-3">
-                            <input type="radio" 
-                                   name="is_correct" 
-                                   value="2" 
-                                   id="correct_2"
-                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
-                                   {{ old('is_correct') == '2' ? 'checked' : '' }}>
+                            <input type="radio" name="is_correct" value="2" id="correct_2"
+                                class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                {{ old('is_correct') == '2' ? 'checked' : '' }}>
                             <label for="correct_2" class="font-semibold text-gray-700 flex-1">
-                                Opsi C - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
+                                Opsi C - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban
+                                    benar</span>
                             </label>
                         </div>
-                        <input type="text" 
-                               name="options[2][text]" 
-                               class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
-                               placeholder="Masukkan teks untuk Opsi C"
-                               value="{{ old('options.2.text') }}">
+                        <input type="text" name="options[2][text]"
+                            class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Masukkan teks untuk Opsi C" value="{{ old('options.2.text') }}">
                         <input type="hidden" name="options[2][index]" value="2">
-                        <input type="file" 
-                               name="options[2][image_file]" 
-                               accept=".jpg,.jpeg,.png,.gif,.webp"
-                               class="border-gray-300 rounded-lg w-full p-2">
+                        <input type="file" name="options[2][image_file]" accept=".jpg,.jpeg,.png,.gif,.webp"
+                            class="border-gray-300 rounded-lg w-full p-2">
                         <small class="text-gray-500 block mt-1">Opsional: upload gambar untuk opsi ini</small>
                     </div>
 
                     <!-- Opsi D -->
-                    <div class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
+                    <div
+                        class="opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition">
                         <div class="flex items-center mb-3">
-                            <input type="radio" 
-                                   name="is_correct" 
-                                   value="3" 
-                                   id="correct_3"
-                                   class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
-                                   {{ old('is_correct') == '3' ? 'checked' : '' }}>
+                            <input type="radio" name="is_correct" value="3" id="correct_3"
+                                class="input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3"
+                                {{ old('is_correct') == '3' ? 'checked' : '' }}>
                             <label for="correct_3" class="font-semibold text-gray-700 flex-1">
-                                Opsi D - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban benar</span>
+                                Opsi D - <span class="text-sm text-gray-500 font-normal">Centang jika ini jawaban
+                                    benar</span>
                             </label>
                         </div>
-                        <input type="text" 
-                               name="options[3][text]" 
-                               class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
-                               placeholder="Masukkan teks untuk Opsi D"
-                               value="{{ old('options.3.text') }}">
+                        <input type="text" name="options[3][text]"
+                            class="border-gray-300 rounded-lg w-full mb-2 p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Masukkan teks untuk Opsi D" value="{{ old('options.3.text') }}">
                         <input type="hidden" name="options[3][index]" value="3">
-                        <input type="file" 
-                               name="options[3][image_file]" 
-                               accept=".jpg,.jpeg,.png,.gif,.webp"
-                               class="border-gray-300 rounded-lg w-full p-2">
+                        <input type="file" name="options[3][image_file]" accept=".jpg,.jpeg,.png,.gif,.webp"
+                            class="border-gray-300 rounded-lg w-full p-2">
                         <small class="text-gray-500 block mt-1">Opsional: upload gambar untuk opsi ini</small>
                     </div>
                 </div>
 
-                <button type="button" 
-                        id="add-option" 
-                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition">
+                <button type="button" id="add-option"
+                    class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition">
                     + Tambah Opsi Lainnya
                 </button>
 
@@ -231,10 +208,9 @@
                 <label class="block font-semibold mb-2 text-gray-700">
                     Contoh Soal (Opsional)
                 </label>
-                <textarea name="example_question" 
-                          rows="3" 
-                          class="border-gray-300 rounded-lg w-full p-3 focus:ring-indigo-500 focus:border-indigo-500" 
-                          placeholder="Contoh: Siapa presiden pertama Indonesia? Jawab: Soekarno">{{ old('example_question') }}</textarea>
+                <textarea name="example_question" rows="3"
+                    class="border-gray-300 rounded-lg w-full p-3 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Contoh: Siapa presiden pertama Indonesia? Jawab: Soekarno">{{ old('example_question') }}</textarea>
             </div>
 
             <!-- Instruksi -->
@@ -242,21 +218,19 @@
                 <label class="block font-semibold mb-2 text-gray-700">
                     Instruksi Pengerjaan (Opsional)
                 </label>
-                <textarea name="instructions" 
-                          rows="2" 
-                          class="border-gray-300 rounded-lg w-full p-3 focus:ring-indigo-500 focus:border-indigo-500" 
-                          placeholder="Instruksi khusus untuk soal ini...">{{ old('instructions') }}</textarea>
+                <textarea name="instructions" rows="2"
+                    class="border-gray-300 rounded-lg w-full p-3 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Instruksi khusus untuk soal ini...">{{ old('instructions') }}</textarea>
             </div>
 
             <!-- Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t">
-                <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}" 
-                   class="px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition">
+                <a href="{{ route('admin.alat-tes.questions.index', $AlatTes->id) }}"
+                    class="px-6 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition">
                     Batal
                 </a>
-                <button type="submit" 
-                        id="submitBtn"
-                        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition">
+                <button type="submit" id="submitBtn"
+                    class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition">
                     💾 Simpan Pertanyaan
                 </button>
             </div>
@@ -273,24 +247,25 @@
             const submitBtn = document.getElementById('submitBtn');
             const addOptionBtn = document.getElementById('add-option');
             const optionsWrapper = document.getElementById('options-wrapper');
-            const optionInstruction = document.getElementById('option-instruction');
+            const optionInstruction = document.getElementById(
+            'option-instruction'); // may be null if the element is not present
             let optionCount = 4;
 
             // Function to convert radio to checkbox and vice versa
             function updateInputType(type) {
                 const inputs = document.querySelectorAll('.input-correct');
                 const isKompleks = type === 'PILIHAN_GANDA_KOMPLEKS';
-                
+
                 inputs.forEach((input, index) => {
                     const parent = input.parentElement;
                     const newInput = document.createElement('input');
-                    
+
                     // Set attributes
                     newInput.type = isKompleks ? 'checkbox' : 'radio';
                     newInput.className = 'input-correct w-4 h-4 text-indigo-600 focus:ring-indigo-500 mr-3';
                     newInput.id = input.id;
                     newInput.value = input.value;
-                    
+
                     if (isKompleks) {
                         // ✅ PERBAIKAN: Kirim sebagai array correct_answers[]
                         newInput.name = 'correct_answers[]';
@@ -299,15 +274,17 @@
                         newInput.name = 'is_correct';
                         if (input.checked) newInput.checked = true;
                     }
-                    
+
                     parent.replaceChild(newInput, input);
                 });
 
                 // Update instruction text
                 if (isKompleks) {
-                    optionInstruction.innerHTML = '⚠️ Minimal 2 opsi harus diisi. <strong>Centang satu atau lebih checkbox</strong> untuk jawaban yang benar (bisa lebih dari 1).';
+                    if (optionInstruction) optionInstruction.innerHTML =
+                        '⚠️ Minimal 2 opsi harus diisi. <strong>Centang satu atau lebih checkbox</strong> untuk jawaban yang benar (bisa lebih dari 1).';
                 } else {
-                    optionInstruction.innerHTML = '⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang radio button.';
+                    if (optionInstruction) optionInstruction.innerHTML =
+                        '⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang radio button.';
                 }
             }
 
@@ -315,7 +292,7 @@
             typeSelect.addEventListener('change', function() {
                 const type = this.value;
                 console.log('Type changed to:', type);
-                
+
                 if (type === 'PILIHAN_GANDA' || type === 'PILIHAN_GANDA_KOMPLEKS') {
                     opsiContainer.classList.remove('hidden');
                     requiredStar.classList.add('hidden');
@@ -342,9 +319,10 @@
                 const isKompleks = type === 'PILIHAN_GANDA_KOMPLEKS';
                 const inputType = isKompleks ? 'checkbox' : 'radio';
                 const inputName = isKompleks ? 'correct_answers[]' : 'is_correct';
-                
+
                 const newOption = document.createElement('div');
-                newOption.className = 'opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition';
+                newOption.className =
+                    'opsi-item border-2 border-gray-200 rounded-lg p-4 mb-3 bg-gray-50 hover:border-indigo-300 transition';
                 newOption.innerHTML = `
                     <div class="flex items-center mb-3">
                         <input type="${inputType}" 
@@ -370,7 +348,7 @@
                            class="border-gray-300 rounded-lg w-full p-2">
                     <small class="text-gray-500 block mt-1">Opsional: upload gambar untuk opsi ini</small>
                 `;
-                
+
                 optionsWrapper.appendChild(newOption);
                 optionCount++;
 
@@ -398,7 +376,7 @@
             document.getElementById('question_image').addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 const preview = document.getElementById('imagePreview');
-                
+
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
@@ -414,7 +392,7 @@
             // Form validation
             formSoal.addEventListener('submit', function(e) {
                 const type = typeSelect.value;
-                
+
                 if (!type) {
                     e.preventDefault();
                     alert('⚠️ Pilih tipe pertanyaan terlebih dahulu!');
@@ -425,40 +403,48 @@
                 if (type === 'PILIHAN_GANDA' || type === 'PILIHAN_GANDA_KOMPLEKS') {
                     const isKompleks = type === 'PILIHAN_GANDA_KOMPLEKS';
                     let hasCorrectAnswer = false;
-                    
+
                     if (isKompleks) {
                         // Check for checked checkboxes
                         const checkedBoxes = document.querySelectorAll('.input-correct:checked');
                         hasCorrectAnswer = checkedBoxes.length > 0;
-                        
+
                         console.log('PG Kompleks - Checked answers:', checkedBoxes.length);
                         console.log('Checked values:', Array.from(checkedBoxes).map(cb => cb.value));
-                        
+
                         // Debug: Log all checkbox names and states
                         document.querySelectorAll('.input-correct').forEach(cb => {
-                            console.log(`Checkbox ${cb.id}: name="${cb.name}", value="${cb.value}", checked=${cb.checked}`);
+                            console.log(
+                                `Checkbox ${cb.id}: name="${cb.name}", value="${cb.value}", checked=${cb.checked}`
+                                );
                         });
                     } else {
                         // Check for checked radio button
-                        hasCorrectAnswer = document.querySelector('input[name="is_correct"]:checked') !== null;
-                        
+                        hasCorrectAnswer = document.querySelector('input[name="is_correct"]:checked') !==
+                            null;
+
                         console.log('PG Biasa - Has checked:', hasCorrectAnswer);
                     }
-                    
+
                     if (!hasCorrectAnswer) {
                         e.preventDefault();
-                        const msg = isKompleks 
-                            ? '⚠️ Anda harus memilih minimal satu jawaban yang benar!\n\nCentang satu atau lebih checkbox.'
-                            : '⚠️ Anda harus memilih satu jawaban yang benar!\n\nCentang salah satu radio button.';
+                        const msg = isKompleks ?
+                            '⚠️ Anda harus memilih minimal satu jawaban yang benar!\n\nCentang satu atau lebih checkbox.' :
+                            '⚠️ Anda harus memilih satu jawaban yang benar!\n\nCentang salah satu radio button.';
                         alert(msg);
                         return false;
                     }
 
-                    // Check if at least 2 options are filled
-                    const optionTexts = document.querySelectorAll('input[name^="options"][name$="[text]"]');
+                    // Check if at least 2 options are filled (consider text OR image file)
+                    const optionItems = document.querySelectorAll('.opsi-item');
                     let filledOptions = 0;
-                    optionTexts.forEach(input => {
-                        if (input.value.trim() !== '') {
+                    optionItems.forEach(item => {
+                        const textInput = item.querySelector('input[name$="[text]"]');
+                        const fileInput = item.querySelector(
+                            'input[type="file"][name$="[image_file]"]');
+                        const hasText = textInput && textInput.value.trim() !== '';
+                        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+                        if (hasText || hasFile) {
                             filledOptions++;
                         }
                     });
@@ -468,7 +454,7 @@
                         alert('⚠️ Minimal harus ada 2 opsi jawaban yang diisi!');
                         return false;
                     }
-                    
+
                     console.log('✅ Validation passed! Submitting form...');
                     console.log('Form data about to be sent:');
                     const formData = new FormData(formSoal);

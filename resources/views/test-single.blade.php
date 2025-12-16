@@ -15,7 +15,8 @@
                         <div class="p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-xl">
                             <h3 class="font-bold text-white text-base flex items-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                                 Navigasi Soal
                             </h3>
@@ -30,10 +31,12 @@
                             @endphp
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs font-semibold text-blue-900">Progress Pengerjaan</span>
-                                <span class="text-xs font-bold text-blue-700">{{ $answeredCount }}/{{ $totalQuestions }}</span>
+                                <span
+                                    class="text-xs font-bold text-blue-700">{{ $answeredCount }}/{{ $totalQuestions }}</span>
                             </div>
                             <div class="w-full bg-blue-200 rounded-full h-2">
-                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: {{ $progressPercent }}%"></div>
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style="width: {{ $progressPercent }}%"></div>
                             </div>
                         </div>
 
@@ -58,14 +61,17 @@
                             </div>
 
                             {{-- Legend --}}
-                            <div class="mt-4 pt-4 border-t-2 border-gray-200 space-y-2.5 text-xs bg-gray-50 -mx-4 px-4 py-3 rounded-b-xl">
+                            <div
+                                class="mt-4 pt-4 border-t-2 border-gray-200 space-y-2.5 text-xs bg-gray-50 -mx-4 px-4 py-3 rounded-b-xl">
                                 <p class="font-semibold text-gray-700 mb-2">Keterangan:</p>
                                 <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 bg-blue-600 rounded-lg shadow-sm border-2 border-blue-700"></div>
+                                    <div class="w-7 h-7 bg-blue-600 rounded-lg shadow-sm border-2 border-blue-700">
+                                    </div>
                                     <span class="text-gray-700 font-medium">Soal saat ini</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 bg-green-100 border-2 border-green-300 rounded-lg shadow-sm"></div>
+                                    <div class="w-7 h-7 bg-green-100 border-2 border-green-300 rounded-lg shadow-sm">
+                                    </div>
                                     <span class="text-gray-700 font-medium">Sudah dijawab</span>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -82,206 +88,261 @@
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6 text-gray-900">
 
-                    {{-- INFORMASI TES & TIMER --}}
-                    <div x-data="timer({{ $timeRemaining }})" x-init="startTimer()"
-                        class="mb-8 p-4 border-l-4 border-blue-400 bg-blue-50">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-900">{{ $test->title }}</h3>
-                                <p class="mt-1 text-sm text-gray-600">
-                                    Soal {{ $currentNumber }} dari {{ $totalQuestions }}
-                                </p>
-                            </div>
-                            <div id="timer-display"
-                                class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow flex items-center gap-2">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span x-text="formatTime()"></span>
-                            </div>
-                        </div>
-
-                        {{-- Violation Counter --}}
-                        <div class="mt-3 flex justify-between items-center text-sm">
-                            <span class="text-gray-600">
-                                ⚠️ Pelanggaran: <span id="violation-count" class="text-red-600 font-bold">0</span> / 3
-                            </span>
-                            <span class="text-gray-500 text-xs">
-                                Screenshot & keluar tab tidak diperbolehkan
-                            </span>
-                        </div>
-                    </div>
-
-                    {{-- PROGRESS BAR --}}
-                    <div class="mb-6">
-                        <div class="flex justify-between text-sm text-gray-600 mb-2">
-                            <span>Progress</span>
-                            <span>{{ round(($currentNumber / $totalQuestions) * 100) }}%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                style="width: {{ ($currentNumber / $totalQuestions) * 100 }}%"></div>
-                        </div>
-                    </div>
-
-                    {{-- FORM SOAL --}}
-                    <form id="test-form" method="POST"
-                        action="{{ route('tests.answer', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $currentNumber]) }}">
-                        @csrf
-
-                        <input type="hidden" name="violation_count" id="hidden-violation-count" value="0">
-                        <input type="hidden" name="tab_switches" id="hidden-tab-switches" value="0">
-
-                        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6">
-
-                            {{-- START LOGIKA KONDISIONAL SOAL --}}
-
-                            {{-- Deteksi PAPI KOSTICK: Berdasarkan type question --}}
-                            @if ($question->type === 'PAPIKOSTICK')
-
-                                {{-- TAMPILAN PAPI KOSTICK (A vs B) --}}
-
-                                <div class="font-semibold text-lg mb-4 text-center text-gray-800 border-b-2 border-purple-200 pb-3">
-                                    <div class="flex items-center justify-center gap-2 mb-2">
-                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                        <h3 class="text-xl font-bold text-purple-700">Item {{ $question->item_number ?? $currentNumber }}</h3>
+                            {{-- INFORMASI TES & TIMER --}}
+                            <div x-data="timer({{ $timeRemaining }})" x-init="startTimer()"
+                                class="mb-8 p-4 border-l-4 border-blue-400 bg-blue-50">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-900">{{ $test->title }}</h3>
+                                        <p class="mt-1 text-sm text-gray-600">
+                                            Soal {{ $currentNumber }} dari {{ $totalQuestions }}
+                                        </p>
                                     </div>
-                                    <p class="text-sm text-gray-600 bg-purple-50 py-2 px-4 rounded-lg inline-block">
-                                        Pilih <span class="font-semibold text-purple-700">SATU</span> pernyataan yang <span class="font-semibold text-purple-700">PALING menggambarkan</span> diri Anda
-                                    </p>
+                                    <div id="timer-display"
+                                        class="text-2xl font-bold text-blue-800 bg-white px-4 py-2 rounded-lg shadow flex items-center gap-2">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span x-text="formatTime()"></span>
+                                    </div>
                                 </div>
 
-                                <div class="space-y-4 pt-4">
+                                {{-- Violation Counter --}}
+                                <div class="mt-3 flex justify-between items-center text-sm">
+                                    <span class="text-gray-600">
+                                        ⚠️ Pelanggaran: <span id="violation-count"
+                                            class="text-red-600 font-bold">0</span> / 3
+                                    </span>
+                                    <span class="text-gray-500 text-xs">
+                                        Screenshot & keluar tab tidak diperbolehkan
+                                    </span>
+                                </div>
+                            </div>
 
-                                    {{-- Pilihan A --}}
-                                    <label
-                                        class="flex items-start p-5 border-2 rounded-xl cursor-pointer transition-all duration-200
-                       {{ $savedAnswer == 'A' ? 'bg-blue-50 border-blue-500 shadow-lg ring-2 ring-blue-200' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50' }}">
-                                        <input type="radio" name="answer" value="A"
-                                            {{ $savedAnswer == 'A' ? 'checked' : '' }}
-                                            class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-1">
+                            {{-- PROGRESS BAR --}}
+                            <div class="mb-6">
+                                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                    <span>Progress</span>
+                                    <span>{{ round(($currentNumber / $totalQuestions) * 100) }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style="width: {{ ($currentNumber / $totalQuestions) * 100 }}%"></div>
+                                </div>
+                            </div>
 
-                                        <div class="ml-4 flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="font-bold text-lg text-blue-600 bg-blue-100 px-3 py-1 rounded-lg">A</span>
-                                                @if($savedAnswer == 'A')
-                                                    <span class="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">✓ Dipilih</span>
-                                                @endif
+                            {{-- FORM SOAL --}}
+                            <form id="test-form" method="POST"
+                                action="{{ route('tests.answer', ['test' => $test->id, 'alat_tes' => $alatTes->id, 'number' => $currentNumber]) }}">
+                                @csrf
+
+                                <input type="hidden" name="violation_count" id="hidden-violation-count" value="0">
+                                <input type="hidden" name="tab_switches" id="hidden-tab-switches" value="0">
+
+                                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-6">
+
+                                    {{-- START LOGIKA KONDISIONAL SOAL --}}
+
+                                    {{-- Deteksi PAPI KOSTICK: Berdasarkan type question --}}
+                                    @if ($question->type === 'PAPIKOSTICK')
+
+                                        {{-- TAMPILAN PAPI KOSTICK (A vs B) --}}
+
+                                        <div
+                                            class="font-semibold text-lg mb-4 text-center text-gray-800 border-b-2 border-purple-200 pb-3">
+                                            <div class="flex items-center justify-center gap-2 mb-2">
+                                                <svg class="w-6 h-6 text-purple-600" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                <h3 class="text-xl font-bold text-purple-700">Item
+                                                    {{ $question->item_number ?? $currentNumber }}</h3>
                                             </div>
-                                            <p class="text-gray-800 leading-relaxed text-base">{{ $question->statement_a ?? 'Pernyataan A tidak tersedia' }}</p>
+                                            <p
+                                                class="text-sm text-gray-600 bg-purple-50 py-2 px-4 rounded-lg inline-block">
+                                                Pilih <span class="font-semibold text-purple-700">SATU</span> pernyataan
+                                                yang <span class="font-semibold text-purple-700">PALING
+                                                    menggambarkan</span> diri Anda
+                                            </p>
                                         </div>
-                                    </label>
 
-                                    {{-- Pilihan B --}}
-                                    <label
-                                        class="flex items-start p-5 border-2 rounded-xl cursor-pointer transition-all duration-200
-                       {{ $savedAnswer == 'B' ? 'bg-green-50 border-green-500 shadow-lg ring-2 ring-green-200' : 'border-gray-300 hover:border-green-400 hover:bg-green-50' }}">
-                                        <input type="radio" name="answer" value="B"
-                                            {{ $savedAnswer == 'B' ? 'checked' : '' }}
-                                            class="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500 mt-1">
+                                        <div class="space-y-4 pt-4">
 
-                                        <div class="ml-4 flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="font-bold text-lg text-green-600 bg-green-100 px-3 py-1 rounded-lg">B</span>
-                                                @if($savedAnswer == 'B')
-                                                    <span class="text-xs bg-green-500 text-white px-2 py-1 rounded-full">✓ Dipilih</span>
-                                                @endif
-                                            </div>
-                                            <p class="text-gray-800 leading-relaxed text-base">{{ $question->statement_b ?? 'Pernyataan B tidak tersedia' }}</p>
-                                        </div>
-                                    </label>
-                                </div>
-
-
-                                {{-- 2. LOGIKA PILIHAN GANDA UMUM (FALLBACK JIKA BUKAN PAPI KOSTICK) --}}
-                            @else
-                                {{-- Nomor dan Pertanyaan PG --}}
-                                <div class="font-semibold text-lg mb-4">
-                                    <p class="text-gray-700">{{ $currentNumber }}. {{ $question->question_text }}</p>
-                                    @if ($question->image_path)
-                                        <img src="{{ asset('storage/' . $question->image_path) }}" alt="Gambar Soal"
-                                            class="mt-4 rounded-md max-w-full md:max-w-lg select-none pointer-events-none">
-                                    @endif
-                                </div>
-
-                                {{-- Opsi Jawaban PG --}}
-                                @php
-                                    $options = is_string($question->options)
-                                        ? json_decode($question->options, true)
-                                        : $question->options ?? [];
-                                @endphp
-
-                                @if (is_array($options) && count($options) > 0)
-                                    <div class="space-y-3">
-                                        @foreach ($options as $index => $option)
+                                            {{-- Pilihan A --}}
                                             <label
-                                                class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
-                                   {{ $savedAnswer == $index ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
-                                                <input type="radio" name="answer" value="{{ $index }}"
-                                                    {{ $savedAnswer == $index ? 'checked' : '' }}
-                                                    class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+                                                class="flex items-start p-5 border-2 rounded-xl cursor-pointer transition-all duration-200
+                       {{ $savedAnswer == 'A' ? 'bg-blue-50 border-blue-500 shadow-lg ring-2 ring-blue-200' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50' }}">
+                                                <input type="radio" name="answer" value="A"
+                                                    {{ $savedAnswer == 'A' ? 'checked' : '' }}
+                                                    class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-1">
 
-                                                <div class="ml-3 text-gray-700 flex-1">
-                                                    <span class="font-medium">{{ chr(65 + $index) }}.</span>
-                                                    <span class="ml-2">{{ $option['text'] ?? '' }}</span>
-
-                                                    @if (!empty($option['image_path']))
-                                                        <img src="{{ asset('storage/' . $option['image_path']) }}"
-                                                            alt="Gambar Opsi"
-                                                            class="mt-3 rounded-md max-w-xs select-none pointer-events-none">
-                                                    @endif
+                                                <div class="ml-4 flex-1">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <span
+                                                            class="font-bold text-lg text-blue-600 bg-blue-100 px-3 py-1 rounded-lg">A</span>
+                                                        @if ($savedAnswer == 'A')
+                                                            <span
+                                                                class="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">✓
+                                                                Dipilih</span>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-gray-800 leading-relaxed text-base">
+                                                        {{ $question->statement_a ?? 'Pernyataan A tidak tersedia' }}
+                                                    </p>
                                                 </div>
                                             </label>
-                                        @endforeach
+
+                                            {{-- Pilihan B --}}
+                                            <label
+                                                class="flex items-start p-5 border-2 rounded-xl cursor-pointer transition-all duration-200
+                       {{ $savedAnswer == 'B' ? 'bg-green-50 border-green-500 shadow-lg ring-2 ring-green-200' : 'border-gray-300 hover:border-green-400 hover:bg-green-50' }}">
+                                                <input type="radio" name="answer" value="B"
+                                                    {{ $savedAnswer == 'B' ? 'checked' : '' }}
+                                                    class="h-5 w-5 text-green-600 border-gray-300 focus:ring-green-500 mt-1">
+
+                                                <div class="ml-4 flex-1">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <span
+                                                            class="font-bold text-lg text-green-600 bg-green-100 px-3 py-1 rounded-lg">B</span>
+                                                        @if ($savedAnswer == 'B')
+                                                            <span
+                                                                class="text-xs bg-green-500 text-white px-2 py-1 rounded-full">✓
+                                                                Dipilih</span>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-gray-800 leading-relaxed text-base">
+                                                        {{ $question->statement_b ?? 'Pernyataan B tidak tersedia' }}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        </div>
+
+
+                                        {{-- 2. LOGIKA PILIHAN GANDA UMUM (FALLBACK JIKA BUKAN PAPI KOSTICK) --}}
+                                    @else
+                                        {{-- Nomor dan Pertanyaan PG --}}
+                                        <div class="font-semibold text-lg mb-4">
+                                            <p class="text-gray-700">{{ $currentNumber }}.
+                                                {{ $question->question_text }}</p>
+                                            @if ($question->image_path)
+                                                <img src="{{ asset('storage/' . $question->image_path) }}"
+                                                    alt="Gambar Soal"
+                                                    class="mt-4 rounded-md max-w-full md:max-w-lg select-none pointer-events-none">
+                                            @endif
+                                        </div>
+
+                                        {{-- Opsi Jawaban PG --}}
+                                        @php
+                                            $options = is_string($question->options)
+                                                ? json_decode($question->options, true)
+                                                : $question->options ?? [];
+                                        @endphp
+
+                                        @if (is_array($options) && count($options) > 0)
+                                            <div class="space-y-3">
+                                                @if ($question->hasMultipleCorrectAnswers())
+                                                    <p class="text-sm text-gray-600 mb-2">Centang <strong>satu atau
+                                                            lebih</strong> jawaban yang menurut Anda benar.</p>
+                                                    @foreach ($options as $index => $option)
+                                                        <label
+                                                            class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
+                                       {{ (is_array($savedAnswer) && in_array($index, $savedAnswer)) || $savedAnswer == $index ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
+                                                            <input type="checkbox" name="answer[]"
+                                                                value="{{ $index }}"
+                                                                {{ (is_array($savedAnswer) && in_array($index, $savedAnswer)) || $savedAnswer == $index ? 'checked' : '' }}
+                                                                class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+
+                                                            <div class="ml-3 text-gray-700 flex-1">
+                                                                <span
+                                                                    class="font-medium">{{ chr(65 + $index) }}.</span>
+                                                                <span
+                                                                    class="ml-2">{{ $option['text'] ?? '' }}</span>
+
+                                                                @if (!empty($option['image_path']))
+                                                                    <img src="{{ asset('storage/' . $option['image_path']) }}"
+                                                                        alt="Gambar Opsi"
+                                                                        class="mt-3 rounded-md max-w-xs select-none pointer-events-none">
+                                                                @endif
+                                                            </div>
+                                                        </label>
+                                                    @endforeach
+                                                @else
+                                                    @foreach ($options as $index => $option)
+                                                        <label
+                                                            class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
+                                       {{ $savedAnswer == $index ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
+                                                            <input type="radio" name="answer"
+                                                                value="{{ $index }}"
+                                                                {{ $savedAnswer == $index ? 'checked' : '' }}
+                                                                class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+
+                                                            <div class="ml-3 text-gray-700 flex-1">
+                                                                <span
+                                                                    class="font-medium">{{ chr(65 + $index) }}.</span>
+                                                                <span
+                                                                    class="ml-2">{{ $option['text'] ?? '' }}</span>
+
+                                                                @if (!empty($option['image_path']))
+                                                                    <img src="{{ asset('storage/' . $option['image_path']) }}"
+                                                                        alt="Gambar Opsi"
+                                                                        class="mt-3 rounded-md max-w-xs select-none pointer-events-none">
+                                                                @endif
+                                                            </div>
+                                                        </label>
+                                                    @endforeach
+                                                @endif
+                                            </div>
+                                        @else
+                                            {{-- Pesan error yang lebih spesifik jika PG tidak memiliki opsi --}}
+                                            <p class="text-red-500 text-sm">Tidak ada opsi jawaban untuk soal ini.
+                                                (Soal
+                                                non-PAPI Kostick bermasalah)</p>
+                                        @endif
+
+                                    @endif
+
+                                    {{-- END LOGIKA KONDISIONAL SOAL --}}
+
+                                </div>
+
+                                {{-- NAVIGATION BUTTONS (Tetap di bawah form) --}}
+                                <div class="flex justify-between items-center">
+                                    {{-- Previous Button --}}
+                                    @if ($currentNumber > 1)
+                                        <button type="submit" name="action" value="previous"
+                                            class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 transition">
+                                            ← Sebelumnya
+                                        </button>
+                                    @else
+                                        <div></div>
+                                    @endif
+
+                                    {{-- Next or Submit Button --}}
+                                    <div class="flex gap-3">
+                                        @if ($currentNumber < $totalQuestions)
+                                            <button type="submit" name="action" value="next"
+                                                class="inline-flex items-center px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition">
+                                                Selanjutnya →
+                                            </button>
+                                        @else
+                                            <button type="submit" name="action" value="submit"
+                                                onclick="return confirm('Apakah Anda yakin ingin menyelesaikan tes? Pastikan semua jawaban sudah benar.')"
+                                                class="inline-flex items-center px-6 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 transition">
+                                                ✓ Selesai Mengerjakan
+                                            </button>
+                                        @endif
                                     </div>
-                                @else
-                                    {{-- Pesan error yang lebih spesifik jika PG tidak memiliki opsi --}}
-                                    <p class="text-red-500 text-sm">Tidak ada opsi jawaban untuk soal ini. (Soal
-                                        non-PAPI Kostick bermasalah)</p>
-                                @endif
+                                </div>
 
-                            @endif
-
-                            {{-- END LOGIKA KONDISIONAL SOAL --}}
-
-                        </div>
-
-                        {{-- NAVIGATION BUTTONS (Tetap di bawah form) --}}
-                        <div class="flex justify-between items-center">
-                            {{-- Previous Button --}}
-                            @if ($currentNumber > 1)
-                                <button type="submit" name="action" value="previous"
-                                    class="inline-flex items-center px-4 py-2 bg-gray-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 transition">
-                                    ← Sebelumnya
-                                </button>
-                            @else
-                                <div></div>
-                            @endif
-
-                            {{-- Next or Submit Button --}}
-                            <div class="flex gap-3">
-                                @if ($currentNumber < $totalQuestions)
-                                    <button type="submit" name="action" value="next"
-                                        class="inline-flex items-center px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition">
-                                        Selanjutnya →
-                                    </button>
-                                @else
-                                    <button type="submit" name="action" value="submit"
-                                        onclick="return confirm('Apakah Anda yakin ingin menyelesaikan tes? Pastikan semua jawaban sudah benar.')"
-                                        class="inline-flex items-center px-6 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 transition">
-                                        ✓ Selesai Mengerjakan
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Navigation Info --}}
-                        <div class="mt-4 text-center text-sm text-gray-500">
-                            <p>⚠️ Peringatan: Jangan keluar dari halaman ini, screenshot, atau buka developer tools</p>
-                        </div>
-                    </form>
+                                {{-- Navigation Info --}}
+                                <div class="mt-4 text-center text-sm text-gray-500">
+                                    <p>⚠️ Peringatan: Jangan keluar dari halaman ini, screenshot, atau buka developer
+                                        tools</p>
+                                </div>
+                            </form>
 
                         </div>
                     </div>
@@ -653,7 +714,7 @@
         });
 
         // Auto-save on selection (optional enhancement)
-        document.querySelectorAll('input[name="answer"]').forEach(input => {
+        document.querySelectorAll('input[name^="answer"]').forEach(input => {
             input.addEventListener('change', function() {
                 console.log('Answer selected:', this.value);
             });

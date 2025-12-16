@@ -93,25 +93,25 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tests/module-finish/{test}', [UserTestController::class, 'finishModule'])
         ->name('tests.module.finish')
         ->where('test', '[0-9]+');
-    
+
     // ✅ HALAMAN PERSIAPAN & PETUNJUK
     Route::get('/tests/{test}/{alat_tes}/preparation', [UserTestController::class, 'showPreparation'])
         ->name('tests.preparation')
         ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
-    
+
     Route::get('/tests/{test}/{alat_tes}/instructions', [UserTestController::class, 'showInstructions'])
         ->name('tests.instructions')
         ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
-    
+
     Route::match(['GET', 'POST'], '/tests/{test}/{alat_tes}/start-test', [UserTestController::class, 'startAlatTes'])
         ->name('tests.alat.start')
         ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+']);
-    
+
     // Rute untuk menampilkan soal umum
     Route::get('/tests/{test}/{alat_tes}/question/{number}', [UserTestController::class, 'showQuestion'])
         ->name('tests.question')
         ->where(['test' => '[0-9]+', 'alat_tes' => '[0-9]+', 'number' => '[0-9]+']);
-    
+
     // Rute untuk menyimpan jawaban umum
     Route::post('/tests/{test}/{alat_tes}/answer/{number}', [UserTestController::class, 'saveAnswer'])
         ->name('tests.answer')
@@ -119,22 +119,35 @@ Route::middleware(['auth'])->group(function () {
 
     // Rute Tes Khusus (submit endpoints)
     Route::post('/tests/{test}/alat/{alat_tes}/papi/submit', [PapiTestController::class, 'submitTest'])
-    ->middleware('auth')
-    ->name('papi.submit');
-    
+        ->middleware('auth')
+        ->name('papi.submit');
+
     Route::post('/tests/{test}/pauli/submit', [UserPauliController::class, 'submitTest'])
         ->name('pauli.submit')
         ->where('test', '[0-9]+');
-    
+
+    // RMIB route group: show table, save (AJAX), submit entire RMIB
+    Route::get('/tests/{test}/rmib/{table}', [\App\Http\Controllers\RmibTestController::class, 'showTable'])
+        ->name('tests.rmib.table')
+        ->where(['test' => '[0-9]+', 'table' => '[0-9]+']);
+
+    Route::post('/tests/{test}/rmib/{table}/save', [\App\Http\Controllers\RmibTestController::class, 'saveTable'])
+        ->name('tests.rmib.save')
+        ->where(['test' => '[0-9]+', 'table' => '[0-9]+']);
+
+    Route::post('/tests/{test}/rmib/submit', [\App\Http\Controllers\RmibTestController::class, 'submitTest'])
+        ->name('tests.rmib.submit')
+        ->where('test', '[0-9]+');
+
     // Route LEGACY - Taruh di paling bawah
     Route::get('/tests/{test}', [UserTestController::class, 'show'])
         ->name('tests.show')
         ->where('test', '[0-9]+');
-    
+
     Route::post('/tests/{test}/submit', [UserTestController::class, 'store'])
         ->name('tests.store')
         ->where('test', '[0-9]+');
-    
+
     // Rute hasil tes
     Route::get('/results/{testResult}', [UserTestController::class, 'result'])
         ->name('tests.result')
@@ -222,7 +235,7 @@ Route::middleware(['auth', IsAdmin::class])
 
         // TAHAP 2.5: Menyimpan data final dari session ke DB
         Route::post('tests/store/final', [TestController::class, 'storeFinal'])->name('tests.store.final');
-        
+
         // Resource routes standar (index, show, edit, update, destroy)
         // Mengecualikan 'create' dan 'store' karena sudah dibuat secara eksplisit di atas
         Route::resource('tests', TestController::class)->except(['create', 'store'])->names('tests');
@@ -352,7 +365,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('reports/{code}', [ReportController::class, 'show'])->name('reports.show');
         // Rute PDF (mengunduh hasil tes berdasarkan ID TestResult)
         Route::get('reports/pdf/{testResult}', [ReportController::class, 'generatePdfReport'])->name('reports.pdf');
-        
+
         // ==========================================================
         // API CHEATING DETECTION (LEGACY - Untuk backward compatibility)
         // ==========================================================

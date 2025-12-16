@@ -44,7 +44,7 @@ class QuestionController extends Controller
         // ✅ Soal PAPI Kostick
         $papiQuestions = Question::where('alat_tes_id', $AlatTes->id)
             ->where('type', 'PAPIKOSTICK')
-            
+
             ->orderBy('ranking_weight', 'asc')
             ->paginate(10, ['*'], 'papi_page');
 
@@ -243,20 +243,23 @@ class QuestionController extends Controller
                 $processedOptions = [];
 
                 foreach ($request->options as $index => $option) {
-                    // ✅ PERBAIKAN: Skip opsi yang kosong textnya
-                    if (empty(trim($option['text'] ?? ''))) {
-                        Log::info("Skipping empty option at index {$index}");
+                    // Consider opsi terisi jika ada teks ATAU ada file gambar yang diupload
+                    $hasText = isset($option['text']) && trim($option['text']) !== '';
+                    $hasFile = $request->hasFile("options.{$index}.image_file");
+
+                    if (! $hasText && ! $hasFile) {
+                        Log::info("Skipping empty option at index {$index} (no text and no image)");
                         continue;
                     }
 
                     $optionData = [
-                        'text' => trim($option['text']),
+                        'text' => $hasText ? trim($option['text']) : null,
                         'index' => $index,
                         'image_path' => null,
                     ];
 
                     // Handle option image upload
-                    if ($request->hasFile("options.{$index}.image_file")) {
+                    if ($hasFile) {
                         $file = $request->file("options.{$index}.image_file");
                         $optionImagePath = $file->store('option_images', 'public');
                         $optionData['image_path'] = $optionImagePath;
@@ -466,14 +469,24 @@ class QuestionController extends Controller
                 foreach ($request->options as $index => $option) {
                     $oldPath = $oldOptions[$index]['image_path'] ?? null;
 
+                    $hasText = isset($option['text']) && trim($option['text']) !== '';
+                    $hasFile = $request->hasFile("options.{$index}.image_file");
+                    $hasOldImage = !empty($oldPath);
+
+                    // Skip option if it has no text, no new file, and no existing image
+                    if (! $hasText && ! $hasFile && ! $hasOldImage) {
+                        Log::info("Skipping empty option during update at index {$index}");
+                        continue;
+                    }
+
                     $optionData = [
-                        'text' => $option['text'] ?? '',
+                        'text' => $hasText ? trim($option['text']) : null,
                         'index' => $option['index'] ?? $index,
                         'image_path' => $oldPath,
                     ];
 
                     // Handle option image update
-                    if ($request->hasFile("options.{$index}.image_file")) {
+                    if ($hasFile) {
                         if ($oldPath) {
                             Storage::disk('public')->delete($oldPath);
                         }
@@ -483,6 +496,11 @@ class QuestionController extends Controller
                     }
 
                     $processedOptions[] = $optionData;
+                }
+
+                // ✅ VALIDASI: Minimal 2 opsi setelah update
+                if (count($processedOptions) < 2) {
+                    throw new \Exception('Minimal harus ada 2 opsi jawaban yang diisi!');
                 }
 
                 $questionData['options'] = json_encode($processedOptions);
