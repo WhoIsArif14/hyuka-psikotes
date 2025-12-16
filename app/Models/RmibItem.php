@@ -12,6 +12,8 @@ class RmibItem extends Model
 
     protected $fillable = [
         'item_number',
+        'group_label',           // ✅ TAMBAHKAN INI
+        'position_in_group',     // ✅ TAMBAHKAN INI
         'description',
         'interest_area',
         'version',
@@ -36,6 +38,39 @@ class RmibItem extends Model
     }
 
     /**
+     * ✅ TAMBAHKAN: Get items grouped by group_label
+     */
+    public static function getGroupedItems()
+    {
+        return self::orderBy('group_label')
+            ->orderBy('position_in_group')
+            ->get()
+            ->groupBy('group_label');
+    }
+
+    /**
+     * ✅ TAMBAHKAN: Get all unique group labels
+     */
+    public static function getGroupLabels()
+    {
+        return self::distinct()
+            ->pluck('group_label')
+            ->filter()
+            ->sort()
+            ->values();
+    }
+
+    /**
+     * ✅ TAMBAHKAN: Get items by group label
+     */
+    public static function getByGroupLabel($groupLabel)
+    {
+        return self::where('group_label', $groupLabel)
+            ->orderBy('position_in_group')
+            ->get();
+    }
+
+    /**
      * Get all interest areas
      */
     public static function getInterestAreas()
@@ -57,11 +92,40 @@ class RmibItem extends Model
     }
 
     /**
+     * ✅ TAMBAHKAN: Get group label mapping
+     */
+    public static function getGroupLabelMapping()
+    {
+        return [
+            'A' => 'OUTDOOR',
+            'B' => 'MECHANICAL',
+            'C' => 'COMPUTATIONAL',
+            'D' => 'SCIENTIFIC',
+            'E' => 'PERSONAL_CONTACT',
+            'F' => 'AESTHETIC',
+            'G' => 'LITERARY',
+            'H' => 'MUSICAL',
+            'I' => 'SOCIAL_SERVICE',
+            'J' => 'CLERICAL',
+            'K' => 'PRACTICAL',
+            'L' => 'MEDICAL',
+        ];
+    }
+
+    /**
      * Get interest area name
      */
     public function getInterestAreaNameAttribute()
     {
         $areas = self::getInterestAreas();
         return $areas[$this->interest_area] ?? $this->interest_area;
+    }
+
+    /**
+     * ✅ TAMBAHKAN: Get group name (A, B, C, etc.)
+     */
+    public function getGroupNameAttribute()
+    {
+        return $this->group_label ?? 'N/A';
     }
 }
