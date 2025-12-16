@@ -21,10 +21,10 @@
                     </div>
                 @endif
 
-                {{-- ✅ PERBAIKAN: Ganti 'id' menjadi 'question' --}}
                 <form method="POST"
                     action="{{ route('admin.alat-tes.questions.update', ['alat_te' => $alat_te->id, 'question' => $question->id]) }}"
-                    enctype="multipart/form-data">
+                    enctype="multipart/form-data"
+                    id="editForm">
                     @csrf
                     @method('PUT')
 
@@ -33,7 +33,7 @@
                         <label class="block text-sm font-medium text-gray-700">Tipe Pertanyaan</label>
                         <input type="text" value="{{ $question->type }}" disabled
                             class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-100 shadow-sm">
-                        <input type="hidden" name="type" value="{{ $question->type }}">
+                        <input type="hidden" name="type" value="{{ $question->type }}" id="questionType">
                         <p class="text-xs text-gray-500 mt-1">Tipe soal tidak dapat diubah. Hapus dan buat baru jika ingin mengganti tipe.</p>
                     </div>
 
@@ -102,8 +102,8 @@
                             class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">{{ old('question_text', $question->question_text) }}</textarea>
                     </div>
 
-                    {{-- OPSI JAWABAN (untuk PILIHAN_GANDA dan HAFALAN) --}}
-                    @if($question->type === 'PILIHAN_GANDA' || $question->type === 'HAFALAN')
+                    {{-- OPSI JAWABAN (untuk PILIHAN_GANDA, PILIHAN_GANDA_KOMPLEKS, dan HAFALAN) --}}
+                    @if(in_array($question->type, ['PILIHAN_GANDA', 'PILIHAN_GANDA_KOMPLEKS', 'HAFALAN']))
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-2">
                             <h4 class="text-md font-semibold text-gray-800">Opsi Jawaban</h4>
@@ -113,19 +113,46 @@
                             </button>
                         </div>
 
+                        {{-- Instruction Text --}}
+                        <p class="text-sm text-gray-600 mb-3" id="option-instruction">
+                            @if($question->type === 'PILIHAN_GANDA_KOMPLEKS')
+                                ⚠️ Minimal 2 opsi harus diisi. <strong>Centang satu atau lebih checkbox</strong> untuk jawaban yang benar (bisa lebih dari 1).
+                            @else
+                                ⚠️ Minimal 2 opsi harus diisi. Pilih salah satu sebagai jawaban benar dengan mencentang.
+                            @endif
+                        </p>
+
                         <div class="border border-gray-200 p-4 rounded-lg">
                             <div id="optionsList" class="space-y-3">
                                 @php
                                     $opts = is_string($question->options) ? json_decode($question->options, true) : ($question->options ?? []);
+                                    $isKompleks = $question->type === 'PILIHAN_GANDA_KOMPLEKS';
+                                    
+                                    // Parse correct answers
+                                    if ($isKompleks) {
+                                        $correctAnswers = is_string($question->correct_answer_index) 
+                                            ? json_decode($question->correct_answer_index, true) 
+                                            : (is_array($question->correct_answer_index) ? $question->correct_answer_index : []);
+                                    } else {
+                                        $correctAnswer = $question->correct_answer_index;
+                                    }
                                 @endphp
                                 
                                 @forelse($opts as $index => $option)
-                                <div class="option-item bg-gray-50 p-3 rounded-lg" data-index="{{ $index }}">
+                                <div class="option-item bg-gray-50 p-3 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition" data-index="{{ $index }}">
                                     <div class="flex items-start space-x-3 w-full">
                                         <div class="flex items-center pt-2">
-                                            <input type="radio" name="is_correct" value="{{ $index }}"
-                                                class="h-4 w-4 text-green-600"
-                                                {{ old('is_correct', $question->correct_answer_index) == $index ? 'checked' : '' }} required>
+                                            @if($isKompleks)
+                                                {{-- Checkbox untuk multiple answers --}}
+                                                <input type="checkbox" name="correct_answers[]" value="{{ $index }}"
+                                                    class="input-correct h-4 w-4 text-green-600"
+                                                    {{ in_array($index, $correctAnswers) ? 'checked' : '' }}>
+                                            @else
+                                                {{-- Radio untuk single answer --}}
+                                                <input type="radio" name="is_correct" value="{{ $index }}"
+                                                    class="input-correct h-4 w-4 text-green-600"
+                                                    {{ old('is_correct', $correctAnswer) == $index ? 'checked' : '' }} required>
+                                            @endif
                                             <label class="ml-2 text-sm text-gray-600">Benar</label>
                                         </div>
                                         <div class="flex-1">
@@ -168,16 +195,25 @@
                                 @empty
                                 {{-- Jika tidak ada opsi, buat 4 opsi default --}}
                                 @for($i = 0; $i < 4; $i++)
-                                <div class="option-item bg-gray-50 p-3 rounded-lg" data-index="{{ $i }}">
+                                <div class="option-item bg-gray-50 p-3 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition" data-index="{{ $i }}">
                                     <div class="flex items-start space-x-3 w-full">
                                         <div class="flex items-center pt-2">
-                                            <input type="radio" name="is_correct" value="{{ $i }}" class="h-4 w-4 text-green-600" {{ $i == 0 ? 'checked' : '' }} required>
+                                            @if($isKompleks)
+                                                <input type="checkbox" name="correct_answers[]" value="{{ $i }}" class="input-correct h-4 w-4 text-green-600" {{ $i == 0 ? 'checked' : '' }}>
+                                            @else
+                                                <input type="radio" name="is_correct" value="{{ $i }}" class="input-correct h-4 w-4 text-green-600" {{ $i == 0 ? 'checked' : '' }} required>
+                                            @endif
                                             <label class="ml-2 text-sm text-gray-600">Benar</label>
                                         </div>
                                         <div class="flex-1">
                                             <label class="block text-xs font-medium text-gray-500 option-label">Opsi {{ chr(65 + $i) }}</label>
-                                            <input type="text" name="options[{{ $i }}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm">
+                                            <input type="text" name="options[{{ $i }}][text]" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm option-input">
                                             <input type="hidden" name="options[{{ $i }}][index]" value="{{ $i }}">
+                                            <div class="mt-2">
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Upload Gambar Opsi (Opsional)</label>
+                                                <input type="file" name="options[{{ $i }}][image_file]" accept="image/*"
+                                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                                            </div>
                                         </div>
                                         <button type="button" class="remove-option-btn text-red-500 hover:text-red-700 pt-2" style="{{ $i < 2 ? 'display: none;' : '' }}">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +235,7 @@
                             class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">
                             Batal
                         </a>
-                        <button type="submit"
+                        <button type="submit" id="submitBtn"
                             class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition">
                             💾 Simpan Perubahan
                         </button>
@@ -213,6 +249,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             const addOptionBtn = document.getElementById('addOptionBtn');
             const optionsList = document.getElementById('optionsList');
+            const questionType = document.getElementById('questionType').value;
+            const editForm = document.getElementById('editForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const isKompleks = questionType === 'PILIHAN_GANDA_KOMPLEKS';
 
             // Fungsi update label dan index
             function updateOptionLabels() {
@@ -220,7 +260,7 @@
                 items.forEach((item, index) => {
                     const label = item.querySelector('.option-label');
                     const input = item.querySelector('.option-input');
-                    const radio = item.querySelector('input[type="radio"]');
+                    const correctInput = item.querySelector('.input-correct');
                     const removeBtn = item.querySelector('.remove-option-btn');
                     const hiddenIndex = item.querySelector('input[name*="[index]"]');
                     const imageInput = item.querySelector('input[type="file"]');
@@ -233,7 +273,7 @@
                         input.placeholder = `Masukkan teks untuk Opsi ${letter}`;
                     }
                     if (imageInput) imageInput.name = `options[${index}][image_file]`;
-                    if (radio) radio.value = index;
+                    if (correctInput) correctInput.value = index;
                     if (hiddenIndex) hiddenIndex.value = index;
                     if (removeBtn) removeBtn.style.display = items.length > 2 ? 'block' : 'none';
                 });
@@ -245,12 +285,17 @@
                     const newIndex = optionsList.children.length;
                     const letter = String.fromCharCode(65 + newIndex);
                     
+                    const inputType = isKompleks ? 'checkbox' : 'radio';
+                    const inputName = isKompleks ? 'correct_answers[]' : 'is_correct';
+                    const requiredAttr = isKompleks ? '' : 'required';
+                    
                     const newOption = document.createElement('div');
-                    newOption.className = 'option-item bg-gray-50 p-3 rounded-lg';
+                    newOption.className = 'option-item bg-gray-50 p-3 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition';
                     newOption.innerHTML = `
                         <div class="flex items-start space-x-3 w-full">
                             <div class="flex items-center pt-2">
-                                <input type="radio" name="is_correct" value="${newIndex}" class="h-4 w-4 text-green-600" required>
+                                <input type="${inputType}" name="${inputName}" value="${newIndex}" 
+                                    class="input-correct h-4 w-4 text-green-600" ${requiredAttr}>
                                 <label class="ml-2 text-sm text-gray-600">Benar</label>
                             </div>
                             <div class="flex-1">
@@ -293,6 +338,53 @@
                             alert('Minimal harus ada 2 Opsi Jawaban.');
                         }
                     }
+                });
+            }
+
+            // Form validation
+            if (editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    if (questionType === 'PILIHAN_GANDA' || questionType === 'PILIHAN_GANDA_KOMPLEKS') {
+                        let hasCorrectAnswer = false;
+                        
+                        if (isKompleks) {
+                            const checkedBoxes = document.querySelectorAll('.input-correct:checked');
+                            hasCorrectAnswer = checkedBoxes.length > 0;
+                            
+                            if (!hasCorrectAnswer) {
+                                e.preventDefault();
+                                alert('⚠️ Anda harus memilih minimal satu jawaban yang benar!\n\nCentang satu atau lebih checkbox.');
+                                return false;
+                            }
+                        } else {
+                            hasCorrectAnswer = document.querySelector('input[name="is_correct"]:checked') !== null;
+                            
+                            if (!hasCorrectAnswer) {
+                                e.preventDefault();
+                                alert('⚠️ Anda harus memilih satu jawaban yang benar!\n\nCentang salah satu radio button.');
+                                return false;
+                            }
+                        }
+
+                        // Check if at least 2 options are filled
+                        const optionTexts = document.querySelectorAll('input[name^="options"][name$="[text]"]');
+                        let filledOptions = 0;
+                        optionTexts.forEach(input => {
+                            if (input.value.trim() !== '') {
+                                filledOptions++;
+                            }
+                        });
+
+                        if (filledOptions < 2) {
+                            e.preventDefault();
+                            alert('⚠️ Minimal harus ada 2 opsi jawaban yang diisi!');
+                            return false;
+                        }
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '⏳ Menyimpan...';
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 });
             }
 

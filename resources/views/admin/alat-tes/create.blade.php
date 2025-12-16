@@ -68,7 +68,7 @@
                             @enderror
                         </div>
 
-                        {{-- ✅ SECTION: Contoh Soal --}}
+                        {{-- ✅ SECTION: Contoh Soal dengan Dropdown --}}
                         <div class="mt-6 border-t pt-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">
                                 Contoh Soal <span class="text-gray-500 text-sm font-normal">(Opsional - Maksimal 2 contoh)</span>
@@ -76,80 +76,326 @@
 
                             {{-- Contoh Soal 1 --}}
                             <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                                <h4 class="font-semibold text-gray-700 mb-3">📝 Contoh Soal 1</h4>
-                                
-                                <div class="mb-3">
-                                    <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
-                                    <input type="text" name="example_1_question" 
-                                        value="{{ old('example_1_question') }}"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Contoh: Apa ibu kota Indonesia?">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-semibold text-gray-700">📝 Contoh Soal 1</h4>
+                                    <select id="example_type_1" 
+                                        class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">-- Pilih Jenis Soal --</option>
+                                        <option value="papi">PAPI (Personality)</option>
+                                        <option value="pauli">Pauli Test (Numerical)</option>
+                                        <option value="rmib">RMIB (Interest)</option>
+                                        <option value="binary">Pilihan Ganda (2 Jawaban)</option>
+                                        <option value="custom">Custom (Buat Sendiri)</option>
+                                    </select>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban (pisahkan dengan enter)</label>
-                                    <textarea name="example_1_options" rows="4"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Jakarta&#10;Bandung&#10;Surabaya&#10;Medan&#10;Bali">{{ old('example_1_options') }}</textarea>
-                                    <p class="mt-1 text-xs text-gray-500">Setiap baris = 1 pilihan jawaban</p>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index: 0-4)</label>
-                                        <input type="number" name="example_1_correct" 
-                                            value="{{ old('example_1_correct', 0) }}"
-                                            min="0" max="4"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="0">
-                                        <p class="mt-1 text-xs text-gray-500">0 = Pilihan pertama</p>
+                                {{-- Template PAPI --}}
+                                <div id="template_papi_1" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_1_question" 
+                                            value="Saya lebih suka bekerja dalam tim daripada sendiri"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     </div>
-                                    <div>
-                                        <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
-                                        <input type="text" name="example_1_explanation" 
-                                            value="{{ old('example_1_explanation') }}"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="Penjelasan jawaban...">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_1_options" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">Sangat Tidak Setuju
+Tidak Setuju
+Netral
+Setuju
+Sangat Setuju</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index)</label>
+                                            <input type="number" name="example_1_correct" value="3" min="0" max="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_1_explanation" value="Menunjukkan preferensi kerja tim" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template Pauli --}}
+                                <div id="template_pauli_1" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_1_question" 
+                                            value="15 + 23 = ?"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_1_options" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">35
+36
+38
+39
+40</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index)</label>
+                                            <input type="number" name="example_1_correct" value="2" min="0" max="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_1_explanation" value="15 + 23 = 38" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template RMIB --}}
+                                <div id="template_rmib_1" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_1_question" 
+                                            value="Pekerjaan yang paling Anda minati:"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_1_options" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">Programmer
+Desainer Grafis
+Guru
+Dokter
+Pengusaha</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index)</label>
+                                            <input type="number" name="example_1_correct" value="0" min="0" max="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_1_explanation" value="Minat di bidang teknologi" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template Binary (2 Jawaban) --}}
+                                <div id="template_binary_1" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_1_question" 
+                                            value="Apakah Anda lebih suka bekerja di pagi hari?"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_1_options" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">Ya
+Tidak</textarea>
+                                        <p class="mt-1 text-xs text-gray-500">✅ Format 2 jawaban: Ya/Tidak, Benar/Salah, Setuju/Tidak Setuju</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index: 0-1)</label>
+                                            <input type="number" name="example_1_correct" value="0" min="0" max="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            <p class="mt-1 text-xs text-gray-500">0 = Ya, 1 = Tidak</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_1_explanation" value="Menunjukkan preferensi waktu kerja optimal" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template Custom --}}
+                                <div id="template_custom_1" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_1_question" 
+                                            value="{{ old('example_1_question') }}"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            placeholder="Masukkan pertanyaan Anda...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban (pisahkan dengan enter)</label>
+                                        <textarea name="example_1_options" rows="4"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            placeholder="Pilihan A&#10;Pilihan B&#10;Pilihan C&#10;Pilihan D&#10;Pilihan E">{{ old('example_1_options') }}</textarea>
+                                        <p class="mt-1 text-xs text-gray-500">Setiap baris = 1 pilihan jawaban</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index: 0-4)</label>
+                                            <input type="number" name="example_1_correct" 
+                                                value="{{ old('example_1_correct', 0) }}"
+                                                min="0" max="4"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="0">
+                                            <p class="mt-1 text-xs text-gray-500">0 = Pilihan pertama</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_1_explanation" 
+                                                value="{{ old('example_1_explanation') }}"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="Penjelasan jawaban...">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {{-- Contoh Soal 2 --}}
                             <div class="bg-gray-50 rounded-lg p-4">
-                                <h4 class="font-semibold text-gray-700 mb-3">📝 Contoh Soal 2</h4>
-                                
-                                <div class="mb-3">
-                                    <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
-                                    <input type="text" name="example_2_question" 
-                                        value="{{ old('example_2_question') }}"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Contoh: 1 + 1 = ?">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-semibold text-gray-700">📝 Contoh Soal 2</h4>
+                                    <select id="example_type_2" 
+                                        class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">-- Pilih Jenis Soal --</option>
+                                        <option value="papi">PAPI (Personality)</option>
+                                        <option value="pauli">Pauli Test (Numerical)</option>
+                                        <option value="rmib">RMIB (Interest)</option>
+                                        <option value="binary">Pilihan Ganda (2 Jawaban)</option>
+                                        <option value="custom">Custom (Buat Sendiri)</option>
+                                    </select>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban (pisahkan dengan enter)</label>
-                                    <textarea name="example_2_options" rows="4"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="1&#10;2&#10;3&#10;4&#10;5">{{ old('example_2_options') }}</textarea>
-                                    <p class="mt-1 text-xs text-gray-500">Setiap baris = 1 pilihan jawaban</p>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index: 0-4)</label>
-                                        <input type="number" name="example_2_correct" 
-                                            value="{{ old('example_2_correct', 0) }}"
-                                            min="0" max="4"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="1">
-                                        <p class="mt-1 text-xs text-gray-500">0 = Pilihan pertama</p>
+                                {{-- Template PAPI --}}
+                                <div id="template_papi_2" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_2_question" 
+                                            value="Saya mudah beradaptasi dengan perubahan"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     </div>
-                                    <div>
-                                        <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
-                                        <input type="text" name="example_2_explanation" 
-                                            value="{{ old('example_2_explanation') }}"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="Penjelasan jawaban...">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_2_options" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">Sangat Tidak Setuju
+Tidak Setuju
+Netral
+Setuju
+Sangat Setuju</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index)</label>
+                                            <input type="number" name="example_2_correct" value="4" min="0" max="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_2_explanation" value="Menunjukkan fleksibilitas tinggi" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template Pauli --}}
+                                <div id="template_pauli_2" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_2_question" 
+                                            value="42 - 17 = ?"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_2_options" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">23
+24
+25
+26
+27</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index)</label>
+                                            <input type="number" name="example_2_correct" value="2" min="0" max="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_2_explanation" value="42 - 17 = 25" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template RMIB --}}
+                                <div id="template_rmib_2" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_2_question" 
+                                            value="Aktivitas yang paling Anda sukai:"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_2_options" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">Membaca buku
+Berolahraga
+Menggambar
+Bermain musik
+Memasak</textarea>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index)</label>
+                                            <input type="number" name="example_2_correct" value="0" min="0" max="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_2_explanation" value="Minat pada pembelajaran" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template Binary (2 Jawaban) --}}
+                                <div id="template_binary_2" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_2_question" 
+                                            value="Apakah Anda lebih suka bekerja sendiri daripada dalam tim?"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban</label>
+                                        <textarea name="example_2_options" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">Setuju
+Tidak Setuju</textarea>
+                                        <p class="mt-1 text-xs text-gray-500">✅ Format 2 jawaban: Ya/Tidak, Benar/Salah, Setuju/Tidak Setuju</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index: 0-1)</label>
+                                            <input type="number" name="example_2_correct" value="1" min="0" max="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                            <p class="mt-1 text-xs text-gray-500">0 = Setuju, 1 = Tidak Setuju</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_2_explanation" value="Menunjukkan preferensi kerja kolaboratif" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Template Custom --}}
+                                <div id="template_custom_2" class="template-content hidden">
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pertanyaan</label>
+                                        <input type="text" name="example_2_question" 
+                                            value="{{ old('example_2_question') }}"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            placeholder="Masukkan pertanyaan Anda...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-sm text-gray-600 mb-1">Pilihan Jawaban (pisahkan dengan enter)</label>
+                                        <textarea name="example_2_options" rows="4"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            placeholder="Pilihan A&#10;Pilihan B&#10;Pilihan C&#10;Pilihan D&#10;Pilihan E">{{ old('example_2_options') }}</textarea>
+                                        <p class="mt-1 text-xs text-gray-500">Setiap baris = 1 pilihan jawaban</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Jawaban Benar (Index: 0-4)</label>
+                                            <input type="number" name="example_2_correct" 
+                                                value="{{ old('example_2_correct', 0) }}"
+                                                min="0" max="4"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="0">
+                                            <p class="mt-1 text-xs text-gray-500">0 = Pilihan pertama</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-600 mb-1">Penjelasan</label>
+                                            <input type="text" name="example_2_explanation" 
+                                                value="{{ old('example_2_explanation') }}"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="Penjelasan jawaban...">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -171,4 +417,31 @@
             </div>
         </div>
     </div>
+
+    {{-- JavaScript untuk handle dropdown --}}
+    <script>
+        // Handle dropdown untuk Contoh Soal 1
+        document.getElementById('example_type_1').addEventListener('change', function() {
+            const selectedType = this.value;
+            const templates = document.querySelectorAll('#template_papi_1, #template_pauli_1, #template_rmib_1, #template_binary_1, #template_custom_1');
+            
+            templates.forEach(template => template.classList.add('hidden'));
+            
+            if (selectedType) {
+                document.getElementById('template_' + selectedType + '_1').classList.remove('hidden');
+            }
+        });
+
+        // Handle dropdown untuk Contoh Soal 2
+        document.getElementById('example_type_2').addEventListener('change', function() {
+            const selectedType = this.value;
+            const templates = document.querySelectorAll('#template_papi_2, #template_pauli_2, #template_rmib_2, #template_binary_2, #template_custom_2');
+            
+            templates.forEach(template => template.classList.add('hidden'));
+            
+            if (selectedType) {
+                document.getElementById('template_' + selectedType + '_2').classList.remove('hidden');
+            }
+        });
+    </script>
 </x-admin-layout>

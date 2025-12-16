@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AlatTes extends Model
 {
@@ -16,7 +18,7 @@ class AlatTes extends Model
         'duration_minutes',
         'slug',
         'description',
-        'instructions', // ✅ TAMBAHAN: Field untuk instruksi tes
+        'instructions',
         'example_questions',
     ];
 
@@ -28,17 +30,33 @@ class AlatTes extends Model
     /**
      * Relationship ke Questions (Soal Umum)
      */
-    public function questions()
+    public function questions(): HasMany
     {
         return $this->hasMany(Question::class, 'alat_tes_id');
     }
 
     /**
-     * ✅ TAMBAHAN: Relationship ke PapiQuestions
+     * Relationship ke PapiQuestions
      */
-    public function papiQuestions()
+    public function papiQuestions(): HasMany
     {
         return $this->hasMany(PapiQuestion::class, 'alat_tes_id');
+    }
+
+    /**
+     * ✅ RELASI MANY-TO-MANY YANG DITAMBAHKAN
+     * Relasi Many-to-Many: Satu Alat Tes bisa digunakan di banyak Modul (Test).
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function tests(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Test::class, 
+            'modul_alat_tes',    // nama tabel pivot
+            'alat_tes_id',        // foreign key untuk AlatTes di tabel pivot
+            'test_id'             // foreign key untuk Test di tabel pivot
+        )->withTimestamps();      // jika ada created_at, updated_at di pivot
     }
 
     /**
@@ -46,7 +64,7 @@ class AlatTes extends Model
      * 
      * @return bool
      */
-    public function isPapiKostick()
+    public function isPapiKostick(): bool
     {
         // Cek slug dulu
         if (isset($this->slug) && !empty($this->slug)) {
@@ -62,7 +80,7 @@ class AlatTes extends Model
             }
         }
         
-        // ✅ Cek name jika slug tidak ada/tidak match
+        // Cek name jika slug tidak ada/tidak match
         if (isset($this->name) && !empty($this->name)) {
             $name = strtolower(trim($this->name));
             
@@ -77,14 +95,13 @@ class AlatTes extends Model
     }
 
     /**
-     * ✅ PERBAIKAN: Mendapatkan jumlah total soal dengan filter alat_tes_id
+     * Mendapatkan jumlah total soal dengan filter alat_tes_id
      * 
      * @return int
      */
-    public function getTotalQuestionsAttribute()
+    public function getTotalQuestionsAttribute(): int
     {
         if ($this->isPapiKostick()) {
-            // ✅ Filter berdasarkan alat_tes_id
             return PapiQuestion::where('alat_tes_id', $this->id)->count();
         }
         
@@ -92,7 +109,7 @@ class AlatTes extends Model
     }
 
     /**
-     * ✅ PERBAIKAN: Mendapatkan semua soal dengan pagination dan filter alat_tes_id
+     * Mendapatkan semua soal dengan pagination dan filter alat_tes_id
      * 
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
@@ -100,7 +117,6 @@ class AlatTes extends Model
     public function getQuestionsPaginated($perPage = 10)
     {
         if ($this->isPapiKostick()) {
-            // ✅ Filter berdasarkan alat_tes_id
             return PapiQuestion::where('alat_tes_id', $this->id)
                               ->orderBy('item_number')
                               ->paginate($perPage);
@@ -110,7 +126,7 @@ class AlatTes extends Model
     }
 
     /**
-     * ✅ TAMBAHAN: Helper untuk mendapatkan semua soal (tanpa pagination)
+     * Helper untuk mendapatkan semua soal (tanpa pagination)
      * 
      * @return \Illuminate\Database\Eloquent\Collection
      */
