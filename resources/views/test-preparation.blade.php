@@ -85,73 +85,48 @@
                                 Contoh Soal 1
                             </h2>
                         </div>
+                        <div class="bg-gray-50 rounded-lg p-6 mb-4">
+                            <p class="text-gray-800 font-medium text-lg mb-6">
+                                {{ $exampleQuestions[0]['question'] }}
+                            </p>
 
-                        @if(isset($exampleQuestions[0]))
-                            <div class="bg-gray-50 rounded-lg p-6 mb-4">
-                                <p class="text-gray-800 font-medium text-lg mb-6">
-                                    {{ $exampleQuestions[0]['question'] ?? 'Contoh soal tidak tersedia' }}
-                                </p>
-                                
-                                @if(isset($exampleQuestions[0]['options']))
-                                    <div class="space-y-3">
-                                        @foreach($exampleQuestions[0]['options'] as $index => $option)
-                                            <label class="flex items-start p-4 bg-white rounded-lg border-2 cursor-pointer transition-all duration-200 {{ ($exampleQuestions[0]['correct_answer'] ?? -1) == $index ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50' }}">
-                                                <input type="radio" name="example1" value="{{ $index }}" 
-                                                    class="mt-1 mr-4 h-5 w-5 text-indigo-600" 
-                                                    {{ ($exampleQuestions[0]['correct_answer'] ?? -1) == $index ? 'checked' : '' }} disabled>
-                                                <span class="text-gray-700 flex-1">
-                                                    <strong>{{ chr(65 + $index) }}.</strong> {{ $option }}
-                                                </span>
-                                                @if(($exampleQuestions[0]['correct_answer'] ?? -1) == $index)
-                                                    <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                @endif
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
-                            
-                            @if(isset($exampleQuestions[0]['explanation']))
-                                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                                    <div class="flex items-start">
-                                        <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <div>
-                                            <p class="font-semibold text-blue-900 mb-1">Penjelasan:</p>
-                                            <p class="text-blue-800">{{ $exampleQuestions[0]['explanation'] }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        @else
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-                                <svg class="w-12 h-12 text-yellow-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                </svg>
-                                <p class="text-gray-700">Contoh soal 1 belum tersedia.</p>
-                            </div>
-                        @endif
+                            <div class="space-y-3 quiz-example"
+                                data-correct="{{ $exampleQuestions[0]['correct_answer'] }}"
+                                data-explanation="{{ $exampleQuestions[0]['explanation'] }}">
 
-                        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between">
-                            <button onclick="showTab('tentang')" 
-                                class="inline-flex items-center px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-all duration-200">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                Kembali
-                            </button>
-                            <button onclick="showTab('contoh2')" 
-                                class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all duration-200">
-                                Contoh Berikutnya
-                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
+                                @foreach($exampleQuestions[0]['options'] as $index => $option)
+                                    <label
+                                        class="option-item flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 cursor-pointer transition-all duration-200 hover:border-indigo-300 hover:bg-indigo-50"
+                                        data-index="{{ $index }}">
+
+                                        <input type="radio" name="example1"
+                                            class="hidden">
+
+                                        <span class="text-gray-700 flex-1">
+                                            <strong>{{ chr(65 + $index) }}.</strong> {{ $option }}
+                                        </span>
+
+                                        <span class="icon hidden"></span>
+                                    </label>
+                                @endforeach
+                            </div>
                         </div>
+
+                        {{-- Penjelasan (awalnya hidden) --}}
+                        <div
+                            class="quiz-explanation hidden bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mt-4 flex justfiy-start items-start">
+                            <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex flex-col">
+                                 <p class="font-semibold text-blue-900 mb-1">Penjelasan:</p>
+                                <p class="text-blue-800"></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between"> <button onclick="showTab('tentang')" class="inline-flex items-center px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-all duration-200"> <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path> </svg> Kembali </button> <button onclick="showTab('contoh2')" class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all duration-200"> Contoh Berikutnya <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path> </svg> </button> </div>
                     </div>
+
 
                     <!-- TAB 3: Contoh 2 -->
                     <div id="content-contoh2" class="tab-content hidden">
@@ -163,74 +138,48 @@
                                 Contoh Soal 2
                             </h2>
                         </div>
+                        <div class="bg-gray-50 rounded-lg p-6 mb-4">
+                            <p class="text-gray-800 font-medium text-lg mb-6">
+                                {{ $exampleQuestions[1]['question'] }}
+                            </p>
 
-                        @if(isset($exampleQuestions[1]))
-                            <div class="bg-gray-50 rounded-lg p-6 mb-4">
-                                <p class="text-gray-800 font-medium text-lg mb-6">
-                                    {{ $exampleQuestions[1]['question'] ?? 'Contoh soal tidak tersedia' }}
-                                </p>
-                                
-                                @if(isset($exampleQuestions[1]['options']))
-                                    <div class="space-y-3">
-                                        @foreach($exampleQuestions[1]['options'] as $index => $option)
-                                            <label class="flex items-start p-4 bg-white rounded-lg border-2 cursor-pointer transition-all duration-200 {{ ($exampleQuestions[1]['correct_answer'] ?? -1) == $index ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50' }}">
-                                                <input type="radio" name="example2" value="{{ $index }}" 
-                                                    class="mt-1 mr-4 h-5 w-5 text-indigo-600" 
-                                                    {{ ($exampleQuestions[1]['correct_answer'] ?? -1) == $index ? 'checked' : '' }} disabled>
-                                                <span class="text-gray-700 flex-1">
-                                                    <strong>{{ chr(65 + $index) }}.</strong> {{ $option }}
-                                                </span>
-                                                @if(($exampleQuestions[1]['correct_answer'] ?? -1) == $index)
-                                                    <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                @endif
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
-                            
-                            @if(isset($exampleQuestions[1]['explanation']))
-                                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                                    <div class="flex items-start">
-                                        <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <div>
-                                            <p class="font-semibold text-blue-900 mb-1">Penjelasan:</p>
-                                            <p class="text-blue-800">{{ $exampleQuestions[1]['explanation'] }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        @else
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-                                <svg class="w-12 h-12 text-yellow-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                </svg>
-                                <p class="text-gray-700">Contoh soal 2 belum tersedia.</p>
-                            </div>
-                        @endif
+                            <div class="space-y-3 quiz-example"
+                                data-correct="{{ $exampleQuestions[1]['correct_answer'] }}"
+                                data-explanation="{{ $exampleQuestions[1]['explanation'] }}">
 
-                        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between">
-                            <button onclick="showTab('contoh1')" 
-                                class="inline-flex items-center px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-all duration-200">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                Kembali
-                            </button>
-                            <button onclick="showTab('kesiapan')" 
-                                class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all duration-200">
-                                Lanjut ke Kesiapan
-                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
+                                @foreach($exampleQuestions[1]['options'] as $index => $option)
+                                    <label
+                                        class="option-item flex items-start p-4 bg-white rounded-lg border-2 border-gray-200 cursor-pointer transition-all duration-200 hover:border-indigo-300 hover:bg-indigo-50"
+                                        data-index="{{ $index }}">
+
+                                        <input type="radio" name="example1"
+                                            class="hidden">
+
+                                        <span class="text-gray-700 flex-1">
+                                            <strong>{{ chr(65 + $index) }}.</strong> {{ $option }}
+                                        </span>
+
+                                        <span class="icon hidden"></span>
+                                    </label>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
 
+                        {{-- Penjelasan (awalnya hidden) --}}
+                        <div
+                            class="quiz-explanation hidden bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mt-4 flex justfiy-start items-start">
+                            <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex flex-col">
+                                 <p class="font-semibold text-blue-900 mb-1">Penjelasan:</p>
+                                <p class="text-blue-800"></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-between"> <button onclick="showTab('tentang')" class="inline-flex items-center px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-all duration-200"> <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path> </svg> Kembali </button> <button onclick="showTab('contoh2')" class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all duration-200"> Contoh Berikutnya <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path> </svg> </button> </div>
+                    </div>
+               
                     <!-- TAB 4: Kesiapan -->
                     <div id="content-kesiapan" class="tab-content hidden">
                         <div class="text-center py-8">
@@ -282,6 +231,7 @@
     </div>
 
     <script>
+
         function showTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
@@ -302,5 +252,60 @@
             activeTab.classList.add('border-indigo-600', 'text-gray-900', 'bg-gray-50');
             activeTab.classList.remove('border-transparent', 'text-gray-600');
         }
+       
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll(".quiz-example").forEach(quiz => {
+
+                const correctAnswer = quiz.dataset.correct;
+                const explanationText = quiz.dataset.explanation;
+                const explanationBox = quiz.closest(".tab-content").querySelector(".quiz-explanation");
+
+                let answered = false;
+
+                quiz.querySelectorAll(".option-item").forEach(option => {
+                    option.addEventListener("click", () => {
+                        if (answered) return;
+                        answered = true;
+
+                        const selectedIndex = option.dataset.index;
+
+                        quiz.querySelectorAll(".option-item").forEach(item => {
+                            const index = item.dataset.index;
+                            const icon = item.querySelector(".icon");
+
+                            item.classList.remove("hover:border-indigo-300", "hover:bg-indigo-50");
+
+                            if (index == correctAnswer) {
+                                item.classList.add("border-green-500", "bg-green-50");
+                                icon.innerHTML = `
+                                    <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clip-rule="evenodd" />
+                                    </svg>`;
+                                icon.classList.remove("hidden");
+                            }
+
+                            if (index == selectedIndex && index != correctAnswer) {
+                                item.classList.add("border-red-500", "bg-red-50");
+                                icon.innerHTML = `
+                                    <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm4.293-10.707a1 1 0 00-1.414-1.414L10 8.586 7.121 5.707a1 1 0 00-1.414 1.414L8.586 10l-2.879 2.879a1 1 0 101.414 1.414L10 11.414l2.879 2.879a1 1 0 001.414-1.414L11.414 10l2.879-2.879z"
+                                            clip-rule="evenodd" />
+                                    </svg>`;
+                                icon.classList.remove("hidden");
+                            }
+                        });
+
+                        explanationBox.querySelector(".text-blue-800").innerText = explanationText;
+                        explanationBox.classList.remove("hidden");
+                    });
+                });
+            });
+
+        });
+
     </script>
+
 </x-app-layout>
