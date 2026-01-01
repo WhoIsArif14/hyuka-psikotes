@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('rmib_questions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('alat_tes_id')->constrained('alat_tes')->onDelete('cascade');
-            $table->integer('item_number')->unique(); // 1-9 (untuk 9 kelompok)
-            $table->string('group_title'); // Misal: "Kelompok 1"
-            
+            $table->integer('item_number')->unique(); // 1-12 (untuk 12 tabel)
+            $table->string('group_title'); // Misal: "Tabel 1"
+
             // 12 pernyataan per kelompok (A-L)
             $table->text('statement_a'); // Outdoor (O)
             $table->text('statement_b'); // Mechanical (M)
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->text('statement_j'); // Clerical (Cl)
             $table->text('statement_k'); // Practical (Pr)
             $table->text('statement_l'); // Medical (Me)
-            
+
             // Kunci jawaban (kategori minat untuk setiap statement)
             $table->char('key_a', 2); // O, M, C, S, P, A, L, Mu, SS, Cl, Pr, Me
             $table->char('key_b', 2);
@@ -44,7 +44,7 @@ return new class extends Migration
             $table->char('key_j', 2);
             $table->char('key_k', 2);
             $table->char('key_l', 2);
-            
+
             $table->timestamps();
         });
 
@@ -54,7 +54,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('alat_tes_id')->constrained('alat_tes')->onDelete('cascade');
             $table->foreignId('rmib_question_id')->constrained('rmib_questions')->onDelete('cascade');
-            
+
             // Jawaban user: ranking 1-12 untuk setiap statement
             $table->integer('rank_a')->nullable(); // 1 = paling disukai, 12 = paling tidak disukai
             $table->integer('rank_b')->nullable();
@@ -68,9 +68,9 @@ return new class extends Migration
             $table->integer('rank_j')->nullable();
             $table->integer('rank_k')->nullable();
             $table->integer('rank_l')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Unique constraint: 1 jawaban per user per question
             $table->unique(['user_id', 'rmib_question_id']);
         });
@@ -80,8 +80,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('alat_tes_id')->constrained('alat_tes')->onDelete('cascade');
-            
-            // Skor untuk 12 kategori minat (akumulasi dari 9 kelompok)
+
+            // Skor untuk 12 kategori minat (akumulasi dari 12 tabel)
             $table->integer('score_outdoor')->default(0);        // O
             $table->integer('score_mechanical')->default(0);     // M
             $table->integer('score_computational')->default(0);  // C
@@ -94,18 +94,18 @@ return new class extends Migration
             $table->integer('score_clerical')->default(0);       // Cl
             $table->integer('score_practical')->default(0);      // Pr
             $table->integer('score_medical')->default(0);        // Me
-            
+
             // Ranking kategori (1-12, 1 = minat tertinggi)
             $table->json('interest_ranking')->nullable();
-            
+
             // Top 3 minat
             $table->string('top_interest_1')->nullable();
             $table->string('top_interest_2')->nullable();
             $table->string('top_interest_3')->nullable();
-            
+
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'alat_tes_id']);
         });
     }

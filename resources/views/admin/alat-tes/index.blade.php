@@ -63,9 +63,7 @@
                             @forelse ($AlatTes as $item)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap font-medium">{{ $item->name }}</td>
-                                    <td>
-                                        {{ \App\Models\Question::where('alat_tes_id', $item->id)->count() }}
-                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ $item->questions_count }}</td>
 
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $item->duration_minutes }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

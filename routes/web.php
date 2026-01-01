@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 
 // User-side Controllers
 use App\Http\Controllers\TestAccessController;
@@ -126,6 +127,21 @@ Route::middleware(['auth'])->group(function () {
         ->name('pauli.submit')
         ->where('test', '[0-9]+');
 
+    // -----------------------------
+    // Personality Test (simple example)
+    // -----------------------------
+    Route::get('/personality-tests', [\App\Http\Controllers\PersonalityTestController::class, 'index'])
+        ->name('personality.index');
+
+    Route::get('/personality-tests/{personalityTest}', [\App\Http\Controllers\PersonalityTestController::class, 'show'])
+        ->name('personality.show');
+
+    Route::post('/personality-tests/{personalityTest}/submit', [\App\Http\Controllers\PersonalityTestController::class, 'submit'])
+        ->name('personality.submit');
+
+    Route::get('/personality-tests/{personalityTest}/results/{result}', [\App\Http\Controllers\PersonalityTestController::class, 'showResult'])
+        ->name('personality.results.show');
+
     // RMIB route group: show table, save (AJAX), submit entire RMIB
     Route::get('/tests/{test}/rmib/{table}', [\App\Http\Controllers\RmibTestController::class, 'showTable'])
         ->name('tests.rmib.table')
@@ -142,6 +158,11 @@ Route::middleware(['auth'])->group(function () {
     // Route LEGACY - Taruh di paling bawah
     Route::get('/tests/{test}', [UserTestController::class, 'show'])
         ->name('tests.show')
+        ->where('test', '[0-9]+');
+
+    // Module report - aggregate multiple alat tes in a module
+    Route::get('/tests/{test}/module-report', [\App\Http\Controllers\ReportController::class, 'showModuleReport'])
+        ->name('tests.module.report')
         ->where('test', '[0-9]+');
 
     Route::post('/tests/{test}/submit', [UserTestController::class, 'store'])
@@ -213,6 +234,12 @@ Route::middleware(['auth', IsAdmin::class])
             ]);
         Route::get('activation-codes/{code}/export', [ActivationCodeController::class, 'exportBatch'])->name('codes.export');
 
+        // Edit batch name
+        Route::patch('activation-codes/{code}/update-name', [ActivationCodeController::class, 'updateName'])->name('codes.updateName');
+
+        // Reset single activation code (clear usage/user and set Pending)
+        Route::patch('activation-codes/{code}/reset', [ActivationCodeController::class, 'reset'])->name('codes.reset');
+
         // ==========================================================
         // MANAJEMEN MASTER DATA
         // ==========================================================
@@ -254,12 +281,22 @@ Route::middleware(['auth', IsAdmin::class])
         Route::resource('alat-tes', AlatTesController::class)->names('alat-tes');
 
         // ==========================================================
-        // ✅ QUESTIONS MANAGEMENT
+        // ✅ QUESTIONS MANAGEMENT (RESTRUCTURED)
         // ==========================================================
 
         // Main Questions Index (Shows all types)
         Route::get('alat-tes/{alat_te}/questions', [QuestionController::class, 'index'])
             ->name('alat-tes.questions.index');
+
+        // -------------------- SHARED & SPECIFIC ROUTES (MUST BE FIRST) --------------------
+        Route::put('alat-tes/{alat_te}/questions/instructions', [QuestionController::class, 'updateInstructions'])
+            ->name('alat-tes.questions.update_instructions');
+
+        Route::post('alat-tes/{alat_te}/questions/import', [QuestionController::class, 'import'])
+            ->name('alat-tes.questions.import');
+
+        Route::get('alat-tes/questions/download-template', [QuestionController::class, 'downloadTemplate'])
+            ->name('alat-tes.questions.template');
 
         // -------------------- GENERAL QUESTIONS --------------------
         Route::get('alat-tes/{alat_te}/questions/create', [QuestionController::class, 'create'])
@@ -268,6 +305,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::post('alat-tes/{alat_te}/questions', [QuestionController::class, 'store'])
             ->name('alat-tes.questions.store');
 
+        // Generic routes with {question} parameter (MUST BE LAST in this section)
         Route::get('alat-tes/{alat_te}/questions/{question}/edit', [QuestionController::class, 'edit'])
             ->name('alat-tes.questions.edit');
 
@@ -296,7 +334,7 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('alat-tes/{alat_te}/questions/papi/{question}', [PapiQuestionController::class, 'destroy'])
             ->name('alat-tes.questions.papi.destroy');
 
-        // -------------------- ✅ RMIB QUESTIONS (FIXED) --------------------
+        // -------------------- RMIB QUESTIONS --------------------
         Route::get('alat-tes/{alatTesId}/questions/rmib/create', [RmibQuestionController::class, 'create'])
             ->name('alat-tes.questions.rmib.create');
 
@@ -312,19 +350,37 @@ Route::middleware(['auth', IsAdmin::class])
         Route::delete('alat-tes/{alatTesId}/questions/rmib/{questionId}', [RmibQuestionController::class, 'destroy'])
             ->name('alat-tes.questions.rmib.destroy');
 
-        // -------------------- SHARED FEATURES --------------------
-        Route::post('alat-tes/{alat_te}/questions/import', [QuestionController::class, 'import'])
-            ->name('alat-tes.questions.import');
-        Route::get('alat-tes/questions/download-template', [QuestionController::class, 'downloadTemplate'])
-            ->name('alat-tes.questions.template');
+        // -------------------- PAULI ADMIN ROUTES --------------------
+        Route::get('alat-tes/{alatTesId}/pauli', [App\Http\Controllers\Admin\PauliTestController::class, 'index'])
+            ->name('pauli.index');
+        Route::get('pauli/create', [App\Http\Controllers\Admin\PauliTestController::class, 'create'])
+            ->name('pauli.create');
+        Route::post('pauli', [App\Http\Controllers\Admin\PauliTestController::class, 'store'])
+            ->name('pauli.store');
+        Route::get('pauli/{pauliTest}/edit', [App\Http\Controllers\Admin\PauliTestController::class, 'edit'])
+            ->name('pauli.edit');
+        Route::put('pauli/{pauliTest}', [App\Http\Controllers\Admin\PauliTestController::class, 'update'])
+            ->name('pauli.update');
+        Route::delete('pauli/{pauliTest}', [App\Http\Controllers\Admin\PauliTestController::class, 'destroy'])
+            ->name('pauli.destroy');
+        Route::get('pauli/{pauliTest}/results', [App\Http\Controllers\Admin\PauliTestController::class, 'results'])
+            ->name('pauli.results');
+        Route::get('pauli/result/{resultId}', [App\Http\Controllers\Admin\PauliTestController::class, 'showResult'])
+            ->name('pauli.result');
 
+        // -------------------- OPTIONS & EXAMPLES --------------------
         Route::post('alat-tes/{alat_te}/questions/{question}/options', [OptionController::class, 'store'])
             ->name('alat-tes.questions.options.store');
         Route::delete('alat-tes/{alat_te}/options/{option}', [OptionController::class, 'destroy'])
             ->name('alat-tes.options.destroy');
 
+        // Example Questions Routes (URL differs from main questions)
         Route::post('alat-tes/{alat_te}/example-questions', [QuestionController::class, 'storeExample'])
             ->name('alat-tes.example-questions.store');
+
+        Route::put('alat-tes/{alat_te}/example-questions/{example}', [QuestionController::class, 'updateExample'])
+            ->name('alat-tes.example-questions.update');
+
         Route::delete('alat-tes/{alat_te}/example-questions/{example}', [QuestionController::class, 'destroyExample'])
             ->name('alat-tes.example-questions.destroy');
 
@@ -363,6 +419,21 @@ Route::middleware(['auth', IsAdmin::class])
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         // Rute Show (menampilkan daftar peserta di dalam Batch)
         Route::get('reports/{code}', [ReportController::class, 'show'])->name('reports.show');
+        // Delete a specific activation code (used to remove a participant entry from a batch)
+        Route::delete('reports/{code}', [ReportController::class, 'destroy'])->name('reports.destroy');
+        // Bulk delete selected activation codes
+        Route::post('reports/bulk-delete', [ReportController::class, 'bulkDestroy'])->name('reports.bulk_destroy');
+
+        // TEMP DEBUG ROUTE: menerima POST untuk memverifikasi apakah request bulk-delete sampai ke aplikasi
+        Route::post('reports/bulk-delete-test', function (\Illuminate\Http\Request $request) {
+            Log::info('bulk-delete-debug', [
+                'method' => $request->method(),
+                'ip' => $request->ip(),
+                'payload' => $request->all(),
+            ]);
+            return response()->json(['ok' => true]);
+        })->name('reports.bulk_destroy_test');
+
         // Rute PDF (mengunduh hasil tes berdasarkan ID TestResult)
         Route::get('reports/pdf/{testResult}', [ReportController::class, 'generatePdfReport'])->name('reports.pdf');
 

@@ -14,28 +14,31 @@ return new class extends Migration
     {
         Schema::table('questions', function (Blueprint $table) {
             // 1. Ubah kolom type dari VARCHAR ke ENUM
-            DB::statement("ALTER TABLE questions MODIFY COLUMN type ENUM('PILIHAN_GANDA', 'ESSAY', 'HAFALAN', 'multiple_choice') DEFAULT 'PILIHAN_GANDA'");
-            
+            // MySQL specific enum modification — skip when using SQLite (in-memory tests)
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE questions MODIFY COLUMN type ENUM('PILIHAN_GANDA', 'ESSAY', 'HAFALAN', 'multiple_choice') DEFAULT 'PILIHAN_GANDA'");
+            }
+
             // 2. Tambah kolom options untuk menyimpan pilihan jawaban (JSON)
             if (!Schema::hasColumn('questions', 'options')) {
                 $table->json('options')->nullable()->after('image_path');
             }
-            
+
             // 3. Tambah kolom correct_answer_index untuk jawaban benar
             if (!Schema::hasColumn('questions', 'correct_answer_index')) {
                 $table->integer('correct_answer_index')->nullable()->after('options');
             }
-            
+
             // 4. Tambah kolom memory_content untuk konten hafalan
             if (!Schema::hasColumn('questions', 'memory_content')) {
                 $table->text('memory_content')->nullable()->after('correct_answer_index');
             }
-            
+
             // 5. Tambah kolom memory_type untuk tipe konten hafalan
             if (!Schema::hasColumn('questions', 'memory_type')) {
                 $table->enum('memory_type', ['TEXT', 'IMAGE'])->nullable()->after('memory_content');
             }
-            
+
             // 6. Tambah kolom duration_seconds untuk durasi tampil hafalan
             if (!Schema::hasColumn('questions', 'duration_seconds')) {
                 $table->integer('duration_seconds')->nullable()->after('memory_type');
@@ -73,6 +76,8 @@ return new class extends Migration
         });
 
         // Kembalikan type ke VARCHAR
-        DB::statement("ALTER TABLE questions MODIFY COLUMN type VARCHAR(255) DEFAULT 'multiple_choice'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE questions MODIFY COLUMN type VARCHAR(255) DEFAULT 'multiple_choice'");
+        }
     }
 };

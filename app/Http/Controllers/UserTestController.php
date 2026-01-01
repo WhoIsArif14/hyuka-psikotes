@@ -174,8 +174,28 @@ class UserTestController extends Controller
             Session::forget('current_alat_tes_id');
             Session::put('current_alat_tes_id', $alatTes->id);
 
+            // If this is the moment the user starts this alat tes for the first time in this session
+            // clear any stale saved answers so the UI shows no pre-selected options.
             if (!Session::has('test_start_time_' . $alatTes->id)) {
+                Session::forget('test_answers_' . $alatTes->id);
+                Session::forget('answered_questions_' . $alatTes->id);
                 Session::put('test_start_time_' . $alatTes->id, now());
+            }
+
+            // Update atau buat entry progress untuk user saat memulai alat tes ini
+            if (auth()->check()) {
+                \App\Models\ProgressPengerjaan::updateOrCreate(
+                    [
+                        'user_id' => auth()->id(),
+                        'test_id' => $test->id,
+                        'status' => 'On Progress',
+                    ],
+                    [
+                        'alat_tes_id' => $alatTes->id,
+                        'current_module' => $alatTes->name ?? ($alatTes->slug ?? 'Alat Tes'),
+                        'percentage' => 0,
+                    ]
+                );
             }
 
             return redirect()->route('tests.question', [
@@ -240,7 +260,58 @@ class UserTestController extends Controller
 
         $currentQuestion = $questions[$number - 1];
         $savedAnswers = Session::get('test_answers_' . $alatTes->id, []);
-        $savedAnswer = $savedAnswers[$currentQuestion->id] ?? null;
+        $answeredQuestions = Session::get('answered_questions_' . $alatTes->id, []);
+
+        // Only treat a saved answer as valid if the question is marked in answered_questions (i.e., user deliberately saved it)
+        if (!in_array($currentQuestion->id, $answeredQuestions, true)) {
+            $savedAnswer = null;
+        } else {
+            $savedAnswer = $savedAnswers[$currentQuestion->id] ?? null;
+
+            // Validate saved answer to avoid accidental pre-selection of invalid/default values
+            // For multiple-choice questions ensure the saved answer maps to an existing option index
+            if ($currentQuestion->type !== 'PAPIKOSTICK') {
+                $options = is_string($currentQuestion->options)
+                    ? json_decode($currentQuestion->options, true)
+                    : $currentQuestion->options ?? [];
+
+                if (is_array($options) && count($options) > 0) {
+                    if (is_array($savedAnswer)) {
+                        $savedAnswer = array_values(array_filter($savedAnswer, function ($a) use ($options) {
+                            return isset($options[$a]);
+                        }));
+                        if (empty($savedAnswer)) {
+                            $savedAnswer = null;
+                        }
+                    } else {
+                        if (!isset($options[$savedAnswer])) {
+                            $savedAnswer = null;
+                        }
+                    }
+                } else {
+                    // No options defined, clear any saved answer
+                    $savedAnswer = null;
+                }
+            } else {
+                // For PAPIKOSTICK ensure only 'A' or 'B' are accepted
+                if (!in_array($savedAnswer, ['A', 'B'], true)) {
+                    $savedAnswer = null;
+                }
+            }
+        }
+
+        // If session contained an invalid/unsupported saved answer, remove it to avoid showing
+        // answered state in the navigator for an actually unanswered question.
+        if (isset($savedAnswers[$currentQuestion->id]) && $savedAnswer === null) {
+            unset($savedAnswers[$currentQuestion->id]);
+            Session::put('test_answers_' . $alatTes->id, $savedAnswers);
+
+            // Also remove from answered_questions list
+            if (in_array($currentQuestion->id, $answeredQuestions, true)) {
+                $answeredQuestions = array_values(array_diff($answeredQuestions, [$currentQuestion->id]));
+                Session::put('answered_questions_' . $alatTes->id, $answeredQuestions);
+            }
+        }
 
         $startTime = Session::get('test_start_time_' . $alatTes->id);
         $timeLimit = $alatTes->duration_minutes * 60;
@@ -273,12 +344,37 @@ class UserTestController extends Controller
         $currentQuestion = $questions[$number - 1];
 
         $answers = Session::get('test_answers_' . $alatTes->id, []);
+        $answered = Session::get('answered_questions_' . $alatTes->id, []);
 
         if ($request->has('answer')) {
             $answers[$currentQuestion->id] = $request->input('answer');
+
+            // Mark this question as answered (so we know it's a deliberate saved response)
+            if (!in_array($currentQuestion->id, $answered)) {
+                $answered[] = $currentQuestion->id;
+            }
+        } else {
+            // If the request didn't include an answer (e.g., navigating), do not mark as answered.
+            // Optionally allow unsetting answer when user clears; for now we keep previous value.
         }
 
         Session::put('test_answers_' . $alatTes->id, $answers);
+        Session::put('answered_questions_' . $alatTes->id, $answered);
+
+        // Update progress percentage (jika user terautentikasi)
+        $answeredCount = count($answered);
+        $totalQuestions = $questions->count();
+        $progressPercent = $totalQuestions > 0 ? (int) round(($answeredCount / $totalQuestions) * 100) : 0;
+
+        if (auth()->check()) {
+            \App\Models\ProgressPengerjaan::where('user_id', auth()->id())
+                ->where('test_id', $test->id)
+                ->where('status', 'On Progress')
+                ->update([
+                    'percentage' => $progressPercent,
+                    'current_module' => $alatTes->name ?? ($alatTes->slug ?? 'Alat Tes'),
+                ]);
+        }
 
         $action = $request->input('action');
 
@@ -346,11 +442,30 @@ class UserTestController extends Controller
 
         $startTime = Session::get('test_start_time_' . $alatTes->id, now());
 
+        // Hitung skor maksimum dari semua soal untuk normalisasi IQ
+        $maxScore = 0;
+        foreach ($questions as $q) {
+            $opts = is_string($q->options) ? json_decode($q->options, true) : $q->options ?? [];
+            $maxForQ = 0;
+            if (is_array($opts)) {
+                foreach ($opts as $opt) {
+                    $p = $opt['point'] ?? 0;
+                    if ($p > $maxForQ) $maxForQ = $p;
+                }
+            } else {
+                $maxForQ = 1;
+            }
+            $maxScore += $maxForQ;
+        }
+
+        $iq = \App\Models\TestResult::computeIq($score, $maxScore);
+
         $testResult = TestResult::create([
             'test_id' => $test->id,
             'alat_tes_id' => $alatTes->id,
             'user_id' => auth()->id(),
             'score' => $score,
+            'iq' => $iq,
             'start_time' => $startTime,
             'end_time' => now(),
             'participant_name' => $participantData['participant_name'] ?? null,
@@ -363,6 +478,18 @@ class UserTestController extends Controller
         Session::forget('test_answers_' . $alatTes->id);
         Session::forget('test_start_time_' . $alatTes->id);
         Session::forget('current_alat_tes_id');
+
+        // Tandai progress sebagai selesai jika ada
+        if (auth()->check()) {
+            \App\Models\ProgressPengerjaan::where('user_id', auth()->id())
+                ->where('test_id', $test->id)
+                ->update([
+                    'status' => 'Completed',
+                    'percentage' => 100,
+                    'current_module' => 'Selesai',
+                    'alat_tes_id' => $alatTes->id,
+                ]);
+        }
 
         // ✅ REDIRECT KE DASHBOARD MODUL
         return redirect()->route('tests.dashboard', $test->id)

@@ -63,6 +63,9 @@ class QuestionController extends Controller
             'papiQuestions' => $papiQuestions,
             'rmibQuestions' => $rmibQuestions,
             'alatTesType' => $alatTesType, // ✅ PASS KE VIEW
+            // Pastikan contoh soal & instruksi tersedia untuk partial atau include yang mungkin mengharapkannya
+            'exampleQuestions' => $AlatTes->example_questions ?? [],
+            'instructions' => $AlatTes->instructions ?? null,
         ]);
     }
 
@@ -1062,20 +1065,182 @@ class QuestionController extends Controller
     }
 
     /**
-     * Store example question
+     * Update Alat Tes instructions (moved to Kelola Soal)
      */
-    public function storeExample(Request $request, $alat_te)
+    public function updateInstructions(Request $request, $alat_te)
     {
-        // TODO: Implement if you have separate example_questions table
-        return back()->with('info', 'ℹ️ Fitur ini belum diimplementasikan.');
+        $validated = $request->validate([
+            'instructions' => 'nullable|string'
+        ]);
+
+        $AlatTes = AlatTes::findOrFail($alat_te);
+        $AlatTes->instructions = $validated['instructions'] ?? null;
+        $AlatTes->save();
+
+        Log::info('Updated alat tes instructions', ['id' => $AlatTes->id]);
+
+        return back()->with('success', 'Instruksi berhasil diperbarui.');
     }
 
     /**
-     * Delete example question
+     * Store example question (as JSON in AlatTes.example_questions)
      */
-    public function destroyExample($alat_te, $example)
+    public function storeExample(Request $request, $alat_te)
     {
-        // TODO: Implement if you have separate example_questions table
-        return back()->with('info', 'ℹ️ Fitur ini belum diimplementasikan.');
+        $validated = $request->validate([
+            'type' => 'required|in:PILIHAN_GANDA,PILIHAN_GANDA_KOMPLEKS,HAFALAN,PAPIKOSTICK,PAULI,RMIB,BINARY,CUSTOM',
+            'question' => 'nullable|string|max:1000',
+            'options' => 'nullable|string',
+            'correct' => 'nullable|integer',
+            'correct_multiple' => 'nullable|string',
+            'statement_a' => 'nullable|string|max:1000',
+            'statement_b' => 'nullable|string|max:1000',
+            'memory_content' => 'nullable|string',
+            'memory_type' => 'nullable|in:TEXT,IMAGE',
+            'duration_seconds' => 'nullable|integer|min:1',
+            'explanation' => 'nullable|string|max:500',
+        ]);
+
+        $AlatTes = AlatTes::findOrFail($alat_te);
+        $examples = $AlatTes->example_questions ?? [];
+
+        $example = [
+            'type' => $validated['type'],
+            'question' => $validated['question'] ?? '',
+            'explanation' => $validated['explanation'] ?? '',
+        ];
+
+        if (isset($validated['options'])) {
+            $options = array_values(array_filter(array_map('trim', explode("\n", $validated['options']))));
+            $example['options'] = $options;
+        }
+
+        if ($validated['type'] === 'PAPIKOSTICK') {
+            $example['statement_a'] = $validated['statement_a'] ?? '';
+            $example['statement_b'] = $validated['statement_b'] ?? '';
+        }
+
+        if ($validated['type'] === 'PILIHAN_GANDA_KOMPLEKS') {
+        } elseif ($validated['type'] === 'PILIHAN_GANDA_KOMPLEKS') {
+            $raw = $validated['correct_multiple'] ?? '';
+            $answers = array_filter(array_map('trim', explode(',', $raw)), function ($v) {
+                return $v !== '';
+            });
+            $example['correct_answers'] = array_map('intval', $answers);
+        } elseif ($validated['type'] === 'HAFALAN') {
+            $example['memory_content'] = $validated['memory_content'] ?? '';
+            $example['memory_type'] = $validated['memory_type'] ?? 'TEXT';
+            $example['duration_seconds'] = (int) ($validated['duration_seconds'] ?? 10);
+        } elseif ($validated['type'] !== 'PAPIKOSTICK') {
+            $example['correct_answer'] = is_null($validated['correct']) ? null : (int) $validated['correct'];
+        } else {
+            // For PILIHAN_GANDA, PAULI, BINARY etc.
+            $example['correct_answer'] = isset($validated['correct']) ? (int) $validated['correct'] : null;
+        }
+
+        $examples[] = $example;
+        $AlatTes->example_questions = $examples;
+        $AlatTes->save();
+
+        Log::info('Added example question', ['alat_tes_id' => $AlatTes->id, 'type' => $example['type']]);
+
+        return back()->with('success', 'Contoh soal berhasil ditambahkan.');
+    }
+
+    /**
+     * Update example question by index
+     */
+    public function updateExample(Request $request, $alat_te, $index)
+    {
+        $validated = $request->validate([
+            'type' => 'required|in:PILIHAN_GANDA,PILIHAN_GANDA_KOMPLEKS,HAFALAN,PAPIKOSTICK,PAULI,RMIB,BINARY,CUSTOM',
+            'question' => 'nullable|string|max:1000',
+            'options' => 'nullable|string',
+            'correct' => 'nullable|integer',
+            'correct' => 'nullable|string',
+            'correct_multiple' => 'nullable|string',
+            'statement_a' => 'nullable|string|max:1000',
+            'statement_b' => 'nullable|string|max:1000',
+            'memory_content' => 'nullable|string',
+            'memory_type' => 'nullable|in:TEXT,IMAGE',
+            'duration_seconds' => 'nullable|integer|min:1',
+            'explanation' => 'nullable|string|max:500',
+        ]);
+
+        $AlatTes = AlatTes::findOrFail($alat_te);
+        $examples = $AlatTes->example_questions ?? [];
+        $idx = (int) $index;
+        if (!isset($examples[$idx])) {
+            return back()->with('error', 'Contoh soal tidak ditemukan.');
+        }
+
+        $example = [
+            'type' => $validated['type'],
+            'question' => $validated['question'] ?? '',
+            'explanation' => $validated['explanation'] ?? '',
+        ];
+
+        if (isset($validated['options'])) {
+            $options = array_values(array_filter(array_map('trim', explode("\n", $validated['options']))));
+            $example['options'] = $options;
+        }
+
+        if ($validated['type'] === 'PAPIKOSTICK') {
+            $example['statement_a'] = $validated['statement_a'] ?? '';
+            $example['statement_b'] = $validated['statement_b'] ?? '';
+        }
+
+        if ($validated['type'] === 'PILIHAN_GANDA_KOMPLEKS') {
+            $raw = $validated['correct_multiple'] ?? '';
+        } elseif ($validated['type'] === 'PILIHAN_GANDA_KOMPLEKS') {
+            $raw = $validated['correct'] ?? '';
+            $answers = array_filter(array_map('trim', explode(',', $raw)), function ($v) {
+                return $v !== '';
+            });
+            $example['correct_answers'] = array_map('intval', $answers);
+            $example['correct_answer'] = null;
+        } elseif ($validated['type'] === 'HAFALAN') {
+            $example['memory_content'] = $validated['memory_content'] ?? '';
+            $example['memory_type'] = $validated['memory_type'] ?? 'TEXT';
+            $example['duration_seconds'] = (int) ($validated['duration_seconds'] ?? 10);
+        } elseif ($validated['type'] !== 'PAPIKOSTICK') {
+            $example['correct_answer'] = is_null($validated['correct']) ? null : (int) $validated['correct'];
+            // Hafalan can also have single/multiple answers from the checkbox form
+            $raw = $validated['correct'] ?? '';
+            $example['correct_answers'] = str_contains($raw, ',') ? array_map('intval', explode(',', $raw)) : null;
+            $example['correct_answer'] = !str_contains($raw, ',') && $raw !== '' ? (int)$raw : null;
+        } else {
+            // For PILIHAN_GANDA, PAULI, BINARY etc.
+            $example['correct_answer'] = isset($validated['correct']) && $validated['correct'] !== '' ? (int) $validated['correct'] : null;
+            $example['correct_answers'] = null;
+        }
+
+        $examples[$idx] = $example;
+        $AlatTes->example_questions = $examples;
+        $AlatTes->save();
+
+        Log::info('Updated example question', ['alat_tes_id' => $AlatTes->id, 'index' => $idx, 'type' => $example['type']]);
+
+        return back()->with('success', 'Contoh soal berhasil diperbarui.');
+    }
+
+    /**
+     * Delete example question by index
+     */
+    public function destroyExample($alat_te, $index)
+    {
+        $AlatTes = AlatTes::findOrFail($alat_te);
+        $examples = $AlatTes->example_questions ?? [];
+        $idx = (int) $index;
+        if (!isset($examples[$idx])) {
+            return back()->with('error', 'Contoh soal tidak ditemukan.');
+        }
+        array_splice($examples, $idx, 1);
+        $AlatTes->example_questions = $examples;
+        $AlatTes->save();
+
+        Log::info('Deleted example question', ['alat_tes_id' => $AlatTes->id, 'index' => $idx]);
+
+        return back()->with('success', 'Contoh soal berhasil dihapus.');
     }
 }

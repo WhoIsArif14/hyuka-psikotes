@@ -31,6 +31,14 @@ class PauliTest extends Model
     {
         return $this->hasMany(PauliResult::class);
     }
+
+    /**
+     * Generated PAULI questions (persisted to questions table)
+     */
+    public function generatedQuestions()
+    {
+        return $this->hasMany(\App\Models\Question::class, 'pauli_test_id');
+    }
 }
 
 class PauliResult extends Model

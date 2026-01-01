@@ -13,6 +13,9 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             PapiQuestionSeeder::class, // <<< Tambahkan baris ini
             RmibItemSeeder::class, // <<< Tambahkan baris ini
+            PauliSeeder::class,
+            PersonalityTestSeeder::class,
+            InterpretationExamplesSeeder::class,
         ]);
     }
 }

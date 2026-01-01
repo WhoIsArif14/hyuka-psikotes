@@ -10,9 +10,13 @@ class RmibItemSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
         RmibItem::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         $items = $this->getRmibStandardItems();
 
@@ -152,7 +156,7 @@ class RmibItemSeeder extends Seeder
             ['item_number' => 106, 'group_label' => 'I', 'position_in_group' => 10, 'description' => 'Psikiater', 'interest_area' => 'SOCIAL_SERVICE', 'version' => '1995'],
             ['item_number' => 107, 'group_label' => 'I', 'position_in_group' => 11, 'description' => 'Penyanyi', 'interest_area' => 'SOCIAL_SERVICE', 'version' => '1995'],
             ['item_number' => 108, 'group_label' => 'I', 'position_in_group' => 12, 'description' => 'Arkeolog', 'interest_area' => 'SOCIAL_SERVICE', 'version' => '1995'],
-            
+
             // ========== GROUP J - CLERICAL ==========
             ['item_number' => 109, 'group_label' => 'J', 'position_in_group' => 1, 'description' => 'Mengelola administrasi kantor', 'interest_area' => 'CLERICAL', 'version' => '1995'],
             ['item_number' => 110, 'group_label' => 'J', 'position_in_group' => 2, 'description' => 'Bekerja dengan dokumen dan arsip', 'interest_area' => 'CLERICAL', 'version' => '1995'],

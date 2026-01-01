@@ -19,17 +19,68 @@ class TestResult extends Model
     protected $fillable = [
         'user_id',
         'test_id',
-        'alat_tes_id', // Ditambahkan untuk tracking alat tes spesifik
-        'participant_name', // Ditambahkan untuk peserta tanpa akun
+        'alat_tes_id',
+        'participant_name',
         'start_time',
         'end_time',
         'score',
-        'participant_name',
+        'iq',
         'participant_email',
         'education',
         'major',
         'phone_number',
     ];
+
+    /**
+     * The attributes that should be cast to native types.
+     */
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+        'score' => 'integer',
+        'iq' => 'integer',
+    ];
+
+    /**
+     * Static helper to compute IQ from raw score and max possible score.
+     * Simple linear normalization: maps 0..maxScore -> IQ 70..130 (configurable later).
+     */
+    public static function computeIq($score, $maxScore)
+    {
+        $proportion = ($maxScore > 0) ? ($score / $maxScore) : 0;
+        $iq = (int) round(70 + ($proportion * 60));
+
+        // Clamp to sensible bounds
+        return max(40, min(160, $iq));
+    }
+
+    /**
+     * Mengembalikan interpretasi IQ sebagai teks.
+     */
+    public function getIqInterpretationAttribute()
+    {
+        if (is_null($this->iq)) {
+            return null;
+        }
+
+        if ($this->iq < 70) {
+            return 'Rendah';
+        }
+
+        if ($this->iq < 85) {
+            return 'Di bawah rata-rata';
+        }
+
+        if ($this->iq < 115) {
+            return 'Rata-rata';
+        }
+
+        if ($this->iq < 130) {
+            return 'Di atas rata-rata';
+        }
+
+        return 'Sangat tinggi';
+    }
 
     /**
      * Relasi ke model User.
@@ -64,4 +115,3 @@ class TestResult extends Model
         return $this->hasMany(UserAnswer::class);
     }
 }
-

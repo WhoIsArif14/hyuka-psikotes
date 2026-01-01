@@ -29,22 +29,22 @@ class TestController extends Controller
             ->withCount('questions')
             ->latest()
             ->paginate(10);
-            
+
         // Logika untuk menghitung soal total (termasuk 90 soal PAPI jika ada)
         $papiQuestionCount = PapiQuestion::count();
 
         foreach ($tests as $test) {
             // Catatan: Pastikan AlatTes memiliki kolom 'slug'
             $hasPapi = $test->AlatTes->pluck('slug')->contains('papi-kostick');
-            
+
             if ($hasPapi) {
                 // Total soal = soal umum + 90 soal PAPI
-                $test->total_questions = $test->questions_count + $papiQuestionCount; 
+                $test->total_questions = $test->questions_count + $papiQuestionCount;
             } else {
                 $test->total_questions = $test->questions_count;
             }
         }
-            
+
         return view('admin.tests.index', compact('tests'));
     }
 
@@ -101,13 +101,13 @@ class TestController extends Controller
         // Tangani checkbox (karena 'nullable' bisa jadi tidak ada di request)
         $validatedData['is_published'] = $request->has('is_published');
         $validatedData['is_template'] = $request->has('is_template');
-        
+
         // Simpan semua data ke session untuk digunakan di tahap berikutnya
         Session::put('temp_test_data', $validatedData);
 
         // Ambil data Alat Tes yang dipilih untuk ditampilkan di tahap 2
         $alatTesList = AlatTes::whereIn('id', $validatedData['alat_tes_ids'])
-                                ->get(); 
+            ->get();
 
         Session::put('temp_alat_tes_list', $alatTesList);
 
@@ -150,7 +150,7 @@ class TestController extends Controller
         ]);
 
         $testOrder = json_decode($request->input('test_order'), true);
-        
+
         // Siapkan data untuk Mass Assignment ke model Test
         $dataToStore = [
             'title' => $tempData['title'],
@@ -184,7 +184,6 @@ class TestController extends Controller
 
             return redirect()->route('admin.tests.index')
                 ->with('success', 'Modul tes "' . $test->title . '" berhasil dibuat dan urutan telah disimpan.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             Session::forget(['temp_test_data', 'temp_alat_tes_list']);
@@ -260,7 +259,6 @@ class TestController extends Controller
 
             return redirect()->route('admin.tests.index')
                 ->with('success', 'Modul tes "' . $test->title . '" berhasil dibuat.');
-
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->withInput()->with('error', 'Gagal menyimpan Tes. Error: ' . $e->getMessage());
@@ -319,9 +317,9 @@ class TestController extends Controller
         $data = $request->except('alat_tes_ids');
         $data['is_published'] = $request->has('is_published');
         $data['is_template'] = $request->has('is_template');
-        
+
         // Pastikan test_order diupdate jika dikirim
-        if($request->filled('test_order')){
+        if ($request->filled('test_order')) {
             $data['test_order'] = $request->input('test_order');
         } else {
             unset($data['test_order']);
@@ -355,17 +353,17 @@ class TestController extends Controller
     public function editOrder(Test $test)
     {
         // Ambil Alat Tes yang terkait
-        $alatTesList = $test->AlatTes; 
-        
+        $alatTesList = $test->AlatTes;
+
         // Urutkan Alat Tes berdasarkan kolom 'test_order' jika sudah ada
         if ($test->test_order) {
             $orderedIds = $test->test_order;
             // Urutkan AlatTes menggunakan urutan yang tersimpan
-            $alatTesList = $alatTesList->sortBy(function($item) use ($orderedIds) {
+            $alatTesList = $alatTesList->sortBy(function ($item) use ($orderedIds) {
                 return array_search($item->id, $orderedIds);
             })->values();
         }
-        
+
         return view('admin.tests.edit-order', compact('test', 'alatTesList'));
     }
 
@@ -377,14 +375,14 @@ class TestController extends Controller
         $request->validate([
             'test_order' => 'required|json',
         ]);
-        
+
         $testOrder = json_decode($request->input('test_order'), true);
-        
+
         try {
             $test->update([
                 'test_order' => $testOrder
             ]);
-            
+
             return redirect()->route('admin.tests.index')->with('success', 'Urutan Alat Tes untuk "' . $test->title . '" berhasil diperbarui.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memperbarui urutan. Error: ' . $e->getMessage());
@@ -412,33 +410,38 @@ class TestController extends Controller
     {
         // Load relasi yang dibutuhkan untuk detail modul
         $test->load([
-            'category', 
-            'jenjang', 
-            'client', 
+            'category',
+            'jenjang',
+            'client',
             'AlatTes.questions', // Alat tes beserta soal-soalnya
-            'AlatTes.papiQuestions', // Soal PAPI jika ada
-            'AlatTes.exampleQuestions' // Soal contoh jika ada
+            'AlatTes.papiQuestions' // Soal PAPI jika ada
+            // Note: example questions are stored as JSON in `example_questions` column, not as a relationship
         ]);
 
         // Hitung total soal per alat tes
-        $alatTesWithQuestions = $test->AlatTes->map(function($alatTes) {
+        $alatTesWithQuestions = $test->AlatTes->map(function ($alatTes) {
             $totalQuestions = $alatTes->questions->count();
-            
+
             // Tambahkan soal PAPI jika ada
             if ($alatTes->slug === 'papi-kostick') {
                 $totalQuestions += $alatTes->papiQuestions->count();
             }
-            
+
             $alatTes->total_questions = $totalQuestions;
             return $alatTes;
         });
 
         // Urutkan sesuai test_order jika ada
         if ($test->test_order) {
-            $orderedIds = $test->test_order;
-            $alatTesWithQuestions = $alatTesWithQuestions->sortBy(function($item) use ($orderedIds) {
-                return array_search($item->id, $orderedIds);
-            })->values();
+            // Pastikan test_order berupa array (beberapa record menyimpan JSON string)
+            $orderedIds = is_string($test->test_order) ? json_decode($test->test_order, true) : $test->test_order;
+
+            // Jika setelah decoding bukan array, abaikan pengurutan
+            if (is_array($orderedIds) && count($orderedIds) > 0) {
+                $alatTesWithQuestions = $alatTesWithQuestions->sortBy(function ($item) use ($orderedIds) {
+                    return array_search($item->id, $orderedIds);
+                })->values();
+            }
         }
 
         // Statistik umum modul
@@ -448,8 +451,8 @@ class TestController extends Controller
             'total_duration' => $test->duration_minutes,
             'total_participants' => $test->testResults()->count(),
         ];
-        
-        return view('admin.tests.show', compact('test', 'alatTesWithQuestions', 'statistics')); 
+
+        return view('admin.tests.show', compact('test', 'alatTesWithQuestions', 'statistics'));
     }
 
     /**
@@ -463,11 +466,11 @@ class TestController extends Controller
             ->with(['user']) // Eager load relasi user jika ada
             ->latest()
             ->paginate(15);
-        
+
         // Hitung statistik hasil tes peserta
         // PERBAIKAN: Hapus filter whereNotNull karena kolom mungkin tidak ada
         $totalResults = $test->testResults()->count();
-        
+
         $statistics = [
             'total_participants' => $totalResults,
             'completed' => $totalResults, // Sementara anggap semua selesai (bisa disesuaikan nanti)
@@ -476,7 +479,7 @@ class TestController extends Controller
             'highest_score' => $test->testResults()->max('score') ?? 0,
             'lowest_score' => $test->testResults()->min('score') ?? 0,
         ];
-        
+
         return view('admin.tests.results', compact('test', 'results', 'statistics'));
     }
 
@@ -495,7 +498,8 @@ class TestController extends Controller
         $sheet->setCellValue('D1', 'Pendidikan');
         $sheet->setCellValue('E1', 'Jurusan');
         $sheet->setCellValue('F1', 'Skor');
-        $sheet->setCellValue('G1', 'Waktu Mengerjakan');
+        $sheet->setCellValue('G1', 'IQ');
+        $sheet->setCellValue('H1', 'Waktu Mengerjakan');
 
         // Mengambil data hasil tes
         $results = $test->testResults()->get();
@@ -509,7 +513,8 @@ class TestController extends Controller
             $sheet->setCellValue('D' . $rowNumber, $result->education);
             $sheet->setCellValue('E' . $rowNumber, $result->major);
             $sheet->setCellValue('F' . $rowNumber, $result->score);
-            $sheet->setCellValue('G' . $rowNumber, $result->created_at->format('d-m-Y H:i'));
+            $sheet->setCellValue('G' . $rowNumber, $result->iq ?? '-');
+            $sheet->setCellValue('H' . $rowNumber, $result->created_at->format('d-m-Y H:i'));
             $rowNumber++;
         }
 

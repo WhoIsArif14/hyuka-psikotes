@@ -40,53 +40,91 @@
                         </button>
                     </div>
 
-                    {{-- FORM GENERATE --}}
-                    <div id="formContainer" style="display: none;"
-                        class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <h4 class="text-lg font-medium text-gray-900 mb-4">Buat Kode Aktivasi Massal</h4>
-                        <form method="POST" action="{{ route('admin.codes.store') }}">
-                            @csrf
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label for="batch_name" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Nama Batch (Opsional)
-                                    </label>
-                                    <input type="text" name="batch_name" id="batch_name"
-                                        placeholder="Contoh: Batch Januari 2025"
-                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                </div>
-                                <div>
-                                    <label for="test_id" class="block text-sm font-medium text-gray-700 mb-1">Pilih
-                                        Modul Tes</label>
-                                    <select name="test_id" id="test_id" required
-                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <option value="">-- Pilih Modul --</option>
-                                        @foreach ($tests as $test)
-                                            <option value="{{ $test->id }}">{{ $test->title }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Jumlah Kode (Qty)
-                                    </label>
-                                    <input type="number" name="quantity" id="quantity" required min="1"
-                                        max="1000" value="10"
-                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                </div>
-                            </div>
-                            <div class="flex justify-end gap-2 mt-4">
-                                <button type="button" id="cancelBtn"
-                                    class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg">
-                                    Batal
-                                </button>
-                                <button type="submit"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
-                                    Generate Kode
+                    {{-- FORM GENERATE (Modal) --}}
+                    <!-- Modal backdrop -->
+                    <div id="modalBackdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden z-40"></div>
+
+                    <!-- Modal -->
+                    <div id="createBatchModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+                        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4">
+                            <div class="flex items-center justify-between p-5 border-b">
+                                <h4 class="text-lg font-semibold text-gray-900">Buat Kode Aktivasi Massal</h4>
+                                <button id="modalCloseBtn" class="text-gray-500 hover:text-gray-800">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
-                        </form>
+
+                            <form method="POST" action="{{ route('admin.codes.store') }}" id="createBatchForm">
+                                @csrf
+                                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="sm:col-span-1">
+                                        <label for="modal_batch_name"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Nama Batch
+                                            (Opsional)</label>
+                                        <input type="text" name="batch_name" id="modal_batch_name"
+                                            placeholder="Contoh: Batch Januari 2025"
+                                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2" />
+                                        <p class="mt-2 text-xs text-gray-500">Masukkan nama batch yang mudah diingat.
+                                            Jika dikosongkan, sistem akan membuat nama otomatis.</p>
+                                    </div>
+
+                                    <div>
+                                        <label for="modal_test_id"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Pilih Modul Tes</label>
+                                        <select name="test_id" id="modal_test_id" required
+                                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                                            <option value="">-- Pilih Modul --</option>
+                                            @foreach ($tests as $test)
+                                                <option value="{{ $test->id }}">{{ $test->title }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="modal_quantity"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Jumlah Kode
+                                            (Qty)</label>
+                                        <input type="number" name="quantity" id="modal_quantity" required
+                                            min="1" max="1000" value="10"
+                                            class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2" />
+                                        <p class="mt-2 text-xs text-gray-500">Kami sarankan membuat batch 10-100 untuk
+                                            kemudahan distribusi.</p>
+                                    </div>
+
+                                    <div class="sm:col-span-1">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Preview</label>
+                                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                            <p class="text-sm text-gray-700 mb-1"><strong>Nama Batch:</strong> <span
+                                                    id="previewBatchName" class="text-gray-800">-</span></p>
+                                            <p class="text-sm text-gray-700 mb-1"><strong>Qty:</strong> <span
+                                                    id="previewQty" class="text-gray-800">10</span></p>
+                                            <p class="text-sm text-gray-500">Setelah generate, semua kode akan muncul di
+                                                detail batch.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-3 p-4 border-t">
+                                    <button type="button" id="modalCancelBtn"
+                                        class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Batal</button>
+                                    <button type="submit"
+                                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">Generate
+                                        Kode</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
+
+                    @if ($errors->any())
+                        <script>
+                            window.addEventListener('DOMContentLoaded', function() {
+                                openCreateBatchModal();
+                            });
+                        </script>
+                    @endif
 
                     {{-- FILTER --}}
                     <div class="flex justify-between items-center mb-4">
@@ -128,7 +166,8 @@
                                     <th
                                         class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border-r">
                                         Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Action
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                                        Action
                                     </th>
                                 </tr>
                             </thead>
@@ -224,35 +263,63 @@
 
     {{-- SCRIPT --}}
     <script>
+        // Modal control functions (open/close) and live preview
+        function openCreateBatchModal() {
+            document.getElementById('createBatchModal').classList.remove('hidden');
+            document.getElementById('modalBackdrop').classList.remove('hidden');
+            // focus first input
+            const first = document.getElementById('modal_batch_name');
+            if (first) first.focus();
+        }
+
+        function closeCreateBatchModal() {
+            document.getElementById('createBatchModal').classList.add('hidden');
+            document.getElementById('modalBackdrop').classList.add('hidden');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            const toggleFormBtn = document.getElementById('toggleFormBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const formContainer = document.getElementById('formContainer');
+            const openBtn = document.getElementById('toggleFormBtn');
+            const closeBtn = document.getElementById('modalCloseBtn');
+            const cancelBtn = document.getElementById('modalCancelBtn');
+            const backdrop = document.getElementById('modalBackdrop');
+            const batchNameInput = document.getElementById('modal_batch_name');
+            const qtyInput = document.getElementById('modal_quantity');
+            const previewName = document.getElementById('previewBatchName');
+            const previewQty = document.getElementById('previewQty');
 
-            if (toggleFormBtn && formContainer) {
-                toggleFormBtn.addEventListener('click', function() {
-                    if (formContainer.style.display === 'none') {
-                        formContainer.style.display = 'block';
-                        toggleFormBtn.innerHTML =
-                            '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Close';
-                    } else {
-                        formContainer.style.display = 'none';
-                        toggleFormBtn.innerHTML =
-                            '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Add';
-                    }
+            if (openBtn) {
+                openBtn.addEventListener('click', function() {
+                    openCreateBatchModal();
                 });
             }
 
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', function() {
-                    formContainer.style.display = 'none';
-                    toggleFormBtn.innerHTML =
-                        '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Add';
-                });
+            if (closeBtn) closeBtn.addEventListener('click', closeCreateBatchModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', closeCreateBatchModal);
+            if (backdrop) backdrop.addEventListener('click', closeCreateBatchModal);
+
+            // close on Esc
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeCreateBatchModal();
+                }
+            });
+
+            // live preview
+            function updatePreview() {
+                const name = batchNameInput.value.trim();
+                previewName.textContent = name ? name : 'Auto-generated name';
+                previewQty.textContent = qtyInput.value;
             }
+
+            if (batchNameInput) batchNameInput.addEventListener('input', updatePreview);
+            if (qtyInput) qtyInput.addEventListener('input', updatePreview);
+
+            // initialize preview
+            updatePreview();
 
             @if ($errors->any())
-                formContainer.style.display = 'block';
+                // If server validation failed, open modal and keep input values
+                openCreateBatchModal();
             @endif
         });
     </script>

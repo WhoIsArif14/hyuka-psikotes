@@ -25,19 +25,23 @@ class RmibQuestionSeeder extends Seeder
 
         $this->command->info("✅ Found RMIB Alat Tes: {$rmibAlatTes->name} (ID: {$rmibAlatTes->id})");
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
+
         // Hapus hanya untuk alat tes ini
         RmibQuestion::where('alat_tes_id', $rmibAlatTes->id)->delete();
-        
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         $tables = $this->getRmibTables();
         $createdCount = 0;
 
         foreach ($tables as $table) {
             RmibQuestion::create(array_merge(
-                ['alat_tes_id' => $rmibAlatTes->id], 
+                ['alat_tes_id' => $rmibAlatTes->id],
                 $table
             ));
             $createdCount++;

@@ -68,7 +68,7 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex items-center space-x-2">
-                                                <a href="{{ route('admin.tests.results', $test) }}" class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-xs">Detail</a>
+                                                <a href="{{ route('admin.tests.show', $test) }}" class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-xs">Detail</a>
                                                 <a href="{{ route('admin.tests.edit', $test) }}" class="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-xs">Edit</a>
                                                 
                                                 {{-- Aksi Delete --}}

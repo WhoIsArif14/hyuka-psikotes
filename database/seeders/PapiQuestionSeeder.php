@@ -848,6 +848,12 @@ class PapiQuestionSeeder extends Seeder
         ];
 
         // Hapus data lama dan masukkan data baru
+        // Hanya simpan role (role_a, role_b) — hapus 'need_a' dan 'need_b' dari setiap item sebelum insert
+        $items = array_map(function ($it) {
+            unset($it['need_a'], $it['need_b']);
+            return $it;
+        }, $items);
+
         DB::table('papi_questions')->truncate();
         DB::table('papi_questions')->insert($items);
 

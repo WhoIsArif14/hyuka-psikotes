@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -44,5 +45,21 @@ class User extends Authenticatable
     public function testResults(): HasMany
     {
         return $this->hasMany(TestResult::class);
+    }
+
+    // RELASI: Hasil Tes Terbaru (relasi hasOne untuk mempermudah eager loading)
+    public function latestTestResult(): HasOne
+    {
+        // Menggunakan latestOfMany() untuk mengambil hasil terbaru per user
+        return $this->hasOne(TestResult::class)->latestOfMany();
+    }
+
+    /**
+     * Relasi: progress pengerjaan terkini (dipakai untuk menampilkan apa yang sedang dikerjakan peserta)
+     * Mengembalikan progress dengan status 'On Progress' jika ada.
+     */
+    public function testProgress(): HasOne
+    {
+        return $this->hasOne(\App\Models\ProgressPengerjaan::class)->where('status', 'On Progress');
     }
 }

@@ -59,8 +59,8 @@
                                         @forelse ($rangkumanTes as $tes)
                                             <tr>
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                                                    {{-- Link untuk melihat laporan detail --}}
-                                                    <a href="{{ route('admin.tests.results', $tes) }}" class="text-indigo-600 hover:text-indigo-900">
+                                                    {{-- Link untuk melihat detail modul (bukan hasil peserta) --}}
+                                                    <a href="{{ route('admin.tests.show', $tes) }}" class="text-indigo-600 hover:text-indigo-900">
                                                         {{ $tes->title }}
                                                     </a>
                                                 </td>
