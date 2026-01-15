@@ -10,6 +10,19 @@
 
             @include('admin.questions.partials.form-header')
 
+            {{-- INFO BANNER --}}
+            @if (session('success'))
+                <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-4 rounded">
+                    <p class="text-green-700 font-semibold">{{ session('success') }}</p>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded">
+                    <p class="text-red-700 font-semibold">{{ session('error') }}</p>
+                </div>
+            @endif
+
             {{-- Form Tambah PAPI --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -21,6 +34,10 @@
                         @if ($papiItems->count() == 0)
                             <p class="text-sm text-red-600 mt-1">
                                 ⚠️ Data PAPI Kostick belum ada di database. Silakan jalankan seeder terlebih dahulu.
+                            </p>
+                        @else
+                            <p class="text-sm text-green-600 mt-1">
+                                ✅ Database memiliki {{ $papiItems->count() }} item PAPI siap digunakan
                             </p>
                         @endif
                     </div>
@@ -85,25 +102,37 @@
                             <label for="papi_item_id" class="block text-sm font-medium text-gray-700 mb-2">
                                 Pilih Soal PAPI <span id="required-mark" class="text-red-500">*</span>
                             </label>
-                            <select id="papi_item_id" name="papi_item_id"
-                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500">
-                                <option value="">-- Pilih Item PAPI --</option>
-                                @foreach ($papiItems as $item)
-                                    <option value="{{ $item->id }}"
-                                        data-statement-a="{{ $item->statement_a }}"
-                                        data-statement-b="{{ $item->statement_b }}"
-                                        data-role-a="{{ $item->role_a }}"
-                                        data-role-b="{{ $item->role_b }}"
-                                        {{ old('papi_item_id') == $item->id ? 'selected' : '' }}>
-                                        Item {{ $item->item_number }}:
-                                        {{ Str::limit($item->statement_a, 50) }} VS
-                                        {{ Str::limit($item->statement_b, 50) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('papi_item_id')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
+                            @if ($papiItems->count() > 0)
+                                <select id="papi_item_id" name="papi_item_id"
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-purple-500 focus:border-purple-500 @error('papi_item_id') border-red-500 @enderror">
+                                    <option value="">-- Pilih Item PAPI --</option>
+                                    @foreach ($papiItems as $item)
+                                        <option value="{{ $item->id }}"
+                                            data-statement-a="{{ $item->statement_a }}"
+                                            data-statement-b="{{ $item->statement_b }}"
+                                            data-role-a="{{ $item->role_a }}"
+                                            data-role-b="{{ $item->role_b }}"
+                                            {{ old('papi_item_id') == $item->id ? 'selected' : '' }}>
+                                            Item {{ $item->item_number }}:
+                                            {{ Str::limit($item->statement_a, 50) }} VS
+                                            {{ Str::limit($item->statement_b, 50) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('papi_item_id')
+                                    <p class="text-red-500 text-xs mt-1 font-semibold">⚠️ {{ $message }}</p>
+                                @enderror
+                                <p class="text-gray-500 text-xs mt-1">
+                                    💡 Total {{ $papiItems->count() }} item PAPI tersedia di database
+                                </p>
+                            @else
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p class="text-red-700 text-sm font-semibold">⚠️ Data PAPI Kostick tidak tersedia</p>
+                                    <p class="text-red-600 text-xs mt-1">
+                                        Silakan jalankan seeder database terlebih dahulu: <code class="bg-red-100 px-2 py-1 rounded">php artisan db:seed</code>
+                                    </p>
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Preview Selected Item --}}
@@ -258,17 +287,36 @@
                     papiForm.addEventListener('submit', function(e) {
                         // Hanya validasi jika TIDAK auto-generate
                         if (!autoGenCheckbox.checked) {
-                            if (!papiItemSelect.value || papiItemSelect.value === '') {
+                            if (!papiItemSelect || !papiItemSelect.value || papiItemSelect.value === '') {
                                 e.preventDefault();
-                                alert('⚠️ Silakan pilih soal PAPI dari dropdown!');
-                                papiItemSelect.focus();
-                                papiItemSelect.classList.add('border-red-500');
-                                setTimeout(() => {
-                                    papiItemSelect.classList.remove('border-red-500');
-                                }, 3000);
+
+                                // Tampilkan alert
+                                alert('⚠️ WAJIB: Silakan pilih soal PAPI dari dropdown terlebih dahulu!\n\nAnda sedang dalam mode input manual, sehingga harus memilih satu item PAPI dari daftar yang tersedia.');
+
+                                // Highlight dropdown dengan border merah
+                                if (papiItemSelect) {
+                                    papiItemSelect.focus();
+                                    papiItemSelect.classList.add('border-red-500', 'border-2');
+                                    papiItemSelect.classList.remove('border-gray-300');
+
+                                    // Hilangkan highlight setelah 3 detik
+                                    setTimeout(() => {
+                                        papiItemSelect.classList.remove('border-red-500', 'border-2');
+                                        papiItemSelect.classList.add('border-gray-300');
+                                    }, 3000);
+                                }
+
+                                // Scroll ke dropdown
+                                if (manualInput) {
+                                    manualInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+
                                 return false;
                             }
                         }
+
+                        // Jika auto-generate, pastikan checkbox value terkirim
+                        return true;
                     });
                 }
 

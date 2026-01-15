@@ -88,7 +88,9 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             @if ($code->user)
-                                                {{ $code->user->name }}
+                                                <a href="{{ route('admin.reports.participant', $code->user->id) }}" class="text-blue-600 hover:underline font-medium">
+                                                    {{ $code->user->name }}
+                                                </a>
                                             @else
                                                 N/A
                                             @endif
@@ -101,14 +103,19 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                             <div class="flex items-center justify-center gap-2">
+                                                @if ($code->user)
+                                                    {{-- Tautan ke detail laporan peserta --}}
+                                                    <a href="{{ route('admin.reports.participant', $code->user->id) }}"
+                                                        class="text-blue-600 hover:text-blue-900 bg-blue-100 px-3 py-1 rounded-md">
+                                                        Detail
+                                                    </a>
+                                                @endif
                                                 @if ($code->user && $code->user->latestTestResult)
                                                     {{-- Tautan ke PDF menggunakan ID Hasil Tes --}}
                                                     <a href="{{ route('admin.reports.pdf', $code->user->latestTestResult->id) }}"
                                                         class="text-indigo-600 hover:text-indigo-900 bg-indigo-100 px-3 py-1 rounded-md">
-                                                        Unduh PDF
+                                                        PDF
                                                     </a>
-                                                @else
-                                                    <span class="text-gray-400">N/A</span>
                                                 @endif
 
                                                 {{-- Delete activation code (handled via JS to avoid nested forms) --}}

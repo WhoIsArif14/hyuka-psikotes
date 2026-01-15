@@ -153,7 +153,7 @@
                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                         </path>
                     </svg>
-                    📚 Contoh Soal <span class="text-gray-500 text-sm font-normal">(Maksimal 2 contoh)</span>
+                    📚 Contoh Soal <span class="text-gray-500 text-sm font-normal">(Maksimal 5 contoh)</span>
                 </h3>
 
                 @php
@@ -456,7 +456,7 @@
                 @endif
 
                 {{-- ✅ FORM TAMBAH CONTOH SOAL DENGAN DROPDOWN --}}
-                @if (count($examples) < 2)
+                @if (count($examples) < 5)
                     <h4 class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
@@ -742,13 +742,13 @@ Tidak</textarea>
                                     class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4v16m8-8H4"></path>
+                                            d="M5 13l4 4L19 7"></path>
                                     </svg>
-                                    Tambah Contoh
+                                    Simpan Contoh Soal
                                 </button>
                             @else
                                 <button type="button" disabled
-                                    class="px-4 py-2 bg-gray-300 text-gray-600 rounded-lg">Tambah Contoh (route tidak
+                                    class="px-4 py-2 bg-gray-300 text-gray-600 rounded-lg">Simpan Contoh Soal (route tidak
                                     tersedia)</button>
                             @endif
                         </div>
@@ -758,7 +758,7 @@ Tidak</textarea>
                     </div>
                 @else
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p class="text-sm text-gray-600">✅ Maksimal 2 contoh soal sudah tercapai.</p>
+                        <p class="text-sm text-gray-600">✅ Maksimal 5 contoh soal sudah tercapai.</p>
                     </div>
                 @endif
             </div>

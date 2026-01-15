@@ -14,6 +14,11 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    @stack('styles')
 </head>
 
 <body class="font-sans antialiased">
@@ -24,48 +29,58 @@
                 <a href="{{ route('admin.dashboard') }}">Hyuka Admin</a>
             </div>
             <nav class="mt-8">
+                <!-- Dashboard -->
                 <a href="{{ route('admin.dashboard') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-700' : '' }}">
                     Dashboard
                 </a>
+
+                <!-- Master Data -->
+                <div class="px-4 py-2 mt-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Master Data
+                </div>
                 <a href="{{ route('admin.peserta.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.peserta.*') ? 'bg-gray-700' : '' }}">
-                    Data Peserta
+                    Peserta
                 </a>
                 <a href="{{ route('admin.users.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.users.*') ? 'bg-gray-700' : '' }}">
-                    Manajemen Pengguna
+                    Pengguna
                 </a>
                 <a href="{{ route('admin.clients.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.clients.*') ? 'bg-gray-700' : '' }}">
-                    Manajemen Klien
+                    Klien
                 </a>
+
+                <!-- Pengaturan Tes -->
+                <div class="px-4 py-2 mt-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Pengaturan Tes
+                </div>
                 <a href="{{ route('admin.categories.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.categories.*') ? 'bg-gray-700' : '' }}">
-                    Manajemen Kategori
+                    Kategori
                 </a>
                 <a href="{{ route('admin.jenjangs.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.jenjangs.*') ? 'bg-gray-700' : '' }}">
-                    Manajemen Jenjang
+                    Jenjang
                 </a>
-                
-                <!-- 1. Menu Create Modul (Menggunakan admin.tests.index) -->
                 <a href="{{ route('admin.tests.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.tests.*') ? 'bg-gray-700' : '' }}">
-                    Create Modul
+                    Modul Tes
                 </a>
-                
-                <!-- 2. Menu Alat Tes (Menggunakan admin.alat-tes.index) -->
                 <a href="{{ route('admin.alat-tes.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.alat-tes.*') ? 'bg-gray-700' : '' }}">
                     Alat Tes
                 </a>
-                
+
+                <!-- Operasional -->
+                <div class="px-4 py-2 mt-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Operasional
+                </div>
                 <a href="{{ route('admin.codes.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.codes.*') ? 'bg-gray-700' : '' }}">
                     Kode Aktivasi
                 </a>
-
                 <a href="{{ route('admin.reports.index') }}"
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 {{ request()->routeIs('admin.reports.*') ? 'bg-gray-700' : '' }}">
                     Laporan
@@ -122,6 +137,8 @@
             </main>
         </div>
     </div>
+
+    @stack('scripts')
 </body>
 
 </html>

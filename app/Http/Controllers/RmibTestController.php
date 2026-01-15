@@ -19,11 +19,12 @@ class RmibTestController extends Controller
     public function showTestForm(Test $test)
     {
         if (Session::get('active_test_id') != $test->id) {
-            return redirect()->route('login')->with('error', 'Sesi tidak valid.');
+            return redirect()->route('tests.dashboard', $test->id)
+                ->with('error', 'Sesi tidak valid. Silakan mulai ulang tes.');
         }
 
         $test->load('alatTes');
-        
+
         // Cari Alat Tes RMIB
         $rmibAlatTes = $test->alatTes->firstWhere(function ($alat) {
             $slug = strtolower($alat->slug ?? $alat->name ?? '');
@@ -31,8 +32,8 @@ class RmibTestController extends Controller
         });
 
         if (!$rmibAlatTes) {
-            return redirect()->route('login')
-                ->with('error', 'Alat Tes RMIB tidak ditemukan.');
+            return redirect()->route('tests.dashboard', $test->id)
+                ->with('error', 'Alat Tes RMIB tidak ditemukan dalam modul ini.');
         }
 
         // Ambil semua pertanyaan RMIB untuk alat tes ini
@@ -41,8 +42,8 @@ class RmibTestController extends Controller
             ->get();
 
         if ($questions->isEmpty()) {
-            return redirect()->route('login')
-                ->with('error', 'Belum ada soal RMIB. Hubungi administrator.');
+            return redirect()->route('tests.dashboard', $test->id)
+                ->with('error', 'Belum ada soal RMIB. Hubungi administrator untuk menambahkan soal.');
         }
 
         // Reset session jika mulai baru
@@ -63,18 +64,20 @@ class RmibTestController extends Controller
     public function showTable(Test $test, $tableNumber)
     {
         if (Session::get('active_test_id') != $test->id) {
-            return redirect()->route('login')->with('error', 'Sesi tidak valid.');
+            return redirect()->route('tests.dashboard', $test->id)
+                ->with('error', 'Sesi tidak valid. Silakan mulai ulang tes.');
         }
 
         $test->load('alatTes');
-        
+
         $rmibAlatTes = $test->alatTes->firstWhere(function ($alat) {
             $slug = strtolower($alat->slug ?? $alat->name ?? '');
             return str_contains($slug, 'rmib');
         });
 
         if (!$rmibAlatTes) {
-            return redirect()->route('login')->with('error', 'Alat Tes RMIB tidak ditemukan.');
+            return redirect()->route('tests.dashboard', $test->id)
+                ->with('error', 'Alat Tes RMIB tidak ditemukan dalam modul ini.');
         }
 
         // Ambil pertanyaan untuk tabel ini

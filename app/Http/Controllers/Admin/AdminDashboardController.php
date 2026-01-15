@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Test;
 use App\Models\TestResult;
+use App\Models\User;
+use App\Models\Client;
+use App\Models\AlatTes;
+use App\Models\ActivationCode;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -12,39 +16,60 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
-        // --- DATA STATISTIK DASAR ---
-        $totalProcess = TestResult::count(); // Total peserta yang telah mengerjakan
-        $psikogramCreated = Test::where('is_template', false)->count(); // Total tes (psikogram) yang dibuat
+        // --- STATISTIK UTAMA ---
+        $totalPeserta = User::where('role', 'peserta')->count();
+        $totalKlien = Client::count();
+        $totalModul = Test::where('is_template', false)->count();
+        $totalAlatTes = AlatTes::count();
 
-        // --- DATA CONTOH UNTUK KUOTA & LANGGANAN ---
-        // Nanti, data ini bisa diambil dari database langganan Anda
-        $kuotaPeserta = 500;
-        $sisaKuotaPeserta = $kuotaPeserta - $totalProcess;
+        // --- STATISTIK KODE AKTIVASI ---
+        $totalKodeAktivasi = ActivationCode::count();
+        $kodeAktivasiTerpakai = ActivationCode::where('status', 'used')->count();
+        $kodeAktivasi = ActivationCode::whereNull('used_at')->where(function($q) {
+            $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+        })->count();
 
-        $kuotaPsikogram = 20;
-        $sisaKuotaPsikogram = $kuotaPsikogram - $psikogramCreated;
-        
-        $subscriptionEndDate = Carbon::now()->addDays(45); // Contoh: Langganan berakhir 45 hari dari sekarang
-        $expiredInDays = now()->diffInDays($subscriptionEndDate);
-        // --- AKHIR DATA CONTOH ---
+        // --- STATISTIK HARI INI ---
+        $pesertaHariIni = TestResult::whereDate('created_at', today())->count();
+        $tesSedangBerlangsung = TestResult::whereNotNull('start_time')
+            ->whereNull('end_time')
+            ->count();
 
-        // Data untuk Rangkuman Pelaksanaan Psikotes
-        // Mengambil tes yang sudah pernah dikerjakan, diurutkan dari yang terbaru
+        // --- AKTIVITAS TERBARU ---
+        $aktivitasTerbaru = TestResult::with(['user', 'test'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // --- DATA GRAFIK: Peserta per hari (7 hari terakhir) ---
+        $chartLabels = [];
+        $chartData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $chartLabels[] = $date->format('d M');
+            $chartData[] = TestResult::whereDate('created_at', $date)->count();
+        }
+
+        // --- RANGKUMAN TES POPULER ---
         $rangkumanTes = Test::where('is_template', false)
-                            ->has('testResults') // Hanya ambil tes yang punya hasil
-                            ->withCount('testResults') // Hitung jumlah pengerjaan
-                            ->latest('updated_at')
-                            ->take(5) // Ambil 5 teratas
-                            ->get();
+            ->withCount('testResults')
+            ->orderByDesc('test_results_count')
+            ->take(5)
+            ->get();
 
         return view('admin.dashboard', compact(
-            'totalProcess',
-            'kuotaPeserta',
-            'sisaKuotaPeserta',
-            'psikogramCreated',
-            'kuotaPsikogram',
-            'sisaKuotaPsikogram',
-            'expiredInDays',
+            'totalPeserta',
+            'totalKlien',
+            'totalModul',
+            'totalAlatTes',
+            'totalKodeAktivasi',
+            'kodeAktivasiTerpakai',
+            'kodeAktivasi',
+            'pesertaHariIni',
+            'tesSedangBerlangsung',
+            'aktivitasTerbaru',
+            'chartLabels',
+            'chartData',
             'rangkumanTes'
         ));
     }

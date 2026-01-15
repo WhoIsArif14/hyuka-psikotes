@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\ActivationCode; // Asumsi model Batch Kode Aktivasi Anda
-use App\Models\TestResult; // Asumsi model Hasil Tes Anda
-use App\Models\Test; // Untuk filter by modul
+use App\Models\ActivationCode;
+use App\Models\TestResult;
+use App\Models\Test;
+use App\Models\AlatTes;
+use App\Models\PapiResult;
+use App\Models\RmibResult;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
-// use PDF; // Uncomment jika Anda menggunakan library PDF (misalnya, DomPDF)
 
 class ReportController extends Controller
 {
@@ -113,10 +116,178 @@ class ReportController extends Controller
     }
 
     /**
+     * Menampilkan laporan lengkap per peserta dengan semua hasil tes.
+     * Route: admin.reports.participant
+     */
+    public function participantReport($userId)
+    {
+        $user = User::with(['testResults.test', 'testResults.alatTes'])->findOrFail($userId);
+
+        // Get all test results for this user
+        $testResults = TestResult::where('user_id', $userId)
+            ->with(['test', 'alatTes'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get PAPI results
+        $papiResults = PapiResult::where('user_id', $userId)
+            ->with('test')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get RMIB results
+        $rmibResults = RmibResult::where('user_id', $userId)
+            ->with('test')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get activation codes used
+        $activationCodes = ActivationCode::where('user_id', $userId)
+            ->with('test')
+            ->get();
+
+        return view('admin.reports.participant', compact(
+            'user',
+            'testResults',
+            'papiResults',
+            'rmibResults',
+            'activationCodes'
+        ));
+    }
+
+    /**
+     * Menampilkan laporan per alat tes (semua peserta yang mengerjakan alat tes tertentu).
+     * Route: admin.reports.alat-tes
+     */
+    public function alatTesReport($alatTesId)
+    {
+        $alatTes = AlatTes::findOrFail($alatTesId);
+
+        // Get all test results for this alat tes
+        $testResults = TestResult::where('alat_tes_id', $alatTesId)
+            ->with(['user', 'test'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        // Statistics
+        $stats = [
+            'total_participants' => TestResult::where('alat_tes_id', $alatTesId)->distinct('user_id')->count('user_id'),
+            'avg_score' => TestResult::where('alat_tes_id', $alatTesId)->avg('score'),
+            'max_score' => TestResult::where('alat_tes_id', $alatTesId)->max('score'),
+            'min_score' => TestResult::where('alat_tes_id', $alatTesId)->min('score'),
+            'completed_count' => TestResult::where('alat_tes_id', $alatTesId)->where('status', 'Completed')->count(),
+        ];
+
+        // Check if this is PAPI or RMIB
+        $isPapi = str_contains(strtolower($alatTes->slug ?? $alatTes->name), 'papi');
+        $isRmib = str_contains(strtolower($alatTes->slug ?? $alatTes->name), 'rmib');
+
+        $papiResults = collect();
+        $rmibResults = collect();
+
+        if ($isPapi) {
+            $papiResults = PapiResult::with(['user', 'test'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+        }
+
+        if ($isRmib) {
+            $rmibResults = RmibResult::with(['user', 'test'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+        }
+
+        return view('admin.reports.alat-tes', compact(
+            'alatTes',
+            'testResults',
+            'stats',
+            'isPapi',
+            'isRmib',
+            'papiResults',
+            'rmibResults'
+        ));
+    }
+
+    /**
+     * Export laporan ke Excel (per alat tes).
+     * Route: admin.reports.export
+     */
+    public function exportReport(Request $request)
+    {
+        $testId = $request->input('test_id');
+        $alatTesId = $request->input('alat_tes_id');
+
+        $query = TestResult::with(['user', 'test', 'alatTes']);
+
+        if ($testId) {
+            $query->where('test_id', $testId);
+        }
+
+        if ($alatTesId) {
+            $query->where('alat_tes_id', $alatTesId);
+        }
+
+        $results = $query->orderBy('created_at', 'desc')->get();
+
+        // Generate CSV
+        $filename = 'laporan_hasil_tes_' . date('Y-m-d_H-i-s') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($results) {
+            $file = fopen('php://output', 'w');
+
+            // CSV Header
+            fputcsv($file, [
+                'No',
+                'Nama Peserta',
+                'Email',
+                'No. HP',
+                'Pendidikan',
+                'Jurusan',
+                'Modul Tes',
+                'Alat Tes',
+                'Skor',
+                'IQ',
+                'Status',
+                'Waktu Selesai',
+                'Durasi Pengerjaan'
+            ]);
+
+            // CSV Data
+            $no = 1;
+            foreach ($results as $result) {
+                fputcsv($file, [
+                    $no++,
+                    $result->participant_name ?? $result->user->name ?? '-',
+                    $result->email ?? $result->user->email ?? '-',
+                    $result->phone_number ?? $result->user->phone_number ?? '-',
+                    $result->education ?? $result->user->education ?? '-',
+                    $result->major ?? $result->user->major ?? '-',
+                    $result->test->name ?? '-',
+                    $result->alatTes->name ?? '-',
+                    $result->score ?? 0,
+                    $result->iq ?? '-',
+                    $result->status ?? '-',
+                    $result->completed_at ?? $result->created_at,
+                    $result->duration_seconds ? gmdate('H:i:s', $result->duration_seconds) : '-'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
      * Membuat dan mengunduh laporan hasil psikotes dalam format PDF.
      * Route: admin.reports.pdf
      */
-    public function generatePdfReport(TestResult $testResult) // Asumsi Route Model Binding pada TestResult
+    public function generatePdfReport(TestResult $testResult)
     {
         // Cari hasil PAPI terkait (jika ada)
         $papiResult = null;

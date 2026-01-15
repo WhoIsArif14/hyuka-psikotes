@@ -437,6 +437,15 @@ Route::middleware(['auth', IsAdmin::class])
         // Rute PDF (mengunduh hasil tes berdasarkan ID TestResult)
         Route::get('reports/pdf/{testResult}', [ReportController::class, 'generatePdfReport'])->name('reports.pdf');
 
+        // Laporan per peserta (semua hasil tes untuk satu peserta)
+        Route::get('reports/participant/{userId}', [ReportController::class, 'participantReport'])->name('reports.participant');
+
+        // Laporan per alat tes (semua peserta yang mengerjakan alat tes tertentu)
+        Route::get('reports/alat-tes/{alatTesId}', [ReportController::class, 'alatTesReport'])->name('reports.alat-tes');
+
+        // Export laporan ke CSV
+        Route::get('reports/export', [ReportController::class, 'exportReport'])->name('reports.export');
+
         // ==========================================================
         // API CHEATING DETECTION (LEGACY - Untuk backward compatibility)
         // ==========================================================

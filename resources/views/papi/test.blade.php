@@ -184,18 +184,19 @@
 
                         {{-- SUBMIT BUTTON --}}
                         <div class="mt-8 flex flex-col items-center">
-                            <button type="submit" 
+                            <button type="submit"
                                     id="submit-button"
                                     onclick="return confirmSubmit()"
-                                    class="inline-flex items-center px-8 py-4 bg-green-600 border border-transparent rounded-lg font-bold text-white uppercase tracking-widest hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                                    disabled
+                                    class="inline-flex items-center px-8 py-4 bg-green-600 border border-transparent rounded-lg font-bold text-white uppercase tracking-widest hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
                                 <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                Selesai & Submit Jawaban
+                                <span id="submit-button-text">Selesai & Submit Jawaban</span>
                             </button>
-                            
-                            <p class="mt-3 text-sm text-gray-500">
-                                Pastikan semua item sudah dijawab sebelum submit
+
+                            <p id="submit-hint" class="mt-3 text-sm text-red-500 font-medium">
+                                Jawab semua {{ $questions->count() }} item untuk mengaktifkan tombol submit
                             </p>
                         </div>
                     </form>
@@ -297,11 +298,27 @@
             document.getElementById('progress-bar').style.width = percentage + '%';
             document.getElementById('progress-percentage').textContent = percentage + '%';
 
-            // Enable submit button only if all answered
+            // Enable/disable submit button based on completion
             const submitButton = document.getElementById('submit-button');
+            const submitHint = document.getElementById('submit-hint');
+            const remaining = totalItems - answeredCount;
+
             if (answeredCount === totalItems) {
-                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 submitButton.disabled = false;
+                submitButton.classList.remove('opacity-50', 'cursor-not-allowed', 'disabled:transform-none', 'disabled:shadow-none');
+                if (submitHint) {
+                    submitHint.textContent = 'Semua item sudah dijawab. Klik untuk submit!';
+                    submitHint.classList.remove('text-red-500');
+                    submitHint.classList.add('text-green-600');
+                }
+            } else {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                if (submitHint) {
+                    submitHint.textContent = `Masih ada ${remaining} item yang belum dijawab`;
+                    submitHint.classList.remove('text-green-600');
+                    submitHint.classList.add('text-red-500');
+                }
             }
 
             // Update navigator status

@@ -37,6 +37,14 @@ class PapiQuestionController extends Controller
     {
         $AlatTes = AlatTes::findOrFail($alatTesId);
 
+        // ✅ Log untuk debugging
+        Log::info('PAPI Store Request', [
+            'alat_tes_id' => $alatTesId,
+            'auto_generate' => $request->auto_generate_papi,
+            'papi_item_id' => $request->papi_item_id,
+            'has_auto_generate' => $request->has('auto_generate_papi'),
+        ]);
+
         // Check if auto-generate is enabled
         if ($request->has('auto_generate_papi') && $request->auto_generate_papi == '1') {
             return $this->autoGeneratePapi($request, $AlatTes);
@@ -148,15 +156,39 @@ class PapiQuestionController extends Controller
      */
     private function storeManualPapi(Request $request, $AlatTes)
     {
+        // ✅ Cek apakah papi_item_id ada dan tidak kosong
+        if (!$request->filled('papi_item_id')) {
+            Log::warning('PAPI Manual Store: No item selected', [
+                'alat_tes_id' => $AlatTes->id,
+                'request_data' => $request->all(),
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'papi_item_id' => 'Silakan pilih soal PAPI dari daftar dropdown'
+                ]);
+        }
+
         // ✅ Validasi hanya jika bukan auto-generate
-        $request->validate([
-            'papi_item_id' => 'required|exists:papi_kostick_items,id',
-            'example_question' => 'nullable|string|max:5000',
-            'instructions' => 'nullable|string|max:5000',
-        ], [
-            'papi_item_id.required' => 'Silakan pilih soal PAPI dari daftar',
-            'papi_item_id.exists' => 'Soal PAPI tidak ditemukan',
-        ]);
+        try {
+            $request->validate([
+                'papi_item_id' => 'required|exists:papi_kostick_items,id',
+                'example_question' => 'nullable|string|max:5000',
+                'instructions' => 'nullable|string|max:5000',
+            ], [
+                'papi_item_id.required' => 'Silakan pilih soal PAPI dari daftar',
+                'papi_item_id.exists' => 'Soal PAPI yang dipilih tidak ditemukan di database. Pastikan Anda memilih dari dropdown yang tersedia.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('PAPI Manual Validation Failed', [
+                'alat_tes_id' => $AlatTes->id,
+                'papi_item_id' => $request->papi_item_id,
+                'papi_items_count' => PapiKostickItem::count(),
+                'errors' => $e->errors(),
+            ]);
+            throw $e;
+        }
 
         DB::beginTransaction();
 

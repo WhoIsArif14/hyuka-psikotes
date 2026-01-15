@@ -128,47 +128,42 @@
                                         {{ $item->used_at ? \Carbon\Carbon::parse($item->used_at)->format('d-m-Y H:i') : '-' }}
                                     </td>
 
-                                    {{-- ✅ TAMBAH DATA KOLOM TRACK --}}
+                                    {{-- ✅ TRACK PENGERJAAN --}}
                                     <td class="px-4 py-3 text-sm text-gray-800">
-                                        @if ($item->user && ($item->status === 'Used' || $item->status === 'On Progress'))
-                                            {{-- ⚠️ ASUMSI: $item->user->testProgress adalah relasi yang menyimpan status pengerjaan --}}
-                                            @php
-                                                // Ganti 'testProgress' sesuai dengan relasi atau data progress yang Anda miliki
-                                                $progress = $item->user->testProgress ?? null;
-                                                // Contoh data yang mungkin Anda tampilkan
-                                                $currentStep = $progress->current_module ?? 'Modul 1';
-                                                $percentage = $progress->percentage ?? 0;
-
-                                                // Jika status sudah Completed
-                                                if ($item->status === 'Completed' || $percentage >= 100) {
-                                                    $currentStep = 'Selesai';
-                                                    $percentage = 100;
-                                                }
-                                            @endphp
-
+                                        @if ($item->progress && $item->progress_percentage > 0)
+                                            {{-- Ada progress data --}}
                                             <div class="text-xs font-medium text-gray-600 truncate"
-                                                title="{{ $currentStep }}">
-                                                {{ $currentStep }} ({{ $percentage }}%)
+                                                title="{{ $item->progress_text }}">
+                                                {{ $item->progress_text }} ({{ $item->progress_percentage }}%)
                                             </div>
                                             <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                                 <div class="bg-blue-600 h-1.5 rounded-full"
-                                                    style="width: {{ $percentage }}%"></div>
+                                                    style="width: {{ $item->progress_percentage }}%"></div>
                                             </div>
+                                            @if ($item->progress->current_module)
+                                                <div class="text-xs text-gray-500 mt-1">
+                                                    Saat ini: {{ $item->progress->current_module }}
+                                                </div>
+                                            @endif
                                         @elseif($item->status === 'Completed')
-                                            <span class="text-green-600 font-semibold text-xs">Selesai (100%)</span>
+                                            <span class="text-green-600 font-semibold text-xs">Test Selesai (100%)</span>
+                                        @elseif($item->user)
+                                            <span class="text-gray-400 text-xs">{{ $item->progress_text }}</span>
                                         @else
                                             <span class="text-gray-400 text-xs">Belum Aktif</span>
                                         @endif
 
                                         {{-- Reset satu kode --}}
+                                        @if($item->user)
                                         <form method="POST" action="{{ route('admin.codes.reset', $item->id) }}"
                                             class="inline-block mt-2"
                                             onsubmit="return confirm('Reset kode ini? Aksi ini akan mengosongkan user & status akan kembali ke Pending.')">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit"
-                                                class="text-sm px-2 py-1 bg-yellow-100 text-yellow-800 rounded">Reset</button>
+                                                class="text-sm px-2 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200">Reset</button>
                                         </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

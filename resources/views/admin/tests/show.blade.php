@@ -103,10 +103,34 @@
                                         @if (!empty($alat->example_questions))
                                             <div class="mt-3 text-sm text-gray-700">
                                                 <strong>Soal Contoh:</strong>
-                                                <div class="mt-2">
-                                                    @foreach ($alat->example_questions as $q)
-                                                        <div class="py-1">-
-                                                            {{ is_array($q) ? $q['text'] ?? json_encode($q) : $q }}
+                                                <div class="mt-2 space-y-2">
+                                                    @foreach ($alat->example_questions as $index => $q)
+                                                        <div class="py-1 pl-2 border-l-2 border-gray-300">
+                                                            @if (is_array($q))
+                                                                {{-- Coba berbagai key yang mungkin ada --}}
+                                                                @if (isset($q['text']))
+                                                                    <span class="font-medium">{{ $index + 1 }}.</span> {{ $q['text'] }}
+                                                                @elseif (isset($q['question']))
+                                                                    <span class="font-medium">{{ $index + 1 }}.</span> {{ $q['question'] }}
+                                                                @elseif (isset($q['question_text']))
+                                                                    <span class="font-medium">{{ $index + 1 }}.</span> {{ $q['question_text'] }}
+                                                                @else
+                                                                    {{-- Tampilkan array dalam format yang lebih rapi --}}
+                                                                    <div class="text-gray-600">
+                                                                        <span class="font-medium">{{ $index + 1 }}.</span>
+                                                                        <div class="ml-4 mt-1">
+                                                                            @foreach ($q as $key => $value)
+                                                                                <div class="text-xs">
+                                                                                    <span class="font-semibold capitalize">{{ str_replace('_', ' ', $key) }}:</span>
+                                                                                    {{ is_array($value) ? implode(', ', $value) : $value }}
+                                                                                </div>
+                                                                            @endforeach
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+                                                            @else
+                                                                <span class="font-medium">{{ $index + 1 }}.</span> {{ $q }}
+                                                            @endif
                                                         </div>
                                                     @endforeach
                                                 </div>

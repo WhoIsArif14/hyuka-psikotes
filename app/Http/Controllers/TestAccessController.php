@@ -94,45 +94,38 @@ class TestAccessController extends Controller
                     ]);
             }
 
-            if ($activationCode->user_id) {
-                // --- KODE SUDAH PERNAH DIPAKAI (LOGIN USER LAMA) ---
-                $user = User::find($activationCode->user_id);
-                
-                // Cek apakah user ditemukan
-                if (!$user) {
-                    return back()
-                        ->withInput()
-                        ->withErrors([
-                            'kode_aktivasi_peserta' => 'User yang terhubung ke kode ini tidak ditemukan.'
-                        ]);
-                }
-
-                Log::info('Existing user logged in', [
-                    'user_id' => $user->id,
-                    'code' => $inputCode
-                ]);
-
-            } else {
-                // --- KODE BELUM PERNAH DIPAKAI (BUAT USER BARU) ---
-                
-                // 3. Buat User baru
-                $user = User::create([
-                    'name' => 'Peserta ' . $inputCode,
-                    'email' => $inputCode . '@temp.hyuka.com',
-                    'password' => Hash::make(Str::random(10)),
-                    'role' => 'user',
-                    'kode_aktivasi_peserta' => $inputCode, 
-                ]);
-
-                // 4. Kaitkan Kode Aktivasi dengan User yang baru dibuat
-                $activationCode->user_id = $user->id;
-                $activationCode->save();
-
-                Log::info('New user created and logged in', [
-                    'user_id' => $user->id,
-                    'code' => $inputCode
-                ]);
+            // ✅ VALIDASI: Kode harus SEKALI PAKAI
+            // Jika kode sudah punya user_id atau status bukan Pending, TOLAK
+            if ($activationCode->user_id || $activationCode->status !== 'Pending') {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'kode_aktivasi_peserta' => 'Kode aktivasi sudah digunakan dan tidak bisa dipakai lagi. Silakan hubungi admin untuk kode baru.'
+                    ]);
             }
+
+            // --- KODE BARU (BUAT USER BARU) ---
+
+            // 3. Buat User baru
+            $user = User::create([
+                'name' => 'Peserta ' . $inputCode,
+                'email' => $inputCode . '@temp.hyuka.com',
+                'password' => Hash::make(Str::random(10)),
+                'role' => 'user',
+                'kode_aktivasi_peserta' => $inputCode,
+            ]);
+
+            // 4. Kaitkan Kode Aktivasi dengan User yang baru dibuat DAN SET STATUS + USED_AT
+            $activationCode->user_id = $user->id;
+            $activationCode->status = 'Used';
+            $activationCode->used_at = now();
+            $activationCode->save();
+
+            Log::info('New user created and logged in', [
+                'user_id' => $user->id,
+                'code' => $inputCode,
+                'status' => 'Used'
+            ]);
             
             // 5. Login User dengan "remember me" untuk persistence
             Auth::login($user, true); // ✅ TAMBAHKAN true untuk remember
@@ -143,19 +136,15 @@ class TestAccessController extends Controller
             // ✅ SIMPAN data penting ke session
             session([
                 'current_activation_id' => $activationCode->id,
+                'activation_code_id' => $activationCode->id, // Untuk UserDataController
                 'activation_code' => $inputCode,
                 'login_time' => now()->timestamp,
             ]);
 
-            // ✅ TAMBAHAN: Flash message untuk user
-            $welcomeMessage = $activationCode->user_id ? 
-                'Selamat datang kembali!' : 
-                'Login berhasil! Silakan lengkapi data diri Anda.';
-
             // 6. Pengalihan ke halaman pengisian data diri
             return redirect()
                 ->route('user.data.edit')
-                ->with('success', $welcomeMessage);
+                ->with('success', 'Login berhasil! Silakan lengkapi data diri Anda.');
 
         } catch (\Exception $e) {
             Log::error('Login error', [

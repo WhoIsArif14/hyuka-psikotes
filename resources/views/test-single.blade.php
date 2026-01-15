@@ -244,16 +244,24 @@
                                         @if (is_array($options) && count($options) > 0)
                                             <div class="space-y-3">
                                                 @if ($question->hasMultipleCorrectAnswers())
-                                                    <p class="text-sm text-gray-600 mb-2">Centang <strong>satu atau
-                                                            lebih</strong> jawaban yang menurut Anda benar.</p>
+                                                    @php
+                                                        $correctAnswers = $question->correct_answers ?? [];
+                                                        $maxSelections = is_array($correctAnswers) ? count($correctAnswers) : 1;
+                                                    @endphp
+                                                    <p class="text-sm text-gray-600 mb-2">Pilih <strong>{{ $maxSelections }}</strong> jawaban yang menurut Anda benar.</p>
                                                     @foreach ($options as $index => $option)
+                                                        @php
+                                                            $isChecked = (is_array($savedAnswer) && in_array($index, $savedAnswer)) || $savedAnswer == $index;
+                                                        @endphp
                                                         <label
-                                                            class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
-                                       {{ (is_array($savedAnswer) && in_array($index, $savedAnswer)) || $savedAnswer == $index ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
+                                                            class="multi-choice-option flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors
+                                       {{ $isChecked ? 'bg-blue-50 border-blue-400' : 'border-gray-200' }}">
                                                             <input type="checkbox" name="answer[]"
                                                                 value="{{ $index }}"
-                                                                {{ (is_array($savedAnswer) && in_array($index, $savedAnswer)) || $savedAnswer == $index ? 'checked' : '' }}
-                                                                class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5">
+                                                                {{ $isChecked ? 'checked' : '' }}
+                                                                data-max-selections="{{ $maxSelections }}"
+                                                                onchange="limitCheckboxSelection(this, {{ $maxSelections }})"
+                                                                class="h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500 mt-0.5 multi-checkbox">
 
                                                             <div class="ml-3 text-gray-700 flex-1">
                                                                 <span
@@ -269,6 +277,7 @@
                                                             </div>
                                                         </label>
                                                     @endforeach
+                                                    <p id="selection-counter" class="text-xs text-gray-500 mt-2">Dipilih: <span id="selected-count">{{ is_array($savedAnswer) ? count($savedAnswer) : 0 }}</span> / {{ $maxSelections }}</p>
                                                 @else
                                                     @foreach ($options as $index => $option)
                                                         <label
@@ -516,60 +525,132 @@
             }
         });
 
-        // Windows/Mac Screenshot Tools
+        // Windows/Mac Screenshot Tools (IMPROVED)
         document.addEventListener('keydown', function(e) {
-            // Windows: Win + Shift + S
+            // Windows: Win + Shift + S (Snipping Tool)
             if ((e.key === 's' || e.key === 'S') && e.shiftKey && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
+                e.stopPropagation();
                 showViolationWarning({
                     type: 'screenshot_attempt',
                     text: '🚫 Screenshot Tool Windows Terdeteksi!<br><br>Penggunaan alat screenshot tidak diperbolehkan.',
                     details: 'Windows screenshot tool (Win+Shift+S)'
                 });
+                return false;
             }
 
-            // Mac: Cmd + Shift + 3/4/5
-            if ((e.key === '3' || e.key === '4' || e.key === '5') && e.shiftKey && e.metaKey) {
+            // Mac: Cmd + Shift + 3 (Full screen screenshot)
+            // Mac: Cmd + Shift + 4 (Selection screenshot)
+            // Mac: Cmd + Shift + 5 (Screenshot options)
+            // Mac: Cmd + Shift + 6 (Touch Bar screenshot)
+            if (e.metaKey && e.shiftKey && ['3', '4', '5', '6'].includes(e.key)) {
                 e.preventDefault();
+                e.stopPropagation();
+
+                // Blur the page to make screenshot useless
+                document.body.style.filter = 'blur(30px)';
+                document.body.style.pointerEvents = 'none';
+
                 showViolationWarning({
                     type: 'screenshot_attempt',
                     text: '🚫 Screenshot Mac Terdeteksi!<br><br>Penggunaan screenshot Mac tidak diperbolehkan.',
                     details: 'Mac screenshot (Cmd+Shift+' + e.key + ')'
                 });
+
+                // Restore after warning is dismissed
+                setTimeout(() => {
+                    document.body.style.filter = 'none';
+                    document.body.style.pointerEvents = 'auto';
+                }, 3000);
+
+                return false;
+            }
+
+            // Mac: Cmd + Ctrl + Shift + 3/4 (Copy to clipboard)
+            if (e.metaKey && e.ctrlKey && e.shiftKey && ['3', '4'].includes(e.key)) {
+                e.preventDefault();
+                e.stopPropagation();
+                showViolationWarning({
+                    type: 'screenshot_attempt',
+                    text: '🚫 Screenshot ke Clipboard Terdeteksi!<br><br>Menyalin screenshot tidak diperbolehkan.',
+                    details: 'Mac clipboard screenshot (Cmd+Ctrl+Shift+' + e.key + ')'
+                });
+                return false;
+            }
+        }, true); // Use capture phase for earlier detection
+
+        // Detect when window loses focus during potential screenshot
+        let lastBlurTime = 0;
+        window.addEventListener('blur', function() {
+            lastBlurTime = Date.now();
+        });
+
+        window.addEventListener('focus', function() {
+            const blurDuration = Date.now() - lastBlurTime;
+            // If blur was very short (< 500ms), might be screenshot tool
+            if (blurDuration > 0 && blurDuration < 500 && lastBlurTime > 0) {
+                logViolation('potential_screenshot', 'Suspicious short blur detected (' + blurDuration + 'ms)');
             }
         });
 
         // ====================================
-        // 2. TAB SWITCH DETECTION
+        // 2. TAB SWITCH DETECTION (IMPROVED)
         // ====================================
+        // Use Page Visibility API for better detection
         document.addEventListener('visibilitychange', function() {
-            if (document.hidden && !hasLeftPage) {
+            if (document.visibilityState === 'hidden' && !hasLeftPage) {
                 tabSwitchCount++;
+                document.getElementById('hidden-tab-switches').value = tabSwitchCount;
 
                 if (tabSwitchCount >= ANTI_CHEAT_CONFIG.MAX_TAB_SWITCHES) {
                     hasLeftPage = true;
+                    // Submit immediately without waiting for user interaction
+                    const form = document.getElementById('test-form');
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'action';
+                    input.value = 'submit';
+                    form.appendChild(input);
+
                     alert('⚠️ Anda telah meninggalkan halaman test ' + tabSwitchCount +
                         ' kali. Test akan otomatis diselesaikan!');
-                    document.getElementById('test-form').submit();
+                    form.submit();
                 } else {
-                    setTimeout(() => {
-                        if (!document.hidden) {
-                            showViolationWarning({
-                                type: 'tab_switch',
-                                text: `⚠️ Anda Meninggalkan Halaman Test!<br><br>Peringatan ${tabSwitchCount} dari ${ANTI_CHEAT_CONFIG.MAX_TAB_SWITCHES}.<br>Tetap fokus pada halaman ini!`,
-                                details: `Tab switch #${tabSwitchCount}`
-                            });
-                        }
-                    }, 500);
+                    // Show warning when user returns
+                    sessionStorage.setItem('pendingViolationWarning', JSON.stringify({
+                        type: 'tab_switch',
+                        text: `⚠️ Anda Meninggalkan Halaman Test!<br><br>Peringatan ${tabSwitchCount} dari ${ANTI_CHEAT_CONFIG.MAX_TAB_SWITCHES}.<br>Tetap fokus pada halaman ini!`,
+                        details: `Tab switch #${tabSwitchCount}`
+                    }));
+                }
+            } else if (document.visibilityState === 'visible') {
+                // Check if there's a pending warning
+                const pendingWarning = sessionStorage.getItem('pendingViolationWarning');
+                if (pendingWarning) {
+                    sessionStorage.removeItem('pendingViolationWarning');
+                    const warning = JSON.parse(pendingWarning);
+                    showViolationWarning(warning);
                 }
             }
         });
 
+        // Also detect window blur (for minimize, etc.)
         window.addEventListener('blur', function() {
-            if (!hasLeftPage) {
-                logViolation('window_blur', 'Window lost focus');
+            if (!hasLeftPage && !document.hidden) {
+                logViolation('window_blur', 'Window lost focus (minimize or switch)');
             }
         });
+
+        // Prevent back button navigation after violation
+        (function() {
+            history.pushState(null, null, location.href);
+            window.addEventListener('popstate', function(event) {
+                history.pushState(null, null, location.href);
+                if (violationCount > 0) {
+                    alert('⚠️ Anda tidak dapat kembali ke halaman sebelumnya selama tes berlangsung.');
+                }
+            });
+        })();
 
         // ====================================
         // 3. RIGHT CLICK PREVENTION
@@ -622,14 +703,45 @@
             'color: red; font-size: 16px;');
 
         // ====================================
-        // 7. TIMER FUNCTIONALITY (Original + Enhanced)
+        // 7. TIMER FUNCTIONALITY (IMPROVED - Server Time Sync)
         // ====================================
-        function timer(seconds) {
+        function timer(serverSeconds) {
             return {
-                timeLeft: seconds,
+                timeLeft: serverSeconds,
+                startTime: Date.now(),
+                initialSeconds: serverSeconds,
+                intervalId: null,
+
                 startTimer() {
-                    const interval = setInterval(() => {
-                        this.timeLeft--;
+                    // Store start time for drift correction
+                    this.startTime = Date.now();
+                    this.initialSeconds = serverSeconds;
+
+                    // Save to sessionStorage for page refresh persistence
+                    const storageKey = 'timer_{{ $test->id }}_{{ $alatTes->id }}';
+                    const savedTimer = sessionStorage.getItem(storageKey);
+
+                    if (savedTimer) {
+                        const saved = JSON.parse(savedTimer);
+                        const elapsed = Math.floor((Date.now() - saved.startTime) / 1000);
+                        this.timeLeft = Math.max(0, saved.initialSeconds - elapsed);
+                    } else {
+                        sessionStorage.setItem(storageKey, JSON.stringify({
+                            startTime: this.startTime,
+                            initialSeconds: this.initialSeconds
+                        }));
+                    }
+
+                    this.intervalId = setInterval(() => {
+                        // Calculate based on actual elapsed time (drift-proof)
+                        const savedData = sessionStorage.getItem(storageKey);
+                        if (savedData) {
+                            const saved = JSON.parse(savedData);
+                            const elapsed = Math.floor((Date.now() - saved.startTime) / 1000);
+                            this.timeLeft = Math.max(0, saved.initialSeconds - elapsed);
+                        } else {
+                            this.timeLeft--;
+                        }
 
                         // Warning saat 5 menit tersisa
                         if (this.timeLeft === 300) {
@@ -641,10 +753,17 @@
                             alert('⚠️ Perhatian! Waktu tersisa 5 menit!');
                         }
 
+                        // Warning saat 1 menit tersisa
+                        if (this.timeLeft === 60) {
+                            alert('⚠️ Perhatian! Waktu tersisa 1 menit!');
+                        }
+
                         // Auto submit saat waktu habis
                         if (this.timeLeft <= 0) {
-                            clearInterval(interval);
+                            clearInterval(this.intervalId);
                             this.timeLeft = 0;
+                            sessionStorage.removeItem(storageKey);
+
                             if (!hasLeftPage) {
                                 hasLeftPage = true;
                                 alert('⏰ Waktu habis! Test akan otomatis di-submit.');
@@ -659,6 +778,7 @@
                         }
                     }, 1000);
                 },
+
                 formatTime() {
                     const hours = Math.floor(this.timeLeft / 3600);
                     const minutes = Math.floor((this.timeLeft % 3600) / 60);
@@ -740,6 +860,53 @@
                 form.submit();
             }
         }
+
+        // ====================================
+        // 11. MULTIPLE CHOICE LIMIT
+        // ====================================
+        function limitCheckboxSelection(checkbox, maxSelections) {
+            const checkboxes = document.querySelectorAll('.multi-checkbox');
+            const checkedCount = document.querySelectorAll('.multi-checkbox:checked').length;
+            const counterEl = document.getElementById('selected-count');
+
+            // Update counter
+            if (counterEl) {
+                counterEl.textContent = checkedCount;
+            }
+
+            // If trying to check more than max, prevent it
+            if (checkedCount > maxSelections) {
+                checkbox.checked = false;
+                alert(`Anda hanya dapat memilih maksimal ${maxSelections} jawaban.`);
+
+                // Update counter again
+                if (counterEl) {
+                    counterEl.textContent = checkedCount - 1;
+                }
+                return false;
+            }
+
+            // Update visual styling
+            updateCheckboxStyles();
+        }
+
+        function updateCheckboxStyles() {
+            document.querySelectorAll('.multi-choice-option').forEach(label => {
+                const checkbox = label.querySelector('.multi-checkbox');
+                if (checkbox && checkbox.checked) {
+                    label.classList.add('bg-blue-50', 'border-blue-400');
+                    label.classList.remove('border-gray-200');
+                } else {
+                    label.classList.remove('bg-blue-50', 'border-blue-400');
+                    label.classList.add('border-gray-200');
+                }
+            });
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            updateCheckboxStyles();
+        });
     </script>
 
     {{-- CSS Animations --}}

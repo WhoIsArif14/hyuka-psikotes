@@ -115,7 +115,7 @@ class ActivationCodeController extends Controller
         // Ambil semua kode yang ada dalam batch yang sama (gunakan batch_code kalau ada)
         if ($code->batch_code) {
             $batchCodes = ActivationCode::where('batch_code', $code->batch_code)
-                ->with('test', 'user', 'user.testProgress')
+                ->with(['test', 'user'])
                 ->orderBy('code')
                 ->get();
         } else {
@@ -126,10 +126,49 @@ class ActivationCodeController extends Controller
                     $timeRange->copy()->subMinute(),
                     $timeRange->copy()->addMinute()
                 ])
-                ->with('test', 'user', 'user.testProgress')
+                ->with(['test', 'user'])
                 ->orderBy('code')
                 ->get();
         }
+
+        // Enrich dengan data progress untuk setiap kode
+        $batchCodes->each(function ($item) {
+            if ($item->user && $item->test_id) {
+                // Ambil progress terbaru untuk user dan test ini
+                $progress = \App\Models\ProgressPengerjaan::where('user_id', $item->user_id)
+                    ->where('test_id', $item->test_id)
+                    ->latest()
+                    ->first();
+
+                if ($progress) {
+                    $item->progress = $progress;
+
+                    // Hitung total alat tes dan yang sudah selesai
+                    $test = \App\Models\Test::find($item->test_id);
+                    if ($test) {
+                        $totalAlatTes = $test->alatTes()->count();
+                        $completedAlatTes = \App\Models\ProgressPengerjaan::where('user_id', $item->user_id)
+                            ->where('test_id', $item->test_id)
+                            ->where('status', 'Completed')
+                            ->distinct('alat_tes_id')
+                            ->count('alat_tes_id');
+
+                        $item->progress_percentage = $totalAlatTes > 0
+                            ? round(($completedAlatTes / $totalAlatTes) * 100)
+                            : 0;
+                        $item->progress_text = "{$completedAlatTes}/{$totalAlatTes} Alat Tes";
+                    }
+                } else {
+                    $item->progress = null;
+                    $item->progress_percentage = 0;
+                    $item->progress_text = 'Belum Dimulai';
+                }
+            } else {
+                $item->progress = null;
+                $item->progress_percentage = 0;
+                $item->progress_text = 'Belum Aktif';
+            }
+        });
 
         return view('admin.codes.show', [
             'code' => $code,

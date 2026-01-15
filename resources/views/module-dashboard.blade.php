@@ -192,7 +192,7 @@
 
             {{-- TOMBOL LOGOUT --}}
             <div class="mt-8 text-center">
-                <form method="POST" action="{{ route('logout') }}" class="inline">
+                <form method="POST" action="{{ route('logout') }}" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin keluar? Progress tes Anda yang belum diselesaikan akan tersimpan.')">
                     @csrf
                     <button type="submit"
                             class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 mx-auto">

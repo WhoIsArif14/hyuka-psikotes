@@ -34,11 +34,19 @@ class CustomLoginController extends Controller
             'activation_code.required' => 'Kode Aktivasi wajib diisi.',
         ]);
         
-        // Bersihkan tanda hubung ('-') dan kapitalisasi input
-        $inputCode = strtoupper(str_replace('-', '', $request->activation_code));
+        // Normalisasi input: kapitalisasi dan format dengan dash jika perlu
+        $inputCode = strtoupper(trim($request->activation_code));
 
-        // 1. CARI KODE AKTIVASI di tabel activation_codes
-        $activationCode = ActivationCode::where('code', $inputCode)->first();
+        // Jika user input tanpa dash, tambahkan dash di posisi yang benar (XXXX-XXXX)
+        $inputCodeNoDash = str_replace('-', '', $inputCode);
+        if (strlen($inputCodeNoDash) === 8 && !str_contains($inputCode, '-')) {
+            $inputCode = substr($inputCodeNoDash, 0, 4) . '-' . substr($inputCodeNoDash, 4, 4);
+        }
+
+        // 1. CARI KODE AKTIVASI di tabel activation_codes (coba dengan dan tanpa dash)
+        $activationCode = ActivationCode::where('code', $inputCode)
+            ->orWhere('code', $inputCodeNoDash)
+            ->first();
 
         if (!$activationCode) {
             throw ValidationException::withMessages([
@@ -48,53 +56,43 @@ class CustomLoginController extends Controller
         
         $user = null;
 
-        // 2. TENTUKAN STATUS KODE: Sudah terpakai atau belum?
-        if ($activationCode->user_id) {
-            // --- KODE SUDAH PERNAH DIPAKAI (LOGIN USER LAMA) ---
-            
-            // Cek kadaluarsa (opsional, tergantung kebijakan Anda)
-            if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
-                 throw ValidationException::withMessages([
-                    'activation_code' => ['Kode sudah kadaluarsa.'],
-                ]);
-            }
-            
-            $user = User::find($activationCode->user_id);
-            if (!$user) {
-                 // Jika user sudah terhapus tapi kode masih terikat
-                 throw ValidationException::withMessages([
-                    'activation_code' => ['Data user terkait kode tidak ditemukan. Silakan hubungi admin.'],
-                ]);
-            }
-
-        } else {
-            // --- KODE BELUM PERNAH DIPAKAI (BUAT USER BARU) ---
-
-            // Cek kadaluarsa sebelum membuat user baru
-            if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
-                 throw ValidationException::withMessages([
-                    'activation_code' => ['Kode sudah kadaluarsa.'],
-                ]);
-            }
-            
-            // 3. Buat User baru di tabel 'users'
-            $user = User::create([
-                'name' => 'Peserta ' . $inputCode,
-                'email' => $inputCode . '@temp.hyuka.com', 
-                'password' => Hash::make(Str::random(10)), 
-                'role' => 'user',
-                'kode_aktivasi_peserta' => $inputCode, // Disimpan untuk referensi, bukan untuk validasi login
+        // 2. KODE HARUS BENAR-BENAR SEKALI PAKAI
+        // Jika kode sudah pernah digunakan (punya user_id atau status bukan Pending), TOLAK
+        if ($activationCode->user_id || $activationCode->status !== 'Pending') {
+            throw ValidationException::withMessages([
+                'activation_code' => ['Kode aktivasi sudah digunakan dan tidak bisa dipakai lagi. Silakan hubungi admin untuk kode baru.'],
             ]);
-
-            // 4. Kaitkan Kode Aktivasi dengan User yang baru dibuat
-            $activationCode->user_id = $user->id;
-            $activationCode->save();
         }
+
+        // Cek kadaluarsa sebelum membuat user baru
+        if ($activationCode->expires_at && $activationCode->expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'activation_code' => ['Kode sudah kadaluarsa.'],
+            ]);
+        }
+
+        // 3. Buat User baru di tabel 'users'
+        $user = User::create([
+            'name' => 'Peserta ' . $inputCode,
+            'email' => $inputCode . '@temp.hyuka.com',
+            'password' => Hash::make(Str::random(10)),
+            'role' => 'user',
+            'kode_aktivasi_peserta' => $inputCode,
+        ]);
+
+        // 4. Kaitkan Kode Aktivasi dengan User yang baru dibuat dan set tanggal penggunaan
+        $activationCode->user_id = $user->id;
+        $activationCode->status = 'Used';
+        $activationCode->used_at = now();
+        $activationCode->save();
         
         // 5. Login User
-        Auth::login($user); 
+        Auth::login($user);
         $request->session()->regenerate();
-        
+
+        // Simpan activation code ID di session untuk digunakan saat update data diri
+        $request->session()->put('activation_code_id', $activationCode->id);
+
         // Pengalihan ke halaman pengisian data diri (UserDataController@edit)
         return redirect()->route('user.data.edit'); 
     }
